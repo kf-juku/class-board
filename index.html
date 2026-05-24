@@ -1,0 +1,3144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Board – クロフネ</title>
+<style>
+:root {
+  --crimson: #C6000B;
+  --primary: #C6000B;
+  --crimson-dark: #A00008;
+  --crimson-light: #FFF0F0;
+  --surface: #f4f6f9;
+  --border: #dde3ec;
+  --text: #1a2535;
+  --text-muted: #5a6a7e;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  --radius: 10px;
+  --nav-width: 158px;
+  /* 教室カラー */
+  --kitakurihama-bg: #e8f4fd;
+  --kitakurihama-header: #2a8bbf;
+  --kitakurihama-border: #aed6f1;
+  --kurihama-bg: #fff4e8;
+  --kurihama-header: #d4813a;
+  --kurihama-border: #f5cba7;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background: var(--surface); color: var(--text); display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
+
+/* サイドナビ */
+#side-nav {
+  width: var(--nav-width); min-width: var(--nav-width);
+  background: #fff; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; height: 100vh;
+  box-shadow: var(--shadow-sm); z-index: 10;
+}
+.nav-logo {
+  background: var(--crimson); color: #fff;
+  padding: 16px 12px; font-weight: 700; font-size: 15px; letter-spacing: .5px;
+}
+.nav-logo small { display: block; font-size: 10px; font-weight: 400; opacity: .8; margin-top: 2px; }
+.nav-items { flex: 1; padding: 8px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px; cursor: pointer;
+  color: var(--text-muted); font-size: 13px; font-weight: 500;
+  transition: background .15s, color .15s; border-left: 3px solid transparent;
+}
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active { background: var(--crimson-light); color: var(--crimson); border-left-color: var(--crimson); font-weight: 700; }
+.nav-item .icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-item .icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nav-footer { padding: 12px; border-top: 1px solid var(--border); }
+.nav-footer .last-loaded { font-size: 10px; color: var(--text-muted); }
+
+/* コンテンツエリア */
+#content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
+.content-inner { flex: 1; padding: 20px 24px; }
+
+/* トップバー */
+.top-bar {
+  background: #fff; border-bottom: 1px solid var(--border);
+  padding: 10px 24px; display: flex; align-items: center; justify-content: space-between;
+  box-shadow: var(--shadow-sm); flex-shrink: 0;
+}
+.top-bar .page-title { font-size: 15px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.top-bar-center { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: .02em; flex: 1; text-align: center; }
+.top-bar-right { display: flex; align-items: center; gap: 8px; }
+
+/* ボタン */
+.btn-primary { background: var(--crimson); color: #fff; border: none; padding: 7px 16px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; transition: background .15s; }
+.btn-primary:hover { background: var(--crimson-dark); }
+.btn-secondary { background: #fff; color: var(--text); border: 1px solid var(--border); padding: 7px 16px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background .15s; }
+.btn-secondary:hover { background: var(--surface); }
+.btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+.btn-danger { background: #dc2626; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.btn-danger:hover { background: #b91c1c; }
+
+/* バッジ */
+.badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-red { background: var(--crimson-light); color: var(--crimson); }
+.badge-blue { background: #eff6ff; color: #2563eb; }
+.badge-green { background: #f0fdf4; color: #16a34a; }
+.badge-orange { background: #fff7ed; color: #ea580c; }
+.badge-gray { background: #f1f5f9; color: #64748b; }
+.badge-purple { background: #faf5ff; color: #7c3aed; }
+
+/* GAS設定ヘルプチップ */
+.gs-help { position: relative; display: inline-block; margin-left: 6px; vertical-align: middle; }
+.gs-help-icon { display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; background: var(--text-muted);
+  color: #fff; font-size: 10px; font-weight: 700; cursor: default; line-height: 1; }
+.gs-help-body { display: none; position: fixed; top: -9999px; left: -9999px;
+  background: #1a2535; color: #fff; border-radius: 8px;
+  padding: 10px 13px; font-size: 12px; line-height: 1.7; font-weight: 400;
+  min-width: 260px; max-width: 320px; z-index: 9999;
+  white-space: normal; pointer-events: none; }
+.gs-help:hover .gs-help-icon { background: var(--crimson); }
+
+/* 学校ワークチェックテーブル */
+.subj-btn { padding:5px 12px; border:1px solid var(--border); border-radius:20px; background:#f3f4f6; color:var(--text); font-size:12px; cursor:pointer; transition:all .15s; }
+.subj-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.work-check-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.work-check-table th { background: var(--surface); color: var(--text-muted); font-size: 11px; font-weight: 700; padding: 5px 8px; text-align: center; border: 1px solid var(--border); }
+.work-check-table td { padding: 4px 6px; border: 1px solid var(--border); text-align: center; vertical-align: middle; }
+.work-check-table tr:hover td { background: #fafbfc; }
+
+/* アラートバナー */
+.alert-banner { border-radius: var(--radius); padding: 8px 12px; margin-bottom: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: default; border-left-width: 4px; border-left-style: solid; border-top: 1px solid; border-right: 1px solid; border-bottom: 1px solid; }
+.alert-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  max-width: 320px;
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  z-index: 600;
+  box-shadow: 0 6px 16px rgba(0,0,0,.35);
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  white-space: normal;
+}
+.alert-banner:hover .alert-popup { display: flex; }
+.alert-popup-title { font-weight: 700; font-size: 12px; line-height: 1.4; }
+.alert-popup-date  { font-size: 11px; color: #9ca3af; }
+.alert-popup-students { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+
+/* 今日タブ */
+.today-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.classroom-block { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: visible; }
+.classroom-block-header { background: var(--crimson); color: #fff; padding: 10px 14px; font-weight: 700; font-size: 14px; }
+/* 教室カラー：今日タブ */
+.classroom-block.cr-kita { background: var(--kitakurihama-bg); border-color: var(--kitakurihama-border); }
+.classroom-block.cr-kita .classroom-block-header { background: var(--kitakurihama-header); }
+.classroom-block.cr-kuri { background: var(--kurihama-bg); border-color: var(--kurihama-border); }
+.classroom-block.cr-kuri .classroom-block-header { background: var(--kurihama-header); }
+/* 教室カラー：今週タブ（セルのみ） */
+.week-grid.cr-kita { border-color: var(--kitakurihama-border); }
+.week-grid.cr-kuri { border-color: var(--kurihama-border); }
+.koma-block { border-bottom: 1px solid var(--border); }
+.koma-block:last-child { border-bottom: none; }
+.koma-time { font-size: 11px; color: var(--text-muted); padding: 8px 12px 4px; font-weight: 600; background: #fafbfc; border-bottom: 1px dashed var(--border); }
+.koma-students { padding: 8px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.koma-empty { padding: 14px 12px; font-size: 12px; color: #bbb; }
+
+/* 生徒チップ（1行圧縮） */
+.student-chip {
+  background: #fff; border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 5px; font-size: 11px;
+  display: flex; align-items: center; gap: 3px;
+  white-space: nowrap; position: relative; cursor: default;
+  width: 100%; overflow: visible;
+}
+.student-chip .s-name { font-weight: 700; color: var(--text); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; max-width: 5.5em; }
+.student-chip .s-sub { font-size: 10px; color: var(--text-muted); flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.student-chip .s-badges { display: inline-flex; gap: 3px; flex-shrink: 0; margin-left: auto; }
+
+/* ホバーポップアップ */
+/* .student-chip .s-popup はデータ保持用。表示はglobal-s-popupが担当 */
+.student-chip .s-popup { display: none !important; }
+/* s-popup hover: JS制御に変更済み */
+.student-chip .s-popup .sp-row { margin-bottom: 4px; }
+.student-chip .s-popup .sp-label { font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 1px; }
+.student-chip .s-popup .sp-kana { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; letter-spacing: .05em; }
+.student-chip .s-popup .sp-val { font-size: 12px; color: var(--text); }
+
+/* タスクリスト */
+.task-list { list-style: none; }
+.task-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.task-item:last-child { border-bottom: none; }
+.task-check { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+.task-text { flex: 1; }
+.task-title { font-size: 13px; font-weight: 500; }
+.task-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.task-overdue { color: var(--crimson); }
+
+/* モードタブ */
+.mode-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.mode-tab { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-muted); transition: all .15s; display: flex; align-items: center; gap: 6px; }
+.mode-tab:hover { background: var(--surface); }
+.mode-tab.active { background: var(--crimson); color: #fff; border-color: var(--crimson); }
+.mode-tab .del-btn { font-size: 14px; line-height: 1; opacity: .7; cursor: pointer; }
+.mode-tab .del-btn:hover { opacity: 1; }
+.mode-add-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px dashed var(--border); background: transparent; color: var(--text-muted); }
+.mode-add-btn:hover { background: var(--surface); }
+
+/* 教室タブ */
+.classroom-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.classroom-tab { padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 2px solid var(--border); background: #fff; color: var(--text-muted); transition: all .15s; }
+.classroom-tab:hover { background: var(--surface); }
+/* 北久里浜：水色 */
+.classroom-tab.cr-kita { border-color: var(--kitakurihama-border); color: var(--kitakurihama-header); }
+.classroom-tab.cr-kita.active { background: var(--kitakurihama-header); color: #fff; border-color: var(--kitakurihama-header); box-shadow: 0 2px 8px rgba(42,139,191,.3); }
+/* 久里浜：オレンジ */
+.classroom-tab.cr-kuri { border-color: var(--kurihama-border); color: var(--kurihama-header); }
+.classroom-tab.cr-kuri.active { background: var(--kurihama-header); color: #fff; border-color: var(--kurihama-header); box-shadow: 0 2px 8px rgba(212,129,58,.3); }
+
+
+/* 週ナビ */
+.week-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.week-nav .week-label { font-size: 14px; font-weight: 700; }
+
+/* 週グリッド */
+.week-grid-wrap { overflow-x: hidden; width: 100%; }
+.week-grid { display: grid; width: 100%; border: 1px solid var(--border); border-radius: var(--radius); overflow: visible; background: #fff; }
+
+/* ヘッダー行（曜日・日付）：白背景・濃い文字 */
+.wg-head { background: #fff; font-weight: 700; font-size: 11px; color: var(--text); text-align: center; padding: 6px 2px; border-right: 1px solid var(--border); border-bottom: 2px solid var(--border); }
+.wg-head:last-child { border-right: none; }
+.wg-head .wg-date { font-size: 10px; font-weight: 400; color: var(--text-muted); margin-top: 1px; }
+
+/* 今日列ヘッダー：クリムゾン背景・白文字ではっきり示す */
+.wg-head.today-col { background: var(--crimson); color: #fff; }
+.wg-head.today-col .wg-date { color: rgba(255,255,255,0.8); }
+
+/* 時間ラベル列：白背景・濃い文字 */
+.wg-label { background: #fff; font-weight: 700; font-size: 10px; color: var(--text); display: flex; align-items: center; padding: 4px 5px; border-right: 2px solid var(--border); border-bottom: 1px solid var(--border); white-space: nowrap; }
+
+/* セル：デフォルト白、今日列だけ薄黄 */
+.wg-cell { background: #fff; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 3px 4px; font-size: 11px; min-height: 40px; display: flex; flex-direction: column; gap: 2px; overflow: visible; }
+.wg-cell:last-child { border-right: none; }
+.wg-cell.today-col { background: #fffce8; border-left: 2px solid var(--crimson); }
+
+/* 教室カラーはセルのみ（ヘッダー・ラベルは白のまま） */
+.week-grid.cr-kita .wg-cell:not(.today-col) { background: var(--kitakurihama-bg); }
+.week-grid.cr-kuri .wg-cell:not(.today-col) { background: var(--kurihama-bg); }
+
+/* 空の日（1日まるごと生徒なし）列：細くしてグレーアウト */
+.wg-head.day-empty { background: #efefef !important; color: #aaa !important; padding: 4px 2px; font-size: 10px; text-align: center; line-height: 1.3; }
+.wg-head.day-empty .wg-date { font-size: 9px; color: #bbb; margin-top: 1px; }
+.wg-cell.day-empty { background: #f4f4f4 !important; min-height: 0; padding: 0; border-color: #e4e4e4; }
+.wg-cell-no-koma { background: repeating-linear-gradient(135deg, #f4f4f4, #f4f4f4 4px, #ebebeb 4px, #ebebeb 8px) !important; min-height: 40px; }
+.wg-cell.day-empty.today-col { border-left: 2px solid var(--crimson); }
+
+.wg-task-chip { color: var(--text-muted); margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
+.wg-task-chip .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--crimson); flex-shrink: 0; }
+
+/* 月タブ */
+.month-week { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; background: #fff; }
+.month-week-header { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 13px; border-radius: var(--radius); }
+.month-week-header:hover { background: var(--surface); }
+.month-week-body { padding: 12px 16px; border-top: 1px solid var(--border); }
+.month-week-body.collapsed { display: none; }
+
+/* 学校マスタ */
+.school-list { display: grid; gap: 12px; }
+/* 学校サマリーカード グリッド */
+.school-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.school-summary-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; transition: box-shadow .15s, border-color .15s; }
+.school-summary-card:hover { box-shadow: var(--shadow-md); border-color: var(--primary); }
+.ssc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.ssc-name { font-weight: 700; font-size: 14px; }
+.ssc-count { font-size: 12px; color: var(--text-muted); }
+.ssc-row { font-size: 12px; margin-bottom: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ssc-badge { padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.ssc-badge-none { background: #fee2e2; color: #991b1b; }
+.ssc-badge-popup {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 8px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 500;
+  min-width: 130px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  pointer-events: none;
+}
+.ssc-badge-none:hover .ssc-badge-popup { display: flex; flex-direction: column; gap: 4px; }
+.ssc-event { color: #1d4ed8; }
+.ssc-test  { color: #6b21a8; }
+
+/* 学校詳細パネル（右スライド） */
+.school-detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 150; }
+.school-detail-overlay.open { display: block; }
+.school-detail-panel { position: fixed; top: 0; right: 0; width: 600px; max-width: 95vw; height: 100vh; background: #fff; z-index: 151; box-shadow: -4px 0 24px rgba(0,0,0,.15); display: flex; flex-direction: column; transform: translateX(100%); transition: transform .25s; }
+.school-detail-overlay.open .school-detail-panel { transform: translateX(0); }
+.sdp-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sdp-title { font-weight: 700; font-size: 16px; }
+.sdp-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.sdp-section { margin-bottom: 20px; }
+.sdp-section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+
+.sc-school-section-header {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 10px 14px; background: var(--surface); border-radius: var(--radius);
+  margin-bottom: 10px; border: 1px solid var(--border); font-weight: 700; font-size: 14px;
+  user-select: none;
+}
+.sc-school-section-header:hover { background: #e8eaf0; }
+.sc-section-toggle-icon { font-size: 11px; color: var(--text-muted); width: 12px; }
+.school-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+.school-card-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-radius: var(--radius); }
+.school-card-header:hover { background: var(--surface); }
+.school-card-header .sc-name { font-weight: 700; font-size: 15px; }
+.school-card-body { padding: 14px 16px; border-top: 1px solid var(--border); display: none; }
+.school-card-body.open { display: block; }
+.sc-section { margin-bottom: 16px; }
+.sc-section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.sc-memo { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px; resize: vertical; min-height: 70px; }
+.test-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.test-item:last-child { border-bottom: none; }
+.enrolled-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.enrolled-chip { background: var(--surface); border-radius: 5px; padding: 3px 8px; font-size: 12px; color: var(--text-muted); }
+/* 学年タブ */
+.sc-grade-tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+.sc-grade-tab { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-muted); }
+.sc-grade-tab.active { background: var(--text); color: #fff; border-color: var(--text); }
+/* テスト種別タブ */
+.sc-test-tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.sc-test-tab { padding: 3px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-muted); }
+.sc-test-tab.active { background: #b45309; color: #fff; border-color: #b45309; }
+/* 教科メモグリッド */
+.sc-subject-grid { display: grid; gap: 8px; }
+.sc-subject-row { display: grid; grid-template-columns: 50px 1fr; gap: 8px; align-items: start; }
+.sc-subject-label { font-size: 12px; font-weight: 700; color: var(--text-muted); padding-top: 8px; }
+.sc-subject-memo { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 12px; resize: vertical; min-height: 52px; line-height: 1.5; font-family: inherit; }
+.sc-subject-memo:focus { outline: none; border-color: #b45309; box-shadow: 0 0 0 2px rgba(180,83,9,.15); }
+
+/* タスク1行バー */
+.task-bar {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: visible;
+}
+.task-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbfc;
+}
+.task-bar-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.task-bar-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: visible;
+}
+.task-bar-col {
+  padding: 10px 14px;
+  overflow: visible;
+}
+.task-bar-col + .task-bar-col {
+  border-left: 1px solid var(--border);
+}
+.task-bar-col-header {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid;
+}
+.task-bar-col.col-kita .task-bar-col-header { color: var(--kitakurihama-header); border-color: var(--kitakurihama-border); }
+.task-bar-col.col-kuri .task-bar-col-header { color: var(--kurihama-header);     border-color: var(--kurihama-border); }
+.task-bar-section { margin-bottom: 6px; }
+.task-bar-section:last-child { margin-bottom: 0; }
+.task-bar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 3px;
+}
+.task-bar-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.task-chip-1line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  line-height: 1.4;
+  position: relative;
+  cursor: pointer;
+}
+/* タスクホバーポップアップ */
+.task-chip-1line .t-popup {
+  display: none; position: fixed; top: -9999px; left: -9999px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: var(--shadow-md); padding: 10px 12px; min-width: 200px; max-width: 280px;
+  font-size: 12px; color: var(--text); z-index: 9999; white-space: normal; line-height: 1.6;
+  pointer-events: none;
+}
+/* t-popup hover: JS制御に変更済み */
+.t-popup-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.t-popup-row { display: flex; gap: 6px; margin-bottom: 3px; }
+.t-popup-label { font-size: 10px; font-weight: 700; color: var(--text-muted); width: 50px; flex-shrink: 0; padding-top: 1px; }
+.t-popup-val { font-size: 12px; color: var(--text); flex: 1; }
+.t-popup-memo { margin-top: 6px; background: var(--surface); border-radius: 5px; padding: 6px 8px; font-size: 11px; white-space: pre-wrap; }
+.chip-in      { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.chip-out     { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+.chip-overdue { background: #fff1f1; color: var(--crimson); border: 1px solid #fecaca; }
+.task-bar-empty { font-size: 12px; color: var(--text-muted); padding: 2px 0; }
+
+/* 今週タブ：ヘッダー直下タスクエリア */
+.wg-head-task {
+  background: #f0f4f8;
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  padding: 3px 4px;
+  min-height: 20px;
+  font-size: 10px;
+}
+.wg-head-task.wg-label-cell {
+  background: #f8f9fb;
+  border-left: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.wg-head-task.today-col { background: #fff8f0; }
+.wg-task-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.4;
+  padding: 1px 0;
+}
+.dot-in  { background: #16a34a; }
+.dot-out { background: #ca8a04; }
+.dot-red { background: var(--crimson); }
+
+/* 設定タブ */
+.setting-section { margin-bottom: 20px; }
+.setting-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+.setting-input { width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; font-size: 13px; }
+.mode-list-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border: 1px solid var(--border); border-radius: 7px; margin-bottom: 6px; background: #fff; }
+
+/* モーダル */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 300; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-md); width: 440px; max-width: 95vw; }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+.modal-close { cursor: pointer; font-size: 20px; color: var(--text-muted); }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; }
+.form-input { width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; font-size: 13px; }
+.radio-group { display: flex; gap: 16px; }
+.radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+.grade-checks { display: flex; gap: 10px; flex-wrap: wrap; }
+.grade-checks label { display: flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; }
+
+/* カード */
+.card { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.card-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.card-body { padding: 14px 16px; }
+
+/* トースト */
+#mini-toast { position: fixed; bottom: 20px; right: 20px; background: #1a2535; color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+#mini-toast.show { opacity: 1; }
+
+/* ローディング */
+#loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.7); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 12px; pointer-events: none; }
+#loading-overlay.show { display: flex; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--crimson); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* スマホ */
+@media (max-width: 640px) {
+  #side-nav { display: none; }
+  .today-grid { grid-template-columns: 1fr; }
+}
+
+/* 印刷 */
+@media print {
+  @page { margin: 6mm; }
+
+  /* 非表示 */
+  #side-nav, .top-bar, .mode-tabs, .mode-add-btn,
+  .btn-primary, .btn-secondary, .week-nav, .classroom-tabs,
+  .modal-overlay, .s-popup, .t-popup,
+  .alert-banner { display: none !important; }
+
+  /* レイアウトリセット */
+  body { display: block !important; height: auto !important; overflow: visible !important;
+         background: #fff !important; font-size: 10px !important; }
+  #content { overflow: visible !important; flex: none !important; padding: 0 !important; }
+  #main-content { padding: 4mm !important; }
+
+  /* 今日タブ：2列グリッドをそのまま1枚に */
+  .today-grid { display: grid !important; grid-template-columns: 1fr 1fr !important;
+                gap: 4mm !important; page-break-inside: avoid; }
+  .classroom-block { box-shadow: none !important; break-inside: avoid; }
+  .classroom-block-header { padding: 4px 8px !important; font-size: 11px !important; }
+  .koma-time { padding: 4px 8px 2px !important; font-size: 9px !important; }
+  .koma-students { padding: 4px 8px !important; gap: 3px !important; grid-template-columns: 1fr 1fr !important; }
+
+  /* 今週タブ：グリッドを1枚に */
+  .week-grid-wrap { overflow: visible !important; width: 100% !important; }
+  .week-grid { overflow: visible !important; font-size: 9px !important; break-inside: avoid; }
+  .wg-head { padding: 4px 2px !important; font-size: 9px !important; }
+  .wg-head .wg-date { font-size: 8px !important; margin-top: 0 !important; }
+  .wg-label { padding: 2px 4px !important; font-size: 8px !important; }
+  .wg-cell { padding: 2px 3px !important; min-height: 30px !important; gap: 2px !important; }
+  .wg-task-cell { padding: 2px 3px !important; min-height: 16px !important; }
+  .wg-task-type-label { font-size: 7px !important; }
+  .task-chip-1line { font-size: 7px !important; padding: 1px 3px !important; }
+
+  /* 生徒チップ */
+  .student-chip { padding: 2px 4px !important; font-size: 9px !important; border-radius: 4px !important; }
+  .student-chip .s-name { max-width: 5em !important; }
+  .student-chip .s-sub { font-size: 8px !important; }
+  .badge { font-size: 7px !important; padding: 0 3px !important; }
+
+  /* カード・シャドウなし */
+  .card, .classroom-block { box-shadow: none !important; }
+
+  /* タスクバー印刷用コンパクト化 */
+  .task-bar { margin-bottom: 4mm !important; border-radius: 4px !important; }
+  .task-bar-header { padding: 3px 8px !important; font-size: 9px !important; }
+  .task-bar-cols { grid-template-columns: 1fr 1fr !important; }
+  .task-bar-col { padding: 4px 8px !important; }
+  .task-bar-col-header { font-size: 9px !important; margin-bottom: 3px !important; }
+  .task-bar-section-label { font-size: 8px !important; }
+  .task-bar-chips { gap: 2px !important; }
+  .task-chip-1line { font-size: 8px !important; padding: 1px 4px !important; }
+  .task-chip-1line .t-popup { display: none !important; }
+
+  /* 印刷ヘッダー表示 */
+  .print-header { display: block !important; }
+}
+
+/* 印刷ヘッダー（通常時は非表示） */
+.print-header {
+  display: none;
+  font-size: 13px; font-weight: 700; margin-bottom: 6px;
+  padding-bottom: 4px; border-bottom: 2px solid #333;
+}
+
+/* タスク詳細モーダル */
+.task-detail-modal .modal { max-width: 480px; }
+.task-detail-row { display: flex; gap: 8px; margin-bottom: 10px; font-size: 13px; }
+.task-detail-label { font-size: 11px; font-weight: 700; color: var(--text-muted); width: 60px; flex-shrink: 0; padding-top: 1px; }
+.task-detail-val { color: var(--text); flex: 1; }
+.task-detail-memo { background: var(--surface); border-radius: 7px; padding: 10px 12px; font-size: 12px; color: var(--text); white-space: pre-wrap; line-height: 1.6; min-height: 48px; }
+.task-chip-1line, .wg-task-chip-row { cursor: pointer; }
+.task-chip-1line:hover { opacity: 0.75; }
+.wg-task-chip-row:hover { opacity: 0.75; }
+
+/* 今週タブ：曜日ブロック */
+.week-day-block { margin-bottom: 14px; }
+.week-day-header { font-size: 13px; font-weight: 700; padding: 7px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; display: flex; align-items: center; gap: 8px; }
+.week-day-header.today-day { background: var(--crimson); color: #fff; border-color: var(--crimson); }
+.week-day-header .day-date { font-size: 11px; font-weight: 400; opacity: .75; }
+.week-day-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); background: #fff; }
+.week-day-body.cr-kita { border-color: var(--kitakurihama-border); background: var(--kitakurihama-bg); }
+.week-day-body.cr-kuri { border-color: var(--kurihama-border); background: var(--kurihama-bg); }
+.week-day-empty { padding: 12px 14px; font-size: 12px; color: #bbb; }
+
+/* 今週グリッド：タスクセル */
+.wg-task-label { font-size: 9px; color: var(--text-muted); font-weight: 700; justify-content: center; background: #f8f9fb; }
+.wg-task-cell { border-left: 1px solid var(--border); border-bottom: 2px solid var(--border); padding: 4px 5px; background: #f8fafc; min-height: 24px; display: flex; flex-direction: column; gap: 3px; }
+.wg-task-cell.today-col { background: #fffaf0; border-left: 2px solid var(--crimson); }
+.wg-task-cell-empty { background: #f4f4f4 !important; border-color: #e4e4e4 !important; }
+.wg-task-cell.has-task { padding: 5px 5px; }
+.wg-task-group { margin-bottom: 3px; }
+.wg-task-type-label { display: inline-block; font-size: 9px; font-weight: 700; border-radius: 3px; padding: 0 4px; margin-bottom: 2px; }
+.wg-task-type-label.in  { background: #dcfce7; color: #166534; }
+.wg-task-type-label.out { background: #fef9c3; color: #854d0e; }
+.wg-label-top { background: #f8f9fb; }
+/* 今週グリッド内のchipは小さく */
+.week-grid .task-chip-1line { font-size: 9px; padding: 1px 4px; display: block; margin-bottom: 2px; white-space: nowrap; overflow: visible; max-width: 100%; cursor: pointer; }
+.week-grid .task-chip-1line:hover { opacity: 0.75; }
+</style>
+</head>
+<body>
+
+<!-- タスク詳細モーダル -->
+<div class="modal-overlay task-detail-modal" id="task-detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="task-modal-title">タスク詳細</span>
+      <span class="modal-close" onclick="closeTaskModal()">✕</span>
+    </div>
+    <div class="modal-body" id="task-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeTaskModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- サイドナビ -->
+<nav id="side-nav">
+  <div class="nav-logo">
+    <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:middle;margin-right:6px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Class Board
+    <small>クロフネ 時間割管理</small>
+  </div>
+  <div class="nav-items">
+    <div class="nav-item active" onclick="switchTab('today')" id="nav-today"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> 本日</div>
+    <div class="nav-item" onclick="switchTab('week')" id="nav-week"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="7" y1="14" x2="7" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="17" y1="14" x2="17" y2="14"/><line x1="7" y1="18" x2="7" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/></svg></span> 今週</div>
+    <div class="nav-item" onclick="switchTab('school')" id="nav-school"><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21V12h6v9"/><path d="M3 9h18"/></svg></span> 学校マスタ</div>
+    <div class="nav-item" onclick="switchTab('exam')" id="nav-exam"><span class="icon"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> 定期テスト</div>
+    <div class="nav-item" onclick="switchTab('settings')" id="nav-settings"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> 設定</div>
+  </div>
+  <div class="nav-footer">
+    <div class="last-loaded" id="last-loaded-label">未読み込み</div>
+  </div>
+</nav>
+
+<!-- コンテンツ -->
+<div id="content">
+  <div class="top-bar">
+    <div class="page-title" id="top-title">本日の時間割</div>
+    <div class="top-bar-center" id="top-sub"></div>
+    <div class="top-bar-right">
+      <button class="btn-secondary btn-sm" onclick="reloadAll()">🔄 再読み込み</button>
+    </div>
+  </div>
+  <div class="content-inner" id="main-content">
+    <p style="color:var(--text-muted)">読み込み中...</p>
+  </div>
+</div>
+
+<!-- ローディング -->
+<div id="loading-overlay"><div class="spinner"></div><div style="font-size:13px;color:var(--text-muted)">データを取得中...</div></div>
+
+<!-- トースト -->
+<div id="mini-toast"></div>
+
+<!-- モーダル：モード追加 -->
+<div class="modal-overlay" id="modal-add-mode">
+  <div class="modal">
+    <div class="modal-header"><span>時間割モードを追加</span><span class="modal-close" onclick="closeModal('modal-add-mode')">×</span></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">モード名</label><input class="form-input" id="new-mode-name" placeholder="例：夏期講習2026" /></div>
+      <div class="form-group"><label class="form-label">作成方法</label>
+        <div class="radio-group">
+          <label><input type="radio" name="mode-type" value="copy" checked> 通常時間割をコピー</label>
+          <label><input type="radio" name="mode-type" value="blank"> 白紙から作成</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-add-mode')">キャンセル</button>
+      <button class="btn-primary" onclick="submitAddMode()">作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- モーダル：学校追加 -->
+<div class="modal-overlay" id="modal-add-school">
+  <div class="modal">
+    <div class="modal-header"><span>学校を追加</span><span class="modal-close" onclick="closeModal('modal-add-school')">×</span></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">学校名</label><input class="form-input" id="new-school-name" placeholder="例：久里浜中" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-add-school')">キャンセル</button>
+      <button class="btn-primary" onclick="submitAddSchool()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- モーダル：テスト予定追加 -->
+<div class="modal-overlay" id="modal-add-test" onclick="if(event.target===this)closeModal('modal-add-test')">
+  <div class="modal">
+    <div class="modal-header"><span id="modal-add-test-title">テスト予定を追加</span><span class="modal-close" onclick="closeModal('modal-add-test')">×</span></div>
+    <div class="modal-body">
+      <div class="form-group" id="test-school-group"><label class="form-label">学校</label>
+        <select class="form-input" id="test-target-school"><option value="">-- 学校を選択 --</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">対象学年</label>
+        <div class="grade-checks">
+          <label><input type="checkbox" class="test-grade" value="中1"> 中1</label>
+          <label><input type="checkbox" class="test-grade" value="中2"> 中2</label>
+          <label><input type="checkbox" class="test-grade" value="中3"> 中3</label>
+          <label><input type="checkbox" class="test-grade" value="高1"> 高1</label>
+          <label><input type="checkbox" class="test-grade" value="高2"> 高2</label>
+          <label><input type="checkbox" class="test-grade" value="高3"> 高3</label>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">教科</label>
+        <div class="subj-btns" id="test-subj-btns" style="display:flex;flex-wrap:wrap;gap:6px">
+          <button type="button" class="subj-btn" data-subj="英語" onclick="toggleSubjBtn(this)">英語</button>
+          <button type="button" class="subj-btn" data-subj="数学" onclick="toggleSubjBtn(this)">数学</button>
+          <button type="button" class="subj-btn" data-subj="国語" onclick="toggleSubjBtn(this)">国語</button>
+          <button type="button" class="subj-btn" data-subj="理科" onclick="toggleSubjBtn(this)">理科</button>
+          <button type="button" class="subj-btn" data-subj="社会" onclick="toggleSubjBtn(this)">社会</button>
+          <button type="button" class="subj-btn" data-subj="実技" onclick="toggleSubjBtn(this)">実技</button>
+          <button type="button" class="subj-btn" data-subj="その他" onclick="toggleSubjBtn(this)">その他</button>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">タイトル（任意）</label><input class="form-input" id="test-name" placeholder="例：一次方程式の計算" /></div>
+      <div class="form-group"><label class="form-label">実施日</label><input type="date" class="form-input" id="test-start-date" /></div>
+      <input type="hidden" id="test-edit-task-id" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-add-test')">キャンセル</button>
+      <button class="btn-primary" onclick="submitAddTest()">保存</button>
+    </div>
+  </div>
+</div>
+<!-- 学校詳細パネル -->
+<div class="school-detail-overlay" id="school-detail-overlay" onclick="if(event.target===this)closeSchoolDetail()">
+  <div class="school-detail-panel" id="school-detail-panel">
+    <div class="sdp-header">
+      <span class="sdp-title" id="sdp-title">学校詳細</span>
+      <button class="modal-close" onclick="closeSchoolDetail()">✕</button>
+    </div>
+    <div class="sdp-body" id="sdp-body"></div>
+  </div>
+</div>
+
+<!-- 定期テスト対策モーダル -->
+<!-- modal-exam は削除（インライン編集に変更） -->
+
+<!-- 行事追加モーダル -->
+<div class="modal-overlay" id="modal-exam-schedule" onclick="if(event.target===this)closeModal('modal-exam-schedule')">
+  <div class="modal" style="max-width:360px;width:90%">
+    <div class="modal-header">
+      <span>定期テスト日程を登録</span>
+      <button class="modal-close" onclick="closeModal('modal-exam-schedule')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-exam-schedule-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-event" onclick="if(event.target===this)closeModal('modal-add-event')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span id="modal-add-event-title">行事を追加</span>
+      <button class="modal-close" onclick="if(event.target===this)closeModal('modal-add-event')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="event-target-school" />
+      <div class="form-group">
+        <label class="form-label">行事名 <span style="color:var(--crimson)">*</span></label>
+        <input class="form-input" id="event-name" placeholder="例：体育祭、修学旅行" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">対象学年（空欄=全学年）</label>
+        <select class="form-input" id="event-grade">
+          <option value="">全学年</option>
+          <option value="中1">中1</option>
+          <option value="中2">中2</option>
+          <option value="中3">中3</option>
+          <option value="小学生">小学生</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">開始日 <span style="color:var(--crimson)">*</span></label>
+        <input class="form-input" type="date" id="event-date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">終了日 <span style="color:var(--text-muted);font-weight:400">任意・複数日の行事のみ（空欄=1日行事）</span></label>
+        <input class="form-input" type="date" id="event-end-date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ（行き先・詳細など）</label>
+        <input class="form-input" id="event-memo" placeholder="例：京都・奈良、2泊3日" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-add-event')">キャンセル</button>
+      <button class="btn-primary" onclick="submitAddEvent()">保存</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// =====================================================
+// グローバル状態
+// =====================================================
+var _students = [];
+var _tasks = [];
+var _schoolInfo = [];
+var _schoolTasks = [];
+var _testRecords = [];
+var _schoolEvents = [];
+var _schoolWorks = [];
+var _examStrategies = [];
+var _examSchedules  = [];
+var _examGradeFilter = 'all';
+var _examSubjectFilter = 'all';
+var _examYearFilter = null; // null=初回未設定、''=全年度選択済み
+var _modes = [];
+
+// テストのデフォルト種別（自由追加可）
+var DEFAULT_TEST_NAMES = ['前期中間', '前期期末', '後期中間', '学年末'];
+var SUBJECTS = ['国語', '数学', '英語', '理科', '社会', '実技'];
+var _currentTab = 'today';
+var _currentClassroom = '北久里浜';
+var _currentMode = 'normal';
+var _weekOffset = 0;
+
+var GAS_STUDENT_URL_KEY = 'cb_gas_student_url';
+var GAS_TASK_URL_KEY    = 'cb_gas_task_url';
+
+// =====================================================
+// 初期化
+// =====================================================
+window.addEventListener('DOMContentLoaded', function() {
+  updateTopSub();
+  loadAll();
+});
+
+function loadAll() {
+  showLoading(true);
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  var taskUrl    = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
+  var pending = 0;
+
+  function done() {
+    pending--;
+    if (pending <= 0) { showLoading(false); renderCurrent(); updateLastLoaded(); }
+  }
+
+  function loadCache(key, target) {
+    var c = localStorage.getItem('cb_cache_' + key);
+    if (c) { try { return JSON.parse(c); } catch(e) {} }
+    return target;
+  }
+  _students    = loadCache('students',     _students);
+  _schoolInfo  = loadCache('school_info',  _schoolInfo);
+  _schoolTasks = loadCache('school_tasks', _schoolTasks);
+  _testRecords   = loadCache('test_records',   _testRecords);
+  _schoolEvents  = loadCache('school_events',  _schoolEvents);
+  _schoolWorks   = loadCache('school_works',   _schoolWorks);
+  _modes         = loadCache('modes',          _modes);
+  _tasks         = loadCache('tasks',          _tasks);
+  _examStrategies = loadCache('exam_strategies', _examStrategies);
+  _examSchedules  = loadCache('exam_schedules',  _examSchedules);
+
+  if (!studentUrl && !taskUrl) {
+    showLoading(false); renderCurrent(); updateLastLoaded();
+    return;
+  }
+
+  if (studentUrl) {
+    pending += 4;
+    callGas(studentUrl, { action: 'getStudentsForClassBoard' }, function(res) {
+      if (res && res.success && res.students) { _students = res.students; localStorage.setItem('cb_cache_students', JSON.stringify(_students)); }
+      done();
+    });
+    callGas(studentUrl, { action: 'getSchoolInfo' }, function(res) {
+      if (res && res.success && res.list) { _schoolInfo = res.list; localStorage.setItem('cb_cache_school_info', JSON.stringify(_schoolInfo)); }
+      done();
+    });
+    callGas(studentUrl, { action: 'getSchoolTasks' }, function(res) {
+      if (res && res.success && res.tasks) { _schoolTasks = res.tasks; localStorage.setItem('cb_cache_school_tasks', JSON.stringify(_schoolTasks)); }
+      done();
+    });
+    callGas(studentUrl, { action: 'getTimetableModes' }, function(res) {
+      if (res && res.success && res.modes) { _modes = res.modes; localStorage.setItem('cb_cache_modes', JSON.stringify(_modes)); }
+      done();
+    });
+    pending++;
+    callGas(studentUrl, { action: 'getTestRecords' }, function(res) {
+      if (res && res.success && res.records) { _testRecords = res.records; localStorage.setItem('cb_cache_test_records', JSON.stringify(_testRecords)); }
+      done();
+    });
+    pending++;
+    callGas(studentUrl, { action: 'getSchoolEvents' }, function(res) {
+      if (res && res.success && res.events) { _schoolEvents = res.events; localStorage.setItem('cb_cache_school_events', JSON.stringify(_schoolEvents)); }
+      done();
+    });
+    pending++;
+    callGas(studentUrl, { action: 'getSchoolWorks' }, function(res) {
+      if (res && res.success && res.works) { _schoolWorks = res.works; localStorage.setItem('cb_cache_school_works', JSON.stringify(_schoolWorks)); }
+      done();
+    });
+    pending++;
+    callGas(studentUrl, { action: 'getExamStrategies' }, function(res) {
+      if (res && res.success && res.strategies) { _examStrategies = res.strategies; localStorage.setItem('cb_cache_exam_strategies', JSON.stringify(_examStrategies)); }
+      done();
+    });
+    pending++;
+    callGas(studentUrl, { action: 'getExamSchedules' }, function(res) {
+      if (res && res.success && res.schedules) { _examSchedules = res.schedules; localStorage.setItem('cb_cache_exam_schedules', JSON.stringify(_examSchedules)); }
+      done();
+    });
+  }
+
+  if (taskUrl) {
+    pending++;
+    callGas(taskUrl, { action: 'getTasksForClassBoard' }, function(res) {
+      if (res && res.success && res.tasks) { _tasks = res.tasks; localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks)); }
+      done();
+    });
+  }
+
+  if (pending === 0) { showLoading(false); renderCurrent(); updateLastLoaded(); }
+
+  // タイムアウトフォールバック：10秒経っても読み込み中のままなら強制解除
+  setTimeout(function() {
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay && overlay.classList.contains('show')) {
+      showLoading(false);
+      renderCurrent();
+      updateLastLoaded();
+    }
+  }, 10000);
+}
+
+function reloadAll() {
+  showLoading(false); // 残存オーバーレイを確実にクリア
+  loadAll();
+}
+
+// =====================================================
+// タブ切り替え
+// =====================================================
+function switchTab(tab) {
+  _currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+  var ni = document.getElementById('nav-' + tab);
+  if (ni) ni.classList.add('active');
+  var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・テスト予定', exam: '定期テスト対策DB', settings: '設定' };
+  document.getElementById('top-title').textContent = titles[tab] || 'Class Board';
+  renderCurrent();
+}
+
+function renderCurrent() {
+  switch (_currentTab) {
+    case 'today':    renderToday();    break;
+    case 'week':     renderWeek();     break;
+    case 'school':   renderSchool();   break;
+    case 'exam':     renderExam();     break;
+    case 'settings': renderSettings(); break;
+  }
+}
+
+function updateTopSub() {
+  var today = new Date();
+  var youbi = '日月火水木金土'[today.getDay()];
+  document.getElementById('top-sub').innerHTML =
+    '<span style="font-size:18px;font-weight:700;color:var(--text-muted)">' + fmtDate(today) + '</span>' +
+    '<span style="font-size:28px;font-weight:900;color:var(--text);margin-left:10px">（' + youbi + '）</span>';
+}
+
+function updateLastLoaded() {
+  var now = new Date();
+  document.getElementById('last-loaded-label').textContent = '最終取得 ' + zeroPad(now.getHours()) + ':' + zeroPad(now.getMinutes());
+}
+
+// =====================================================
+// 日付ユーティリティ
+// =====================================================
+function zeroPad(n) { return ('0' + n).slice(-2); }
+function fmtDate(d) { return d.getFullYear() + '/' + zeroPad(d.getMonth()+1) + '/' + zeroPad(d.getDate()); }
+function isoDate(d) { return d.getFullYear() + '-' + zeroPad(d.getMonth()+1) + '-' + zeroPad(d.getDate()); }
+var YOUBI_MAP = ['日','月','火','水','木','金','土'];
+
+function weekStartDate(offset) {
+  var now = new Date();
+  var dow = now.getDay();
+  var diff = (dow === 0) ? -6 : (1 - dow);
+  var mon = new Date(now);
+  mon.setDate(now.getDate() + diff + offset * 7);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate() + n); return r; }
+
+// =====================================================
+// 時間割ロジック
+// =====================================================
+function getActiveModeStudents() {
+  if (_currentMode === 'normal') return _students;
+  var m = _modes.find(function(m) { return m.modeId === _currentMode; });
+  return (m && m.data && m.data.students) ? m.data.students : _students;
+}
+
+function getStudentsForKoma(classroom, youbi, komaTime) {
+  var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+  function lessonRank(s) {
+    var koma = (s.komas || []).filter(function(k) {
+      return k.classroom === classroom && k.youbi === youbi && k.time === komaTime;
+    })[0];
+    if (!koma) return 0;
+    if (koma.online) return 2;
+    if ((koma.id || '').indexOf('ca_') === 0) return 1;
+    return 0;
+  }
+  function gradeRank(s) {
+    var idx = GRADE_ORDER.indexOf(s.grade);
+    return idx >= 0 ? idx : 99;
+  }
+  return getActiveModeStudents().filter(function(s) {
+    return (s.komas || []).some(function(k) {
+      return k.classroom === classroom && k.youbi === youbi && k.time === komaTime;
+    });
+  }).sort(function(a, b) {
+    var lr = lessonRank(a) - lessonRank(b);
+    if (lr !== 0) return lr;
+    return gradeRank(a) - gradeRank(b);
+  });
+}
+
+function getKomasForClassroom(classroom) {
+  var times = {};
+  getActiveModeStudents().forEach(function(s) {
+    (s.komas || []).forEach(function(k) {
+      if (k.classroom === classroom) times[k.time] = true;
+    });
+  });
+  return Object.keys(times).sort(function(a, b) {
+    var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
+    var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
+    return ta - tb;
+  });
+}
+
+function studentChipHtml(s, opts) {
+  // opts = { classroom, komaTime, youbi } — 渡されたコマのみで判定
+  var koma = null;
+  if (opts && opts.classroom && opts.komaTime && opts.youbi) {
+    koma = (s.komas || []).filter(function(k) {
+      return k.classroom === opts.classroom && k.time === opts.komaTime && k.youbi === opts.youbi;
+    })[0] || null;
+  }
+
+  // 授業種類ラベル（このコマの情報を優先、なければ全コマ・attrで判定）
+  var isJuken = (s.tags || []).indexOf('受験生') >= 0 || s.grade === '中3' || s.grade === '高3';
+  var lessonLabel = '';
+  if (koma) {
+    var komaIsOnline = !!koma.online;
+    var komaIsCa = (koma.id || '').indexOf('ca_') === 0;
+    if (komaIsOnline) {
+      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">online</span>';
+    } else if (komaIsCa) {
+      lessonLabel = '<span class="badge badge-green" style="font-size:10px">CA</span>';
+    } else {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
+    }
+  } else {
+    if (s.attrCa && s.attrJuku) {
+      lessonLabel = '<span class="badge badge-green" style="font-size:10px">CA+塾</span>';
+    } else if (s.attrCa) {
+      lessonLabel = '<span class="badge badge-green" style="font-size:10px">CA</span>';
+    } else if (s.attrJuku) {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
+    }
+    if ((s.komas || []).some(function(k) { return k.online; })) {
+      lessonLabel += '<span class="badge badge-blue" style="font-size:10px">online</span>';
+    }
+  }
+
+  var badges = '';
+  if (isJuken) badges += '<span class="badge badge-red" style="font-size:10px">受験</span>';
+  badges += lessonLabel;
+
+  // ポップアップ：読み・コース・部活・指導方針・メモ
+  var popup = '';
+  var hasDetail = s.kana || s.course || s.club || s.policy || s.memo || s.school || s.grade;
+  if (hasDetail) {
+    popup = '<div class="s-popup">';
+    if (s.kana) {
+      popup += '<div class="sp-row"><div class="sp-val" style="color:#888;font-size:11px">' + esc(s.kana) + '</div></div>';
+    }
+    if (s.grade || s.school) {
+      popup += '<div class="sp-row"><div class="sp-val">' + esc(s.grade || '') + (s.school ? '　' + esc(s.school) : '') + '</div></div>';
+    }
+    if (s.course) {
+      popup += '<div class="sp-row"><div class="sp-label">コース</div><div class="sp-val">' + esc(s.course) + '</div></div>';
+    }
+    if (s.club) {
+      popup += '<div class="sp-row"><div class="sp-label">部活・習い事</div><div class="sp-val">' + esc(s.club) + '</div></div>';
+    }
+    if (s.policy) {
+      popup += '<div class="sp-row"><div class="sp-label">指導方針</div><div class="sp-val">' + esc(s.policy) + '</div></div>';
+    }
+    if (s.memo) {
+      popup += '<div class="sp-row"><div class="sp-label">メモ</div><div class="sp-val">' + esc(s.memo) + '</div></div>';
+    }
+    popup += '</div>';
+  }
+
+  return '<div class="student-chip">' +
+    '<span class="s-name">' + esc(s.name) + '</span>' +
+    (s.grade ? '<span class="s-sub">' + esc(s.grade) + (s.school ? '・' + esc(s.school) : '') + '</span>' : '') +
+    (badges ? '<span class="s-badges">' + badges + '</span>' : '') +
+    popup +
+    '</div>';
+}
+function taskChipsForDate(dateStr) {
+  var ts = _tasks.filter(function(t) { return t.dueDate === dateStr && t.status !== 'done'; });
+  return ts.map(function(t) {
+    return '<div class="wg-task-chip"><span class="dot"></span><span>' + esc(t.title) + (t.assignee ? '（' + esc(t.assignee) + '）' : '') + '</span></div>';
+  }).join('');
+}
+
+// =====================================================
+// 今日タブ
+// =====================================================
+function renderToday() {
+  var today = new Date();
+  var todayYoubi = YOUBI_MAP[today.getDay()];
+  var todayIso = isoDate(today);
+
+  var todayStudentSet = {};
+  ['北久里浜','久里浜'].forEach(function(cr) {
+    getKomasForClassroom(cr).forEach(function(kt) {
+      getStudentsForKoma(cr, todayYoubi, kt).forEach(function(s) {
+        todayStudentSet[s.name] = s;
+      });
+    });
+  });
+  var todayStudents = Object.values(todayStudentSet);
+
+  // アラートは在籍生徒全員を対象（授業がない日でも表示）
+  var alerts = alertBannersHtml(_students, todayIso);
+
+  var crHtml = ['北久里浜','久里浜'].map(function(cr) {
+    var komas = getKomasForClassroom(cr).filter(function(kt) {
+      return getStudentsForKoma(cr, todayYoubi, kt).length > 0;
+    });
+    var komaHtml = komas.length
+      ? komas.map(function(kt) {
+          var ss = getStudentsForKoma(cr, todayYoubi, kt);
+          return '<div class="koma-block">' +
+            '<div class="koma-time">⏰ ' + esc(kt) + '</div>' +
+            '<div class="koma-students">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi});}).join('') + '</div>' +
+            '</div>';
+        }).join('')
+      : '<div class="koma-empty">本日の授業はありません</div>';
+    var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
+    return '<div class="classroom-block' + crCls + '"><div class="classroom-block-header">🏫 ' + cr + '</div>' + komaHtml + '</div>';
+  }).join('');
+
+  // 授業内・授業外・期限切れでフィルタ（taskType設定済みのみ）
+  // classroom が一致するもの／空欄は両教室に表示
+  var CLASSROOMS = ['北久里浜', '久里浜'];
+
+  function tasksFor(cr, type, dateStr, isOverdue) {
+    return _tasks.filter(function(t) {
+      var crMatch = !t.classroom || t.classroom === cr;
+      var dateMatch = isOverdue
+        ? (t.dueDate && t.dueDate < dateStr)
+        : (t.dueDate === dateStr);
+      return dateMatch && t.status !== 'done' && t.taskType === type && crMatch;
+    });
+  }
+
+  function makeChip(t, isOverdue, type) {
+    var cls = isOverdue ? 'chip-overdue' : (type === '授業内' ? 'chip-in' : 'chip-out');
+    var overdueLabel = isOverdue ? '<span style="font-size:10px;opacity:.8"> (' + esc(t.dueDate) + ')</span>' : '';
+    var popup = '<span class="t-popup">' +
+      '<div class="t-popup-title">' + esc(t.title) + '</div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">期限</span><span class="t-popup-val">' + esc(t.dueDate || '—') + '</span></div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">担当</span><span class="t-popup-val">' + esc(t.assignee || '—') + '</span></div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">種別</span><span class="t-popup-val">' + esc(t.taskType || '—') + '</span></div>' +
+      (t.memo ? '<div class="t-popup-memo">' + esc(t.memo) + '</div>' : '') +
+      '</span>';
+    return '<span class="task-chip-1line ' + cls + '" onclick="openTaskModal(\'' + t.id + '\')">' +
+      esc(t.title) + (t.assignee ? '　' + esc(t.assignee) : '') + overdueLabel + popup + '</span>';
+  }
+
+  function makeSection(label, normalTasks, overdueTasks, type) {
+    if (!normalTasks.length && !overdueTasks.length) return '';
+    var chips = overdueTasks.map(function(t) { return makeChip(t, true, type); })
+      .concat(normalTasks.map(function(t) { return makeChip(t, false, type); }));
+    return '<div class="task-bar-section">' +
+      '<span class="task-bar-section-label">' + label + '</span>' +
+      '<div class="task-bar-chips">' + chips.join('') + '</div>' +
+      '</div>';
+  }
+
+  function makeColHtml(cr, crCls, todayIso) {
+    var inNormal  = tasksFor(cr, '授業内', todayIso, false);
+    var inOver    = tasksFor(cr, '授業内', todayIso, true);
+    var outNormal = tasksFor(cr, '授業外', todayIso, false);
+    var outOver   = tasksFor(cr, '授業外', todayIso, true);
+    var inSec  = makeSection('📚 授業内', inNormal,  inOver,  '授業内');
+    var outSec = makeSection('🏢 授業外', outNormal, outOver, '授業外');
+    var body = (inSec || outSec) ? outSec + inSec : '<span class="task-bar-empty">タスクなし</span>';
+    return '<div class="task-bar-col ' + crCls + '">' +
+      '<div class="task-bar-col-header">🏫 ' + cr + '</div>' +
+      body + '</div>';
+  }
+
+  var kitaCol = makeColHtml('北久里浜', 'col-kita', todayIso);
+  var kuriCol = makeColHtml('久里浜',   'col-kuri', todayIso);
+
+  var allCount = _tasks.filter(function(t) {
+    return (t.taskType === '授業内' || t.taskType === '授業外') &&
+      t.status !== 'done' && t.dueDate && t.dueDate <= todayIso;
+  }).length;
+  var taskBadge = allCount > 0 ? ' <span class="badge badge-red" style="font-size:10px">' + allCount + '</span>' : '';
+
+  var todayLabel = today.getFullYear() + '/' + (today.getMonth()+1) + '/' + today.getDate() + ' （' + ['日','月','火','水','木','金','土'][today.getDay()] + '）';
+  document.getElementById('main-content').innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<span></span>' +
+    '<button class="btn-secondary btn-sm" onclick="window.print()" style="font-size:12px">🖨️ 印刷</button>' +
+    '</div>' +
+    '<div class="print-header">本日の時間割　' + todayLabel + '　' + _currentClassroom + '</div>' +
+    alerts +
+    '<div class="task-bar">' +
+    '<div class="task-bar-header"><div class="task-bar-label">📝 今日のタスク' + taskBadge + '</div>' +
+    '<button class="btn-primary btn-sm" onclick="openAddTestModal(\'\')" style="font-size:12px;margin-left:auto">＋ 小テスト追加</button>' +
+    '</div>' +
+    '<div class="task-bar-cols">' + kitaCol + kuriCol + '</div>' +
+    '</div>' +
+    '<div class="today-grid">' + crHtml + '</div>' +
+    examStrategySection(todayIso);
+}
+
+// =====================================================
+// 本日タブ：定期テスト対策セクション
+// =====================================================
+function togglePastData(pid) {
+  var t = document.getElementById(pid);
+  if (t) t.style.display = t.style.display === 'none' ? 'grid' : 'none';
+}
+
+function setExamCeHeight(el, px) {
+  el.style.minHeight = px + 'px';
+}
+
+function examStrategySection(todayIso) {
+  if (!_examSchedules.length) return '';
+
+  var today      = new Date(todayIso);
+  var DAYS_BEFORE = 28;
+  var curNendo   = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+  var curNendoStr = String(curNendo);
+
+  // 発火中のテスト種別を抽出（定期テスト日程の開始日28日前〜終了日）
+  // ※年度に関係なく全日程を参照
+  var activeTypes = [];
+  _examSchedules.forEach(function(sc) {
+    if (!sc.startDate) return;
+    var start = new Date(sc.startDate);
+    var end   = sc.endDate ? new Date(sc.endDate) : start;
+    var threshold = new Date(start);
+    threshold.setDate(threshold.getDate() - DAYS_BEFORE);
+    if (today >= threshold && today <= end) {
+      var daysLeft = Math.ceil((start - today) / 86400000);
+      // 重複テスト種別はdaysLeftが小さい方（より近い）を優先
+      var existing = activeTypes.find(function(a){ return a.testType === sc.testType; });
+      if (!existing) {
+        activeTypes.push({ testType: sc.testType, startDate: sc.startDate, endDate: sc.endDate, daysLeft: daysLeft });
+      } else if (Math.abs(daysLeft) < Math.abs(existing.daysLeft)) {
+        existing.daysLeft = daysLeft; existing.startDate = sc.startDate; existing.endDate = sc.endDate;
+      }
+    }
+  });
+
+  if (!activeTypes.length) return '';
+
+  // レコードカード生成ヘルパー（今年度=通常色、過去=グレー）
+  function makeRecCard(r, isPast) {
+    var grades  = r.grade   ? r.grade.split(',').map(function(x){return x.trim();}).join('・') : '';
+    var schools = r.schools ? r.schools.split(',').map(function(x){return x.trim();}).join(' ') : '';
+    var yearStr = isPast ? (r.years||r.year||'') + '年度' : '';
+    var bg      = isPast ? '#f9fafb' : '#fff';
+    var border  = isPast ? '#e5e7eb' : '#e5e7eb';
+    var subBg   = isPast ? '#e5e7eb' : '#dbeafe';
+    var subCol  = isPast ? '#6b7280' : '#1e40af';
+    var textCol = isPast ? '#9ca3af' : '#6b7280';
+    // メタ情報を1行にまとめる
+    var metaParts = [];
+    if (grades)  metaParts.push(grades);
+    if (schools) metaParts.push(schools);
+    if (yearStr) metaParts.push(yearStr);
+    var h = '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:5px;padding:5px 8px;opacity:' + (isPast?'0.75':'1') + '">';
+    h += '<div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow:hidden">';
+    h += '<span style="background:' + subBg + ';color:' + subCol + ';font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;flex-shrink:0">' + esc(r.subject||'') + '</span>';
+    h += '<span style="font-size:12px;font-weight:700;color:' + (isPast?'#6b7280':'var(--text)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.unitName) + '</span>';
+    h += '</div>';
+    if (metaParts.length) h += '<div style="font-size:10px;color:' + textCol + ';margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(metaParts.join('　')) + '</div>';
+    if (r.materials) h += '<div style="font-size:10px;color:' + (isPast?'#9ca3af':'#059669') + ';margin-top:1px">📄 ' + esc(r.materials) + '</div>';
+    h += '</div>';
+    return h;
+  }
+
+  var html = '';
+  activeTypes.forEach(function(info, infoIdx) {
+    var allRecs = _examStrategies.filter(function(s){ return s.testType === info.testType; });
+    if (!allRecs.length) return;
+
+    // 今年度レコードと過去レコードに分類
+    var curRecs  = allRecs.filter(function(r){
+      return (r.years || r.year || '').split(',').map(function(y){return y.trim();}).indexOf(curNendoStr) !== -1;
+    });
+    var pastRecs = allRecs.filter(function(r){
+      return (r.years || r.year || '').split(',').map(function(y){return y.trim();}).indexOf(curNendoStr) === -1;
+    });
+
+    var urgency = info.daysLeft <= 7 ? 'background:#fef2f2;border-color:#fca5a5' :
+                  info.daysLeft <= 14 ? 'background:#fffbeb;border-color:#fcd34d' :
+                  'background:#eff6ff;border-color:#93c5fd';
+    var ttColor = info.daysLeft <= 7 ? '#dc2626' : info.daysLeft <= 14 ? '#d97706' : '#1d4ed8';
+    var countLabel = info.daysLeft > 0 ? '（テストまで' + info.daysLeft + '日）'
+                   : info.daysLeft === 0 ? '（本日テスト！）' : '（テスト中）';
+
+    html += '<div style="border:1px solid;border-radius:8px;padding:12px 14px;margin-top:12px;' + urgency + '">';
+    html += '<div style="font-size:13px;font-weight:700;color:' + ttColor + ';margin-bottom:10px">📝 定期テスト対策：' + esc(info.testType) + ' <span style="font-size:12px;font-weight:400">' + countLabel + '</span></div>';
+
+    // ── 今年度データ ──
+    if (curRecs.length) {
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px;margin-bottom:8px">';
+      curRecs.forEach(function(r){ html += makeRecCard(r, false); });
+      html += '</div>';
+    } else {
+      html += '<div style="font-size:12px;color:#9ca3af;margin-bottom:8px">' + curNendoStr + '年度のデータは未入力です</div>';
+    }
+
+    // ── 過去データ（折りたたみ） ──
+    if (pastRecs.length) {
+      var pastId = 'past_' + info.testType.replace(/[^a-zA-Z0-9]/g,'_') + '_' + infoIdx;
+      // 最新年度を特定
+      var latestPastYear = '';
+      pastRecs.forEach(function(r){
+        var ys = (r.years || r.year || '').split(',').map(function(y){return y.trim();}).filter(Boolean);
+        ys.forEach(function(y){ if (!latestPastYear || y > latestPastYear) latestPastYear = y; });
+      });
+      html += '<div style="border-top:1px solid #e5e7eb;margin-top:4px;padding-top:8px">';
+      html += '<div style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none" '
+        + 'data-pid="' + pastId + '" onclick="togglePastData(this.dataset.pid)">';
+      html += '<span style="font-size:11px;color:#6b7280">📂 過去データ（' + latestPastYear + '年度参照）</span>';
+      html += '<span style="font-size:10px;color:#9ca3af">' + pastRecs.length + '件 ▼</span>';
+      html += '</div>';
+      html += '<div id="' + pastId + '" style="display:none;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px;margin-top:6px">';
+      pastRecs.forEach(function(r){ html += makeRecCard(r, true); });
+      html += '</div>';
+      html += '</div>';
+    }
+
+    html += '</div>';
+  });
+
+  return html;
+}
+
+function alertBannersHtml(todayStudents, todayIso) {
+  var now = new Date(todayIso);
+  var ALERT_DAYS = 28;
+  var banners = [];
+
+  // SVGアイコン定義
+  var SVG = {
+    task:  '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0"><path d="M10 12l2 2 4-4"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>',
+    test:  '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
+    event: '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>'
+  };
+
+  // 種別ごとのカラー定義
+  //  type: { normal: {bg,border,text,leftBorder}, urgent: {...} }
+  var COLORS = {
+    task: {
+      normal: {bg:'#fff7ed', border:'#fed7aa', text:'#92400e', left:'#f97316'},
+      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#991b1b', left:'#ef4444'}
+    },
+    test: {
+      normal: {bg:'#fff1f2', border:'#fecdd3', text:'#9f1239', left:'#e11d48'},
+      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#991b1b', left:'#ef4444'}
+    },
+    event: {
+      normal: {bg:'#eff6ff', border:'#bfdbfe', text:'#1e40af', left:'#3b82f6'},
+      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#991b1b', left:'#ef4444'}
+    }
+  };
+
+  function getStyle(type, diff) {
+    var c = diff <= 7 ? COLORS[type].urgent : COLORS[type].normal;
+    return 'background:' + c.bg + ';border-color:' + c.border + ';color:' + c.text + ';border-left-color:' + c.left;
+  }
+
+  // ポップアップHTML生成ヘルパー
+  function makePopup(svgIcon, title, dateLabel, matched, type) {
+    var c = COLORS[type] || COLORS.task;
+    var names = matched.map(function(s) {
+      return '<span style="display:inline-block;background:' + c.normal.left + ';color:#fff;border-radius:3px;padding:1px 6px;font-size:10px;margin:2px 2px">' + esc(s.name) + '</span>';
+    }).join('');
+    return '<span class="alert-popup">'
+      + '<span class="alert-popup-title">' + svgIcon + ' ' + esc(title) + '</span>'
+      + '<span class="alert-popup-date">' + esc(dateLabel) + '</span>'
+      + '<span class="alert-popup-students">' + names + '</span>'
+      + '</span>';
+  }
+
+  function makeBanner(type, svgIcon, label, diff, matchedCount, popup, namesAttr) {
+    var style = getStyle(type, diff);
+    return '<div class="alert-banner" style="' + style + ';position:relative" data-target-names="' + namesAttr + '" '
+      + 'onmouseenter="highlightStudents(this)" onmouseleave="clearHighlight()">'
+      + svgIcon
+      + '<span>' + label + ' <span style="font-size:11px;opacity:.7">（' + matchedCount + '名）</span></span>'
+      + popup + '</div>';
+  }
+
+  // ① 小テスト予定タスク
+  _schoolTasks.forEach(function(task) {
+    if (!task.dueDate) return;
+    var diff = Math.ceil((new Date(task.dueDate) - now) / 86400000);
+    if (diff < 0 || diff > ALERT_DAYS) return;
+    var matched = todayStudents.filter(function(s) {
+      return s.school === task.school && (!task.grade || task.grade.indexOf(s.grade) >= 0);
+    });
+    if (!matched.length) return;
+    var namesAttr = JSON.stringify(matched.map(function(s) { return s.name; })).replace(/"/g, '&quot;');
+    var dateLabel = (function(d){ var dt=new Date(d); return isNaN(dt)?d:isoDate(dt); })(task.dueDate) + '（残' + diff + '日）';
+    var popup = makePopup(SVG.task, esc(task.school) + (task.grade ? ' ' + task.grade : '') + '：' + (task.taskName||''), dateLabel, matched, 'task');
+    var label = esc(task.school) + (task.grade ? ' ' + esc(task.grade) + '生' : '')
+      + '：<strong>' + esc(task.taskName||'') + '</strong> まで残<strong>' + diff + '日</strong>';
+    banners.push(makeBanner('task', SVG.task, label, diff, matched.length, popup, namesAttr));
+  });
+
+  // ② テスト記録DB
+  _testRecords.forEach(function(rec) {
+    if (!rec.testDate) return;
+    var diff = Math.ceil((new Date(rec.testDate) - now) / 86400000);
+    if (diff < 0 || diff > ALERT_DAYS) return;
+    var matched = todayStudents.filter(function(s) {
+      return s.school === rec.school && s.grade === rec.grade;
+    });
+    if (!matched.length) return;
+    var alreadyCovered = _schoolTasks.some(function(t) {
+      return t.school === rec.school && t.grade && t.grade.indexOf(rec.grade) >= 0 &&
+        Math.abs(Math.ceil((new Date(t.dueDate) - now) / 86400000) - diff) <= 3;
+    });
+    if (alreadyCovered) return;
+    var namesAttr = JSON.stringify(matched.map(function(s) { return s.name; })).replace(/"/g, '&quot;');
+    var dateLabel = (function(d){ var dt=new Date(d); return isNaN(dt)?d:isoDate(dt); })(rec.testDate) + '（残' + diff + '日）';
+    var popup = makePopup(SVG.test, rec.school + ' ' + rec.grade + '：' + rec.testName, dateLabel, matched, 'test');
+    var label = esc(rec.school) + ' ' + esc(rec.grade) + '：<strong>' + esc(rec.testName) + '</strong> まで残<strong>' + diff + '日</strong>';
+    banners.push(makeBanner('test', SVG.test, label, diff, matched.length, popup, namesAttr));
+  });
+
+  // ③ 学校行事
+  _schoolEvents.forEach(function(ev) {
+    if (!ev.eventDate) return;
+    var diff = Math.ceil((new Date(ev.eventDate) - now) / 86400000);
+    var endDiff = ev.eventEndDate ? Math.ceil((new Date(ev.eventEndDate) - now) / 86400000) : diff;
+    if (endDiff < 0 || diff > ALERT_DAYS) return;
+    var matched = todayStudents.filter(function(s) {
+      return s.school === ev.school && (!ev.grade || ev.grade === s.grade);
+    });
+    if (!matched.length) return;
+    var namesAttr = JSON.stringify(matched.map(function(s) { return s.name; })).replace(/"/g, '&quot;');
+    function fmtDate(d) { if (!d) return ''; var dt=new Date(d); return isNaN(dt)?String(d):isoDate(dt); }
+    var evStart = fmtDate(ev.eventDate);
+    var evEnd   = fmtDate(ev.eventEndDate);
+    var dateLabel = evStart + (evEnd ? ' 〜 ' + evEnd : '') + '（残' + diff + '日）';
+    var popup = makePopup(SVG.event, ev.school + (ev.grade ? ' ' + ev.grade : '') + '：' + ev.eventName, dateLabel, matched, 'event');
+    var label = esc(ev.school) + (ev.grade ? ' ' + esc(ev.grade) : '')
+      + '：<strong>' + esc(ev.eventName) + '</strong> まで残<strong>' + diff + '日</strong>';
+    banners.push(makeBanner('event', SVG.event, label, diff, matched.length, popup, namesAttr));
+  });
+
+  return banners.join('');
+}
+
+function highlightStudents(banner) {
+  var names = [];
+  try { names = JSON.parse(banner.getAttribute('data-target-names') || '[]'); } catch(e) {}
+  document.querySelectorAll('.student-chip').forEach(function(chip) {
+    var nameEl = chip.querySelector('.s-name');
+    if (!nameEl) return;
+    var name = nameEl.textContent.trim();
+    if (names.indexOf(name) >= 0) {
+      chip.style.outline = '2px solid var(--crimson)';
+      chip.style.background = '#fff0f0';
+    } else {
+      chip.style.opacity = '0.3';
+    }
+  });
+}
+
+function clearHighlight() {
+  document.querySelectorAll('.student-chip').forEach(function(chip) {
+    chip.style.outline = '';
+    chip.style.background = '';
+    chip.style.opacity = '';
+  });
+}
+
+// =====================================================
+// 今週タブ
+// =====================================================
+function renderWeek() {
+  var mon = weekStartDate(_weekOffset);
+  var days = [0,1,2,3,4,5].map(function(i) { return addDays(mon, i); });
+  var todayIso = isoDate(new Date());
+  var weekLabel = fmtDate(mon) + '〜' + fmtDate(days[5]);
+
+  // 今週に授業がある生徒を全員集めてアラートバナー生成
+  var weekStudentSet = {};
+  var YOUBIS_ALL = ['月','火','水','木','金','土'];
+  days.forEach(function(d, di) {
+    ['北久里浜','久里浜'].forEach(function(crA) {
+      getKomasForClassroom(crA).forEach(function(kt) {
+        getStudentsForKoma(crA, YOUBIS_ALL[di], kt).forEach(function(s) {
+          weekStudentSet[s.name] = s;
+        });
+      });
+    });
+  });
+  var weekStudents = Object.values(weekStudentSet);
+  var weekAlerts = alertBannersHtml(weekStudents, todayIso);
+
+  var html = renderModeTabs() +
+    (weekAlerts ? '<div style="margin-bottom:8px">' + weekAlerts + '</div>' : '') +
+    '<div class="week-nav">' +
+    '<button class="btn-secondary btn-sm" onclick="_weekOffset--;renderWeek()">← 先週</button>' +
+    '<span class="week-label">📆 ' + weekLabel + '</span>' +
+    '<button class="btn-secondary btn-sm" onclick="_weekOffset++;renderWeek()">来週 →</button>' +
+    '<button class="btn-secondary btn-sm" onclick="_weekOffset=0;renderWeek()">今週</button>' +
+    '<button class="btn-secondary btn-sm" onclick="window.print()">🖨️ 印刷</button>' +
+    '</div>' +
+    '<div class="classroom-tabs">' +
+    ['北久里浜','久里浜'].map(function(cr2) {
+      var crCls2 = cr2 === '北久里浜' ? ' cr-kita' : ' cr-kuri';
+      var activeCls = cr2 === _currentClassroom ? ' active' : '';
+      return '<div class="classroom-tab' + crCls2 + activeCls + '" onclick="_currentClassroom=\'' + cr2 + '\';renderWeek()">' + cr2 + '</div>';
+    }).join('') +
+    '</div>' +
+    '<div class="print-header">今週の時間割　' + weekLabel + '　' + _currentClassroom + '</div>' +
+    '<div class="week-grid-wrap">' + buildWeekGrid(days, todayIso) + '</div>';
+
+  document.getElementById('main-content').innerHTML = html;
+}
+function buildWeekGrid(days, todayIso) {
+  var YOUBIS = ['月','火','水','木','金','土'];
+  var cr = _currentClassroom;
+  var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
+  // 全教室のコマを統合して行を揃える（ないコマはグレーセルで表示）
+  var komasAll = [];
+  var komasSeen = {};
+  ['北久里浜','久里浜'].forEach(function(crAll) {
+    getKomasForClassroom(crAll).forEach(function(kt) {
+      if (!komasSeen[kt]) { komasSeen[kt] = true; komasAll.push(kt); }
+    });
+  });
+  komasAll.sort(function(a, b) {
+    var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
+    var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
+    return ta - tb;
+  });
+  var komas = komasAll;
+  var weekStartIso = isoDate(days[0]);
+  var weekEndIso   = isoDate(days[5]);
+
+  // 各日に生徒がいるか判定
+  var dayHasStudent = days.map(function(d, i) {
+    return komas.some(function(kt) {
+      return getStudentsForKoma(cr, YOUBIS[i], kt).length > 0;
+    });
+  });
+
+  // 空の日は minmax(32px,auto)、生徒ありは 1fr
+  var colDefs = days.map(function(d, i) { return dayHasStudent[i] ? '1fr' : '20px'; });
+  var gridStyle = 'grid-template-columns: 68px ' + colDefs.join(' ') + ';';
+
+  // ===== タスクチップ生成（曜日別） =====
+  function dayTaskChip(t) {
+    var isOverdue = t.dueDate < todayIso;
+    var cls = isOverdue ? 'chip-overdue' : (t.taskType === '授業内' ? 'chip-in' : 'chip-out');
+    var popup = '<span class="t-popup">' +
+      '<div class="t-popup-title">' + esc(t.title) + '</div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">期限</span><span class="t-popup-val">' + esc(t.dueDate || '—') + '</span></div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">担当</span><span class="t-popup-val">' + esc(t.assignee || '—') + '</span></div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">種別</span><span class="t-popup-val">' + esc(t.taskType || '—') + '</span></div>' +
+      (t.memo ? '<div class="t-popup-memo">' + esc(t.memo) + '</div>' : '') +
+      '</span>';
+    return '<span class="task-chip-1line ' + cls + '" onclick="openTaskModal(\'' + t.id + '\')">' +
+      esc(t.title) + (t.assignee ? ' ' + esc(t.assignee) : '') + popup + '</span>';
+  }
+
+  function dayTaskCellHtml(iso, todayCls, isEmpty) {
+    if (isEmpty) return '<div class="wg-task-cell wg-task-cell-empty' + todayCls + '"></div>';
+    // その日のタスク＋期限切れ（今日列にまとめる）
+    var dayTasks = _tasks.filter(function(t) {
+      var crMatch = !t.classroom || t.classroom === cr;
+      return t.dueDate === iso && t.status !== 'done' &&
+        (t.taskType === '授業内' || t.taskType === '授業外') && crMatch;
+    });
+    var overdueTasks = (iso === todayIso) ? _tasks.filter(function(t) {
+      var crMatch = !t.classroom || t.classroom === cr;
+      return t.dueDate && t.dueDate < todayIso && t.status !== 'done' &&
+        (t.taskType === '授業内' || t.taskType === '授業外') && crMatch;
+    }) : [];
+    var allTasks = overdueTasks.concat(dayTasks);
+    if (!allTasks.length) return '<div class="wg-task-cell' + todayCls + '"></div>';
+    // 授業内・授業外に分けて表示
+    var inTasks  = allTasks.filter(function(t){ return t.taskType === '授業内'; });
+    var outTasks = allTasks.filter(function(t){ return t.taskType === '授業外'; });
+    var inner = '';
+    if (outTasks.length) inner += '<div class="wg-task-group"><span class="wg-task-type-label out">授業外</span>' + outTasks.map(dayTaskChip).join('') + '</div>';
+    if (inTasks.length)  inner += '<div class="wg-task-group"><span class="wg-task-type-label in">授業内</span>' + inTasks.map(dayTaskChip).join('') + '</div>';
+    return '<div class="wg-task-cell has-task' + todayCls + '">' + inner + '</div>';
+  }
+
+  // ===== ヘッダー行（曜日・日付） =====
+  var header = '<div class="wg-label wg-label-top"></div>' +
+    days.map(function(d, i) {
+      var iso = isoDate(d);
+      var todayCls = iso === todayIso ? ' today-col' : '';
+      var emptyCls = dayHasStudent[i] ? '' : ' day-empty';
+      return '<div class="wg-head' + todayCls + emptyCls + '">' +
+        YOUBIS[i] + '<div class="wg-date">' + (d.getMonth()+1) + '/' + d.getDate() + '</div>' +
+        '</div>';
+    }).join('');
+
+  // ===== タスク行（ヘッダー直下） =====
+  var taskRow = '<div class="wg-label wg-task-label">📝 タスク</div>' +
+    days.map(function(d, i) {
+      var iso = isoDate(d);
+      var todayCls = iso === todayIso ? ' today-col' : '';
+      return dayTaskCellHtml(iso, todayCls, !dayHasStudent[i]);
+    }).join('');
+
+  // ===== コマ行（生徒カード） =====
+  var komaRows = komas.map(function(kt) {
+    var label = '<div class="wg-label">' + esc(kt) + '</div>';
+    var cells = days.map(function(d, i) {
+      var iso = isoDate(d);
+      var ss = getStudentsForKoma(cr, YOUBIS[i], kt);
+      var todayCls = iso === todayIso ? ' today-col' : '';
+      var emptyCls = dayHasStudent[i] ? '' : ' day-empty';
+      var crHasKoma = getKomasForClassroom(cr).indexOf(kt) >= 0;
+      if (!crHasKoma) {
+        // この教室にこのコマ設定がない → グレーアウトセル
+        return '<div class="wg-cell wg-cell-no-koma' + todayCls + emptyCls + '"></div>';
+      }
+      return '<div class="wg-cell' + todayCls + emptyCls + '">' +
+        (ss.length
+          ? ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i]});}).join('')
+          : (dayHasStudent[i] ? '<span style="color:#ccc;font-size:11px">—</span>' : ''))
+        + '</div>';
+    }).join('');
+    return label + cells;
+  }).join('');
+
+  return '<div class="week-grid' + crCls + '" style="' + gridStyle + '" id="week-grid-main">' +
+    header + taskRow + komaRows + '</div>';
+}
+function renderModeTabs() {
+  var html = '<div class="mode-tabs">' +
+    '<div class="mode-tab' + (_currentMode === 'normal' ? ' active' : '') + '" onclick="switchMode(\'normal\')">通常</div>';
+  _modes.forEach(function(m) {
+    html += '<div class="mode-tab' + (m.modeId === _currentMode ? ' active' : '') + '">' +
+      '<span onclick="switchMode(\'' + m.modeId + '\')">' + esc(m.modeName) + '</span>' +
+      '<span class="del-btn" onclick="deleteMode(\'' + m.modeId + '\',\'' + esc(m.modeName) + '\')" title="削除">×</span>' +
+      '</div>';
+  });
+  html += '<button class="mode-add-btn" onclick="openModal(\'modal-add-mode\')">＋ 追加</button></div>';
+  return html;
+}
+
+function switchMode(modeId) { _currentMode = modeId; renderCurrent(); }
+
+// =====================================================
+// 今月タブ
+// =====================================================
+function renderMonth() {
+  var todayIso = isoDate(new Date());
+  var html = renderModeTabs() +
+    '<div class="classroom-tabs">' +
+    ['北久里浜','久里浜'].map(function(cr) {
+      return '<div class="classroom-tab' + (cr === _currentClassroom ? ' active' : '') + '" onclick="_currentClassroom=\'' + cr + '\';renderMonth()">' + cr + '</div>';
+    }).join('') + '</div>';
+
+  for (var i = 0; i < 5; i++) {
+    var mon = weekStartDate(i);
+    var days = [0,1,2,3,4,5].map(function(j) { return addDays(mon, j); });
+    var label = fmtDate(mon) + '〜' + fmtDate(days[5]);
+    html += '<div class="month-week">' +
+      '<div class="month-week-header" onclick="toggleMonthWeek(this)">' +
+      '<span>' + label + '</span><span>' + (i === 0 ? '▼' : '▶') + '</span>' +
+      '</div>' +
+      '<div class="month-week-body' + (i === 0 ? '' : ' collapsed') + '">' +
+      '<div class="week-grid-wrap">' + buildWeekGrid(days, todayIso) + '</div>' +
+      '</div></div>';
+  }
+
+  document.getElementById('main-content').innerHTML = html;
+}
+
+function toggleMonthWeek(header) {
+  var body = header.nextElementSibling;
+  var arrow = header.querySelector('span:last-child');
+  body.classList.toggle('collapsed');
+  arrow.textContent = body.classList.contains('collapsed') ? '▶' : '▼';
+}
+
+// =====================================================
+// 学校マスタタブ（刷新版）
+// =====================================================
+function renderSchool() {
+  var schoolSet = {};
+  _students.forEach(function(s) { if (s.school) schoolSet[s.school] = true; });
+  _schoolInfo.forEach(function(si) { if (si.school) schoolSet[si.school] = true; });
+  var schools = Object.keys(schoolSet).sort();
+
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+    '<div style="font-weight:700;font-size:15px">学校一覧（' + schools.length + '校）</div>' +
+    '<button class="btn-primary btn-sm" onclick="openModal(\'modal-add-school\')">＋ 学校を追加</button></div>';
+
+  if (!schools.length) {
+    html += '<div class="card"><div class="card-body"><p style="color:var(--text-muted)">GAS URLを設定して生徒データを読み込むと学校が表示されます。</p></div></div>';
+    document.getElementById('main-content').innerHTML = html;
+    return;
+  }
+
+  // 小学校・中高校に分離
+  var elemSchools   = schools.filter(function(s) { return s.indexOf('小') >= 0; });
+  var middleSchools = schools.filter(function(s) { return s.indexOf('小') < 0; });
+  var WORK_SUBJECTS = ['英語','数学','国語（読解）','国語（漢字）','理科','社会（地理）','社会（歴史）','社会（公民）'];
+  var today = isoDate(new Date());
+
+  function renderSchoolGrid(sectionSchools) {
+    var g = '<div class="school-grid">';
+    sectionSchools.forEach(function(schoolName) {
+      var enrolled = _students.filter(function(s) { return s.school === schoolName; });
+
+      // ワーク「なし」教科を学年別に集計（中1/中2/中3のみ）
+      var CHUU_GRADES = ['中1','中2','中3'];
+      var noneSubjects = {};  // 教科 → true（いずれかの学年で「なし」）
+      var noneByGrade  = {}; // 教科 → { 中1:'なし', 中2:'配布済', 中3:'未確認', ... }
+      var uncheckedSubjects = {};
+      _schoolWorks.filter(function(w) { return w.school === schoolName; }).forEach(function(w) {
+        if (CHUU_GRADES.indexOf(w.grade) === -1) return; // 中学3学年のみ対象
+        var checks = w.checks || {};
+        WORK_SUBJECTS.forEach(function(subj) {
+          var v = checks[subj] || '未確認';
+          if (!noneByGrade[subj]) noneByGrade[subj] = {};
+          noneByGrade[subj][w.grade] = v;
+          if (v === 'なし') noneSubjects[subj] = true;
+          else if (v === '未確認' && !noneSubjects[subj]) uncheckedSubjects[subj] = true;
+        });
+      });
+      var noneList = Object.keys(noneSubjects);
+      var uncheckedList = Object.keys(uncheckedSubjects).filter(function(s) { return !noneSubjects[s]; });
+
+      // 直近行事（今日以降で最も近い）
+      var upcomingEvents = _schoolEvents
+        .filter(function(ev) { return ev.school === schoolName && ev.eventDate >= today; })
+        .sort(function(a,b) { return a.eventDate > b.eventDate ? 1 : -1; });
+      var nextEvent = upcomingEvents[0] || null;
+
+      // 直近小テスト（今日以降で最も近い）
+      var upcomingTests = _schoolTasks
+        .filter(function(t) { return t.school === schoolName && t.dueDate >= today; })
+        .sort(function(a,b) { return a.dueDate > b.dueDate ? 1 : -1; });
+      var nextTest = upcomingTests[0] || null;
+
+      // カード生成
+      var cardId = 'sc_card_' + schoolName.replace(/[^a-zA-Z0-9]/g,'_');
+      g += '<div class="school-summary-card" onclick="openSchoolDetail(this.dataset.school)" data-school="' + esc(schoolName) + '" id="' + cardId + '">';
+
+      // ヘッダー
+      g += '<div class="ssc-header">' +
+        '<span class="ssc-name">🏫 ' + esc(schoolName) + '</span>' +
+        '<span class="ssc-count">' + enrolled.length + '名</span>' +
+        '</div>';
+
+      // ワーク「なし」教科
+      // ワーク表示：「なし」教科のみカードに表示。未確認は詳細パネルへ
+      if (noneList.length) {
+        g += '<div class="ssc-row">' +
+          noneList.map(function(subj) {
+            // ホバーポップアップ：学年別の配布状況
+            var gradeRows = CHUU_GRADES.map(function(gr) {
+              var v = (noneByGrade[subj] && noneByGrade[subj][gr]) || '未確認';
+              var color = v === 'なし' ? '#dc2626' : v === '配布済' ? '#16a34a' : '#9ca3af';
+              return '<span style="display:flex;justify-content:space-between;gap:12px">'
+                + '<span>' + gr + '</span>'
+                + '<span style="color:' + color + ';font-weight:700">' + v + '</span>'
+                + '</span>';
+            }).join('');
+            return '<span class="ssc-badge ssc-badge-none" style="position:relative;cursor:default">'
+              + subj
+              + '<span class="ssc-badge-popup">'
+              + '<span style="font-weight:700;margin-bottom:4px;display:block">' + subj + '</span>'
+              + gradeRows
+              + '</span>'
+              + '</span>';
+          }).join('') + '</div>';
+      } else {
+        g += '<div class="ssc-row" style="color:#16a34a;font-size:11px">✓ ワーク配布なし教科なし</div>';
+      }
+
+      // 直近行事
+      if (nextEvent) {
+        var dateStr = isoDate(new Date(nextEvent.eventDate));
+        if (nextEvent.eventEndDate) dateStr += '〜' + isoDate(new Date(nextEvent.eventEndDate)).slice(5);
+        g += '<div class="ssc-row ssc-event">📅 ' + dateStr + ' ' + esc(nextEvent.eventName) +
+          (nextEvent.grade ? ' <span class="badge badge-gray" style="font-size:9px">' + esc(nextEvent.grade) + '</span>' : '') + '</div>';
+      }
+
+      // 直近小テスト
+      if (nextTest) {
+        g += '<div class="ssc-row ssc-test">📝 ' + esc(nextTest.dueDate || '') + ' ' +
+          (nextTest.grade ? '<span class="badge badge-gray" style="font-size:9px">' + esc(nextTest.grade) + '</span> ' : '') +
+          esc(nextTest.taskName || '') + '</div>';
+      }
+
+      g += '</div>'; // school-summary-card
+    });
+    g += '</div>'; // school-grid
+    return g;
+  }
+
+  function renderSection(label, sectionSchools, defaultOpen) {
+    if (!sectionSchools.length) return '';
+    var sid = 'school-section-' + (label === '小学校' ? 'elem' : 'middle');
+    return '<div class="sc-school-section-header" onclick="toggleSchoolSection(this.dataset.sid)" data-sid="' + sid + '">' +
+      '<span class="sc-section-toggle-icon" id="' + sid + '-icon">' + (defaultOpen ? '▼' : '▶') + '</span>' +
+      '<span>' + label + '</span>' +
+      '<span style="font-size:12px;color:var(--text-muted);font-weight:400">（' + sectionSchools.length + '校）</span>' +
+      '</div>' +
+      '<div id="' + sid + '" style="display:' + (defaultOpen ? 'block' : 'none') + '">' +
+      renderSchoolGrid(sectionSchools) +
+      '</div>';
+  }
+
+  html += renderSection('中学校・高校', middleSchools, true);
+  html += renderSection('小学校', elemSchools, false);
+
+  document.getElementById('main-content').innerHTML = html;
+}
+
+
+function getTestNamesForSchoolGrade(school, grade) {
+  // 既存レコードに含まれるテスト名 + デフォルトを合わせて重複除去
+  var existing = _testRecords
+    .filter(function(r) { return r.school === school && r.grade === grade; })
+    .map(function(r) { return r.testName; });
+  var all = DEFAULT_TEST_NAMES.concat(existing.filter(function(n) { return DEFAULT_TEST_NAMES.indexOf(n) < 0; }));
+  return all;
+}
+
+function switchGradeTab(sid, grade, el) {
+  // タブのアクティブ切り替え
+  el.parentElement.querySelectorAll('.sc-grade-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  // パネルの表示切り替え
+  var prefix = 'gpanel_' + sid + '_';
+  document.querySelectorAll('[id^="' + prefix + '"]').forEach(function(p) { p.style.display = 'none'; });
+  var panelId = 'gpanel_' + sid + '_' + grade.replace(/[^a-zA-Z0-9]/g, '_');
+  var panel = document.getElementById(panelId);
+  if (panel) panel.style.display = '';
+}
+
+function switchTestTab(sid, grade, testName, el) {
+  el.parentElement.querySelectorAll('.sc-test-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  // 対応するパネルのインデックスを特定して表示
+  var tabs = Array.from(el.parentElement.querySelectorAll('.sc-test-tab'));
+  var idx = tabs.indexOf(el);
+  var gradeKey = grade.replace(/[^a-zA-Z0-9]/g, '_');
+  var panels = document.querySelectorAll('[id^="tpanel_' + sid + '_' + gradeKey + '_"]');
+  panels.forEach(function(p, i) { p.style.display = (i === idx) ? '' : 'none'; });
+}
+
+function addTestNamePrompt(school, grade) {
+  var name = prompt('テスト名を入力してください（例：夏期確認テスト）');
+  if (!name || !name.trim()) return;
+  name = name.trim();
+  // 新規レコードとして保存（教科メモ空）
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveTestRecord', record: JSON.stringify({
+    school: school, grade: grade, testName: name, year: new Date().getFullYear().toString(), subjectMemos: {}
+  })}, function(res) {
+    if (res && res.success) {
+      miniToast('追加しました ✓');
+      reloadTestRecords();
+    } else miniToast('エラー');
+  }, 'POST');
+}
+
+function saveSubjectMemo(textarea) {
+  var school    = textarea.getAttribute('data-school');
+  var grade     = textarea.getAttribute('data-grade');
+  var testName  = textarea.getAttribute('data-testname');
+  var subject   = textarea.getAttribute('data-subject');
+  var recordId  = textarea.getAttribute('data-recordid');
+  var val       = textarea.value;
+
+  // 既存レコードを探してメモを更新
+  var rec = _testRecords.find(function(r) {
+    return r.school === school && r.grade === grade && r.testName === testName;
+  });
+  if (rec) {
+    rec.subjectMemos[subject] = val;
+  } else {
+    rec = { recordId: recordId, school: school, grade: grade, testName: testName,
+      year: new Date().getFullYear().toString(), subjectMemos: {} };
+    rec.subjectMemos[subject] = val;
+    _testRecords.push(rec);
+  }
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveTestRecord', record: JSON.stringify(rec) }, function(res) {
+    if (res && res.success) {
+      // recordIdを更新（新規作成時）
+      if (res.recordId) {
+        textarea.setAttribute('data-recordid', res.recordId);
+        rec.recordId = res.recordId;
+      }
+      localStorage.setItem('cb_cache_test_records', JSON.stringify(_testRecords));
+      miniToast('保存 ✓');
+    } else miniToast('保存エラー');
+  }, 'POST');
+}
+
+function reloadTestRecords() {
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) return;
+  callGas(url, { action: 'getTestRecords' }, function(res) {
+    if (res && res.success && res.records) {
+      _testRecords = res.records;
+      localStorage.setItem('cb_cache_test_records', JSON.stringify(_testRecords));
+      renderSchool();
+    }
+  });
+}
+
+function openSchoolDetail(schoolName) {
+  _currentSchoolDetail = schoolName;
+  var overlay = document.getElementById('school-detail-overlay');
+  var body    = document.getElementById('sdp-body');
+  document.getElementById('sdp-title').textContent = '🏫 ' + schoolName;
+
+  var WORK_SUBJECTS = ['英語','数学','国語（読解）','国語（漢字）','理科','社会（地理）','社会（歴史）','社会（公民）'];
+  var today = isoDate(new Date());
+
+  // 在籍生徒
+  var enrolled = _students.filter(function(s) { return s.school === schoolName; });
+  var grades = {};
+  enrolled.forEach(function(s) { if (s.grade) grades[s.grade] = true; });
+  var gradeList = Object.keys(grades).sort();
+
+  var html = '';
+
+  // ── 在籍生徒 ──
+  html += '<div class="sdp-section"><div class="sdp-section-label">👥 在籍生徒（' + enrolled.length + '名）</div>';
+  html += '<div class="enrolled-chips">' + (enrolled.length
+    ? enrolled.map(function(s) { return '<span class="enrolled-chip">' + esc(s.name) + '（' + esc(s.grade) + '）</span>'; }).join('')
+    : '<span style="color:var(--text-muted);font-size:12px">在籍なし</span>') + '</div></div>';
+
+  // ── 学校ワーク配布確認 ──
+  var ALL_GRADES = ['中1','中2','中3','高1','高2','高3'];
+  var workGradeList = ALL_GRADES.concat(gradeList.filter(function(g){ return ALL_GRADES.indexOf(g)<0; }));
+  html += '<div class="sdp-section"><div class="sdp-section-label">📚 学校ワーク配布確認</div>';
+  html += '<table class="work-check-table"><thead><tr><th>学年</th>';
+  WORK_SUBJECTS.forEach(function(s){ html += '<th style="font-size:10px">' + s.replace('（','<br>(').replace('）',')') + '</th>'; });
+  html += '</tr></thead><tbody>';
+  workGradeList.forEach(function(grade) {
+    var work = _schoolWorks.find(function(w){ return w.school===schoolName && w.grade===grade; });
+    var checks = (work && work.checks) ? work.checks : {};
+    html += '<tr><td style="font-weight:600;font-size:12px">' + esc(grade) + '</td>';
+    WORK_SUBJECTS.forEach(function(subj) {
+      var val = checks[subj] || '未確認';
+      var bg  = val==='あり' ? '#dcfce7' : val==='なし' ? '#fee2e2' : '#f3f4f6';
+      var col = val==='あり' ? '#166534' : val==='なし' ? '#991b1b' : '#6b7280';
+      html += '<td><select class="work-check-select" style="background:'+bg+';color:'+col+';border:none;border-radius:4px;padding:2px 2px;font-size:10px;font-weight:600;cursor:pointer;width:100%"' +
+        ' data-school="'+esc(schoolName)+'" data-grade="'+esc(grade)+'" data-subject="'+esc(subj)+'" onchange="saveWorkCheck(this)">';
+      ['未確認','あり','なし'].forEach(function(opt){
+        html += '<option value="'+opt+'"'+(val===opt?' selected':'')+'>'+opt+'</option>';
+      });
+      html += '</select></td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // ── 行事 ──
+  var events = _schoolEvents.filter(function(ev){ return ev.school===schoolName; })
+    .sort(function(a,b){ return a.eventDate>b.eventDate?1:-1; });
+  html += '<div class="sdp-section"><div class="sdp-section-label">🎌 行事' +
+    '<button class="btn-primary btn-sm" onclick="event.stopPropagation();openAddEventModal(this.dataset.school)" data-school="'+schoolName.replace(/"/g,'&quot;')+'">＋ 追加</button></div>';
+  if (events.length) {
+    events.forEach(function(ev) {
+      var daysLeft = ev.eventDate ? Math.ceil((new Date(ev.eventDate)-new Date(today))/86400000) : null;
+      var urgentStyle = daysLeft!==null && daysLeft>=0 && daysLeft<=7 ? 'color:#991b1b;font-weight:700' : '';
+      var dateStr = ev.eventDate ? isoDate(new Date(ev.eventDate)) : '';
+      if (ev.eventEndDate) dateStr += '〜' + isoDate(new Date(ev.eventEndDate)).slice(5);
+      html += '<div class="test-item">' +
+        '<button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteSchoolEvent(this.dataset.id)" data-id="'+esc(ev.eventId)+'">削除</button>' +
+        '<span style="flex:1;font-size:13px">' +
+        (dateStr ? '<span style="margin-right:8px;color:var(--text-muted)">'+dateStr+'</span>' : '') +
+        (ev.grade ? '<span class="badge badge-gray" style="font-size:10px;margin-right:4px">'+esc(ev.grade)+'</span>' : '') +
+        esc(ev.eventName) +
+        (daysLeft!==null ? '<span style="margin-left:8px;font-size:11px;'+urgentStyle+'">（'+(daysLeft>=0?'残'+daysLeft+'日':'終了')+'）</span>' : '') +
+        '</span></div>';
+    });
+  } else { html += '<p style="font-size:12px;color:var(--text-muted)">登録なし</p>'; }
+  html += '</div>';
+
+  // ── 小テスト ──
+  var tests = _schoolTasks.filter(function(t){ return t.school===schoolName; })
+    .sort(function(a,b){ return (a.dueDate||'')>(b.dueDate||'')?1:-1; });
+  html += '<div class="sdp-section"><div class="sdp-section-label">📝 小テスト</div>';
+  if (tests.length) {
+    tests.forEach(function(t) {
+      html += '<div class="test-item">' +
+        '<button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteTest(this.dataset.id)" data-id="'+esc(t.taskId||'')+'">削除</button>' +
+        '<span style="flex:1;font-size:13px">'+esc(t.dueDate||'')+'　' +
+        (t.grade ? '<span class="badge badge-gray" style="font-size:10px">'+esc(t.grade)+'</span> ' : '') +
+        esc(t.taskName||'')+'</span></div>';
+    });
+  } else { html += '<p style="font-size:12px;color:var(--text-muted)">登録なし</p>'; }
+  html += '</div>';
+
+  // ── メモ ──
+  var info = _schoolInfo.find(function(si) { return si.school === schoolName; });
+  var currentNote = info ? (info.note || '') : '';
+  html += '<div class="sdp-section"><div class="sdp-section-label">📝 メモ</div>' +
+    '<textarea class="sc-memo" style="width:100%;min-height:80px;font-size:13px" ' +
+    'placeholder="学校に関するメモ（テスト傾向・特記事項など）" ' +
+    'data-school="' + esc(schoolName) + '" ' +
+    'onblur="saveSchoolMemo(this.dataset.school, this.value)">' +
+    esc(currentNote) + '</textarea></div>';
+
+  body.innerHTML = html;
+  overlay.classList.add('open');
+}
+
+function closeSchoolDetail() {
+  document.getElementById('school-detail-overlay').classList.remove('open');
+  _currentSchoolDetail = '';
+}
+
+function toggleSchoolSection(sid) {
+  var el = document.getElementById(sid);
+  var icon = document.getElementById(sid + '-icon');
+  if (!el) return;
+  var isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (icon) icon.textContent = isOpen ? '▶' : '▼';
+}
+
+function toggleSchoolCard(header) {
+  header.nextElementSibling.classList.toggle('open');
+}
+
+function saveSchoolMemo(school, memo) {
+  var info = _schoolInfo.find(function(si) { return si.school === school; });
+  if (!info) { info = { school: school, note: memo }; _schoolInfo.push(info); }  // GASはnoteフィールド
+  else info.note = memo;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveSchoolInfo', info: JSON.stringify(_schoolInfo) }, function(res) {
+    if (res && res.success) { miniToast('保存済 ✓'); localStorage.setItem('cb_cache_school_info', JSON.stringify(_schoolInfo)); }
+    else miniToast('保存エラー');
+  }, 'POST');
+}
+
+function toggleSubjBtn(btn) {
+  btn.classList.toggle('active');
+}
+
+function openAddTestModal(school) {
+  // 学校プルダウンを最新の生徒データで生成
+  var sel = document.getElementById('test-target-school');
+  var schools = Array.from(new Set(_students.map(function(s){return s.school;}).filter(Boolean))).sort();
+  sel.innerHTML = '<option value="">-- 学校を選択 --</option>' +
+    schools.map(function(s){ return '<option value="' + s.replace(/"/g,'&quot;') + '">' + s + '</option>'; }).join('');
+  sel.value = school || '';
+  // 学校固定時はプルダウンを非表示（学校マスタから呼ぶケース）
+  document.getElementById('test-school-group').style.display = school ? 'none' : '';
+  document.getElementById('test-edit-task-id').value = '';
+  document.getElementById('test-name').value = '';
+  document.getElementById('test-start-date').value = '';
+  document.querySelectorAll('.test-grade').forEach(function(cb) { cb.checked = false; });
+  document.querySelectorAll('#test-subj-btns .subj-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('modal-add-test-title').textContent = school ? 'テスト予定を追加（' + school + '）' : '📅 小テスト追加';
+  openModal('modal-add-test');
+}
+
+function submitAddTest() {
+  miniToast('保存中...');
+  var school = document.getElementById('test-target-school').value;
+  var taskId = document.getElementById('test-edit-task-id').value;
+  var name   = document.getElementById('test-name').value.trim();
+  var start  = document.getElementById('test-start-date').value;
+  var grades = Array.from(document.querySelectorAll('.test-grade:checked')).map(function(cb) { return cb.value; });
+  var subjects = Array.from(document.querySelectorAll('#test-subj-btns .subj-btn.active')).map(function(b){ return b.getAttribute('data-subj'); });
+  if (!school) { miniToast('学校を選択してください'); return; }
+  if (!start) { miniToast('実施日を入力してください'); return; }
+  var _tnParts = [];
+  if (subjects.length) _tnParts.push(subjects.join('・'));
+  if (name) _tnParts.push(name);
+  var taskName = _tnParts.join('　') || '小テスト';
+  var task = { school: school, taskName: taskName, grade: grades.join('・'), dueDate: start, status: '対策中', memo: '' };
+  if (taskId) task.taskId = taskId;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveSchoolTask', task: JSON.stringify(task) }, function(res) {
+    if (res && res.success) {
+      closeModal('modal-add-test');
+      miniToast('保存しました ✓');
+      callGas(url, { action: 'getSchoolTasks' }, function(r) {
+        if (r && r.success && r.tasks) { _schoolTasks = r.tasks; localStorage.setItem('cb_cache_school_tasks', JSON.stringify(_schoolTasks)); }
+        renderSchool();
+        if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
+      });
+    } else miniToast('保存エラー');
+  }, 'POST');
+}
+
+function deleteTest(taskId) {
+  if (!taskId || !confirm('このテスト予定を削除しますか？')) return;
+  miniToast('削除中...');
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'deleteSchoolTask', taskId: taskId }, function(res) {
+    if (res && res.success) {
+      _schoolTasks = _schoolTasks.filter(function(t) { return t.taskId !== taskId; });
+      localStorage.setItem('cb_cache_school_tasks', JSON.stringify(_schoolTasks));
+      miniToast('削除しました ✓');
+      renderSchool();
+      if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
+    } else miniToast('削除エラー');
+  }, 'POST');
+}
+
+
+// =====================================================
+// 定期テストタブ
+// =====================================================
+var EXAM_TEST_TYPES = ['前期中間','前期期末','後期中間','学年末'];
+var EXAM_SUBJECTS   = ['英語','数学','国語','理科','社会','実技'];
+var EXAM_GRADES     = ['中1','中2','中3','高1','高2','高3'];
+
+function getExamYearOptions() {
+  var now = new Date().getFullYear();
+  var years = [];
+  for (var y = now - 2; y <= now + 1; y++) years.push(String(y));
+  // 既存レコードに含まれる年度も追加
+  _examStrategies.forEach(function(s) {
+    (s.years || '').split(',').forEach(function(y) {
+      y = y.trim();
+      if (y && years.indexOf(y) === -1) years.push(y);
+    });
+  });
+  years.sort();
+  return years;
+}
+
+function renderExam() {
+  var el = document.getElementById('main-content');
+  var yearOpts = getExamYearOptions();
+  if (_examYearFilter === null) _examYearFilter = String(new Date().getFullYear());
+
+  // フィルタ後レコード
+  var filtered = _examStrategies.filter(function(s) {
+    var gradeOK   = (_examGradeFilter === 'all') || (s.grade || '').split(',').map(function(g){return g.trim();}).indexOf(_examGradeFilter) !== -1;
+    var subjectOK = (_examSubjectFilter === 'all') || s.subject === _examSubjectFilter;
+    var yearOK    = !_examYearFilter || (s.years || '').split(',').map(function(y){return y.trim();}).indexOf(_examYearFilter) !== -1;
+    return gradeOK && subjectOK && yearOK;
+  });
+
+  // テスト種別グループ
+  var groups = {};
+  EXAM_TEST_TYPES.forEach(function(t) { groups[t] = []; });
+  filtered.forEach(function(s) {
+    if (groups[s.testType] !== undefined) groups[s.testType].push(s);
+    else {
+      if (!groups['その他']) groups['その他'] = [];
+      groups['その他'].push(s);
+    }
+  });
+
+  // テスト日程セクション
+  var schedHtml = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin-bottom:16px">';
+  schedHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  schedHtml += '<div style="font-size:13px;font-weight:700;color:#15803d">📅 定期テスト日程</div>';
+  schedHtml += '<button class="btn-sm" style="background:#15803d;color:#fff;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer" onclick="openExamScheduleModal()">＋ 定期テスト日程を追加</button>';
+  schedHtml += '</div>';
+
+  // テスト日程は常に最新年度（現在年度）を表示
+  var schedYear = String(new Date().getFullYear());
+  var schedFiltered = _examSchedules.filter(function(sc){ return sc.year === schedYear; });
+  if (schedFiltered.length === 0) {
+    schedHtml += '<div style="color:#6b7280;font-size:12px">' + schedYear + '年度の日程は未登録です</div>';
+  } else {
+    schedHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">';
+    EXAM_TEST_TYPES.forEach(function(tt) {
+      var sc = schedFiltered.find(function(s){ return s.testType === tt; });
+      if (!sc) return;
+      var dStart = sc.startDate ? sc.startDate.replace(/-(\d+)$/, function(_,d){return '-'+d;}) : '未設定';
+      var dEnd   = sc.endDate   ? sc.endDate.replace(/-(\d+)$/, function(_,d){return '-'+d;}) : '';
+      var label  = dEnd ? dStart + ' 〜 ' + dEnd : dStart;
+      schedHtml += '<div style="background:#fff;border:1px solid #86efac;border-radius:6px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between">';
+      schedHtml += '<div>';
+      schedHtml += '<div style="font-size:12px;font-weight:700;color:#15803d">' + esc(tt) + '</div>';
+      schedHtml += '<div style="font-size:11px;color:#374151;margin-top:2px">' + esc(label) + '</div>';
+      schedHtml += '</div>';
+      schedHtml += '<button class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer" '
+        + 'data-sid="' + sc.scheduleId + '" onclick="deleteExamSchedule(this.dataset.sid)">削除</button>';
+      schedHtml += '</div>';
+    });
+    schedHtml += '</div>';
+  }
+  schedHtml += '</div>';
+
+  var html = schedHtml;
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    + '<div style="font-size:15px;font-weight:700">定期テスト対策DB</div>'
+    + '<button class="btn-primary btn-sm" onclick="addNewExamCard()">＋ 追加</button>'
+    + '</div>';
+
+  // 学年フィルタ
+  html += '<div class="sc-grade-tabs" style="margin-bottom:10px">';
+  html += '<div class="sc-grade-tab' + (_examGradeFilter==='all'?' active':'') + '" data-ftype="grade" data-fval="all" onclick="setExamFilter(this.dataset.ftype,this.dataset.fval)">全学年</div>';
+  EXAM_GRADES.forEach(function(g) {
+    html += '<div class="sc-grade-tab' + (_examGradeFilter===g?' active':'') + '" data-ftype="grade" data-fval="' + g + '" onclick="setExamFilter(this.dataset.ftype,this.dataset.fval)">' + g + '</div>';
+  });
+  html += '</div>';
+
+  // 教科フィルタ
+  html += '<div class="sc-test-tabs" style="margin-bottom:10px">';
+  html += '<div class="sc-test-tab' + (_examSubjectFilter==='all'?' active':'') + '" data-ftype="subject" data-fval="all" onclick="setExamFilter(this.dataset.ftype,this.dataset.fval)">全教科</div>';
+  EXAM_SUBJECTS.forEach(function(s) {
+    html += '<div class="sc-test-tab' + (_examSubjectFilter===s?' active':'') + '" data-ftype="subject" data-fval="' + s + '" onclick="setExamFilter(this.dataset.ftype,this.dataset.fval)">' + s + '</div>';
+  });
+  html += '</div>';
+
+  // 年度フィルタ
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:13px">'
+    + '<span style="color:var(--text-muted);font-weight:600">年度：</span>'
+    + '<select onchange="setExamFilter(\'year\',this.value)" style="font-size:13px;padding:3px 8px;border:1px solid var(--border);border-radius:5px">';
+  html += '<option value="">全年度</option>';
+  yearOpts.forEach(function(y) {
+    html += '<option value="' + y + '"' + (_examYearFilter===y?' selected':'') + '>' + y + '年度</option>';
+  });
+  html += '</select>';
+  html += '<span style="color:var(--text-muted);font-size:12px">' + filtered.length + '件</span>';
+  html += '</div>';
+
+  // 教科の色定義
+  var SUBJECT_COLORS = {
+    '英語': {bg:'#fce7f3',col:'#9d174d'},
+    '数学': {bg:'#dbeafe',col:'#1e40af'},
+    '国語': {bg:'#ffe4e6',col:'#9f1239'},
+    '理科': {bg:'#dcfce7',col:'#166534'},
+    '社会': {bg:'#fef9c3',col:'#854d0e'},
+    '実技': {bg:'#f3e8ff',col:'#6b21a8'}
+  };
+  // 表形式で使う学年・教科
+  var TABLE_GRADES   = ['中1','中2','中3'];
+  var TABLE_SUBJECTS = EXAM_SUBJECTS; // ['英語','数学','国語','理科','社会','実技']
+
+  // テスト種別ごとの枠色
+  var TYPE_COLORS = {
+    '前期中間': {border:'#93c5fd',header:'#eff6ff',htext:'#1e40af'},
+    '前期期末': {border:'#6ee7b7',header:'#ecfdf5',htext:'#065f46'},
+    '後期中間': {border:'#fcd34d',header:'#fffbeb',htext:'#92400e'},
+    '学年末':   {border:'#f9a8d4',header:'#fdf2f8',htext:'#831843'}
+  };
+
+  var allTypes = EXAM_TEST_TYPES.concat(Object.keys(groups).filter(function(k){return EXAM_TEST_TYPES.indexOf(k)===-1;}));
+  allTypes.forEach(function(testType) {
+    var recs = groups[testType] || [];
+    var tc = TYPE_COLORS[testType] || {border:'#e5e7eb',header:'#f9fafb',htext:'#374151'};
+
+    html += '<div style="margin-bottom:20px;border:2px solid ' + tc.border + ';border-radius:8px;overflow:hidden">';
+
+    // グループヘッダー
+    html += '<div style="background:' + tc.header + ';padding:7px 12px;display:flex;align-items:center;gap:8px">';
+    html += '<span style="font-size:13px;font-weight:700;color:' + tc.htext + '">' + testType + '</span>';
+    html += '<span style="font-size:11px;color:var(--text-muted)">' + recs.length + '件</span>';
+    html += '</div>';
+
+    if (recs.length === 0) {
+      html += '<div style="color:var(--text-muted);font-size:12px;padding:8px 12px">データなし</div>';
+    } else {
+      // 表形式レイアウト
+      // 列幅：学年列(44px固定) + 教科列(均等)
+      var colCount = TABLE_SUBJECTS.length + 1;
+      html += '<div style="overflow-x:auto">';
+      html += '<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed">';
+
+      // 列幅定義
+      html += '<colgroup><col style="width:44px">';
+      TABLE_SUBJECTS.forEach(function(){ html += '<col>'; });
+      html += '</colgroup>';
+
+      // ヘッダー行（教科）
+      html += '<thead><tr>';
+      html += '<th style="background:#f9fafb;padding:4px;border:1px solid #e5e7eb;text-align:center;font-size:10px;color:#9ca3af"></th>';
+      TABLE_SUBJECTS.forEach(function(sj) {
+        var sc = SUBJECT_COLORS[sj] || {bg:'#f3f4f6',col:'#374151'};
+        html += '<th style="background:' + sc.bg + ';color:' + sc.col + ';padding:4px 6px;border:1px solid #e5e7eb;text-align:center;font-size:11px;font-weight:700">' + sj + '</th>';
+      });
+      html += '</tr></thead>';
+
+      // データ行（学年）
+      html += '<tbody>';
+      TABLE_GRADES.forEach(function(grade) {
+        html += '<tr>';
+        // 学年セル
+        html += '<td style="background:#f9fafb;padding:4px;border:1px solid #e5e7eb;text-align:center;font-weight:700;font-size:11px;color:#374151;vertical-align:top;white-space:nowrap">' + grade + '</td>';
+
+        TABLE_SUBJECTS.forEach(function(sj) {
+          // この学年×教科に該当するレコードを抽出
+          var cellRecs = recs.filter(function(r) {
+            var gradeMatch = (r.grade || '').split(',').map(function(x){return x.trim();}).indexOf(grade) !== -1;
+            var subjMatch  = r.subject === sj;
+            return gradeMatch && subjMatch;
+          });
+
+          html += '<td style="border:1px solid #e5e7eb;padding:3px;vertical-align:top;min-width:80px">';
+          if (cellRecs.length === 0) {
+            html += '<span style="color:#e5e7eb;font-size:10px">－</span>';
+          } else {
+            cellRecs.forEach(function(r) {
+              html += buildExamCardCompact(r);
+            });
+          }
+          html += '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+  // 編集中カードがあれば再展開
+  if (_examEditingId) {
+    var el2 = document.querySelector('[data-rid="' + _examEditingId + '"]');
+    if (el2) expandExamCard(el2, _examEditingId);
+  }
+}
+
+function setExamFilter(type, val) {
+  if (type === 'grade')   _examGradeFilter   = val;
+  if (type === 'subject') _examSubjectFilter = val;
+  if (type === 'year')    _examYearFilter    = val;
+  renderExam();
+}
+
+// =====================================================
+// テスト日程（ExamSchedule）関連
+// =====================================================
+function openExamScheduleModal() {
+  var yearOpts = getExamYearOptions();
+  var schedYear = String(new Date().getFullYear());
+  var ttHtml = EXAM_TEST_TYPES.map(function(t) {
+    return '<option value="' + t + '">' + t + '</option>';
+  }).join('');
+  var yrHtml = yearOpts.map(function(y) {
+    return '<option value="' + y + '"' + (y===schedYear?' selected':'') + '>' + y + '年度</option>';
+  }).join('');
+  var body = '<div style="display:grid;gap:12px">'
+    + '<div><label style="font-size:12px;color:#6b7280">テスト種別</label>'
+    + '<select id="esch-type" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px">'
+    + ttHtml + '</select></div>'
+    + '<div><label style="font-size:12px;color:#6b7280">年度</label>'
+    + '<select id="esch-year" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px">'
+    + yrHtml + '</select></div>'
+    + '<div><label style="font-size:12px;color:#6b7280">開始日 <span style="color:#dc2626">*</span></label>'
+    + '<input type="date" id="esch-start" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></div>'
+    + '<div><label style="font-size:12px;color:#6b7280">終了日 <span style="font-weight:400;color:#9ca3af">（空欄=1日）</span></label>'
+    + '<input type="date" id="esch-end" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></div>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">'
+    + '<button class="btn-secondary btn-sm" data-mid="modal-exam-schedule" onclick="closeModal(this.dataset.mid)">キャンセル</button>'
+    + '<button class="btn-primary btn-sm" onclick="submitExamSchedule()">登録</button>'
+    + '</div>';
+  document.getElementById('modal-exam-schedule-body').innerHTML = body;
+  openModal('modal-exam-schedule');
+}
+
+function submitExamSchedule() {
+  var testType  = document.getElementById('esch-type').value;
+  var year      = document.getElementById('esch-year').value;
+  var startDate = document.getElementById('esch-start').value;
+  var endDate   = document.getElementById('esch-end').value;
+  if (!startDate) { miniToast('開始日を入力してください'); return; }
+
+  var schedule = { testType: testType, year: year, startDate: startDate, endDate: endDate };
+  var tmp = { scheduleId: 'tmp_' + Date.now(), testType: testType, year: year, startDate: startDate, endDate: endDate };
+  _examSchedules.push(tmp);
+  closeModal('modal-exam-schedule');
+  renderExam();
+  miniToast('日程を追加しました');
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  callGas(url, { action: 'saveExamSchedule', schedule: JSON.stringify(schedule) }, function(res) {
+    if (res && res.success) {
+      var s = _examSchedules.find(function(x){ return x.scheduleId === tmp.scheduleId; });
+      if (s) s.scheduleId = res.scheduleId;
+      localStorage.setItem('cb_cache_exam_schedules', JSON.stringify(_examSchedules));
+    } else {
+      _examSchedules = _examSchedules.filter(function(x){ return x.scheduleId !== tmp.scheduleId; });
+      renderExam();
+      miniToast('日程保存エラー（再読み込みしてください）');
+    }
+  }, 'POST');
+}
+
+function deleteExamSchedule(scheduleId) {
+  var deleted = _examSchedules.find(function(s){ return s.scheduleId === scheduleId; });
+  _examSchedules = _examSchedules.filter(function(s){ return s.scheduleId !== scheduleId; });
+  renderExam();
+  miniToast('日程を削除しました');
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  callGas(url, { action: 'deleteExamSchedule', scheduleId: scheduleId }, function(res) {
+    if (!res || !res.success) {
+      if (deleted) _examSchedules.push(deleted);
+      renderExam();
+      miniToast('削除エラー（再読み込みしてください）');
+    } else {
+      localStorage.setItem('cb_cache_exam_schedules', JSON.stringify(_examSchedules));
+    }
+  }, 'POST');
+}
+
+// =====================================================
+// 定期テスト対策 インライン編集
+// =====================================================
+var _examEditingId = null; // 現在編集中のrecordId（nullなら閲覧モード）
+var _currentSchoolDetail = ''; // 現在開いている学校詳細パネルの学校名
+
+function getExamAllSchools() {
+  var list = [];
+  _students.forEach(function(st) {
+    if (st.school && list.indexOf(st.school) === -1
+        && st.school.indexOf('小') === -1 && st.school.indexOf('高') === -1) {
+      list.push(st.school);
+    }
+  });
+  return list.sort();
+}
+
+// 表形式用コンパクトカード（学年×教科セル内）
+function buildExamCardCompact(r) {
+  var schools = r.schools ? r.schools.split(',').map(function(x){return x.trim();}).join(' ') : '';
+  var h = '<div class="exam-card" data-rid="' + r.recordId + '" onclick="expandExamCard(this, this.dataset.rid)"'
+    + ' style="cursor:pointer;background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:3px 5px;margin-bottom:3px;font-size:11px">';
+  h += '<div style="font-weight:700;color:var(--text);line-height:1.3;margin-bottom:1px">' + esc(r.unitName||'（未入力）') + '</div>';
+  if (schools) h += '<div style="color:#6b7280;font-size:10px">' + esc(schools) + '</div>';
+  if (r.materials) h += '<div style="color:#059669;font-size:10px">📄 ' + esc(r.materials) + '</div>';
+  h += '</div>';
+  return h;
+}
+
+// 閲覧モードのカードHTML
+function buildExamCard(s) {
+  var grades  = s.grade   ? s.grade.split(',').map(function(x){return x.trim();}).join('・') : '－';
+  var schools = s.schools ? s.schools.split(',').map(function(x){return x.trim();}).join(' ') : '－';
+  var years   = s.years   ? s.years.split(',').map(function(x){return x.trim()+'年度';}).join('・') : '－';
+  var metaLine = [grades, schools, years].filter(function(v){return v && v!=='－';}).join('　');
+  return '<div class="school-summary-card exam-card" data-rid="' + s.recordId + '" onclick="expandExamCard(this, this.dataset.rid)" style="cursor:pointer;padding:6px 8px">'
+    + '<div style="display:flex;align-items:center;gap:5px;justify-content:space-between">'
+    + '<div style="display:flex;align-items:center;gap:5px;overflow:hidden;flex:1">'
+    + '<span style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;flex-shrink:0">' + esc(s.subject||'－') + '</span>'
+    + '<span style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(s.unitName||'（未入力）') + '</span>'
+    + '</div>'
+    + '<button class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:2px 7px;border-radius:3px;font-size:10px;cursor:pointer;flex-shrink:0" '
+    + 'data-rid="' + s.recordId + '" onclick="event.stopPropagation();deleteExamStrategy(this.dataset.rid)">削除</button>'
+    + '</div>'
+    + '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(metaLine) + '</div>'
+    + (s.materials ? '<div style="font-size:10px;color:#059669;margin-top:1px">📄 ' + esc(s.materials) + '</div>' : '')
+    + '</div>';
+}
+
+// カードを編集モードに展開
+function expandExamCard(cardEl, recordId) {
+  if (_examEditingId === recordId) {
+    collapseExamCard(cardEl, recordId);
+    return;
+  }
+  // 他に開いているカードがあれば閉じる
+  if (_examEditingId) {
+    var prev = document.querySelector('.exam-card[data-rid="' + _examEditingId + '"]');
+    if (prev) {
+      var prevS = _examStrategies.find(function(x){ return x.recordId === _examEditingId; });
+      if (prevS) prev.outerHTML = buildExamCard(prevS);
+    }
+  }
+  _examEditingId = recordId;
+  var s = _examStrategies.find(function(x){ return x.recordId === recordId; }) || {};
+  cardEl.outerHTML = buildExamCardEdit(s);
+  // 単元名にフォーカス
+  var unitEl = document.getElementById('ec-unit-' + recordId);
+  if (unitEl) { unitEl.focus(); selectAllText(unitEl); }
+}
+
+function selectAllText(el) {
+  var range = document.createRange();
+  range.selectNodeContents(el);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// 編集モードのカードHTML
+function buildExamCardEdit(s) {
+  var rid = s.recordId || '';
+  var yearOpts = getExamYearOptions();
+  var allSchools = getExamAllSchools();
+  var selGrades  = (s.grade   || '').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  var selSchools = (s.schools || '').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  var selYears   = (s.years   || '').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  if (!selYears.length) selYears = [String(new Date().getFullYear())];
+
+  var selStyle = 'font-size:11px;padding:2px 5px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer';
+
+  var ttSel = '<select id="ec-tt-' + rid + '" style="' + selStyle + '">'
+    + EXAM_TEST_TYPES.map(function(t){ return '<option value="' + t + '"' + (s.testType===t?' selected':'') + '>' + t + '</option>'; }).join('')
+    + '</select>';
+
+  var sjSel = '<select id="ec-sj-' + rid + '" style="' + selStyle + '">'
+    + EXAM_SUBJECTS.map(function(sj){ return '<option value="' + sj + '"' + (s.subject===sj?' selected':'') + '>' + sj + '</option>'; }).join('')
+    + '</select>';
+
+  var grChk = EXAM_GRADES.map(function(g){
+    return '<label style="font-size:11px;white-space:nowrap"><input type="checkbox" class="ec-gr-' + rid + '" value="' + g + '"'
+      + (selGrades.indexOf(g)!==-1?' checked':'') + '> ' + g + '</label>';
+  }).join(' ');
+
+  var scChk = allSchools.length
+    ? allSchools.map(function(sc){
+        return '<label style="font-size:11px;white-space:nowrap"><input type="checkbox" class="ec-sc-' + rid + '" value="' + sc + '"'
+          + (selSchools.indexOf(sc)!==-1?' checked':'') + '> ' + sc + '</label>';
+      }).join(' ')
+    : '<span style="font-size:11px;color:var(--text-muted)">（学校マスタ未登録）</span>';
+
+  var yrChk = yearOpts.map(function(y){
+    return '<label style="font-size:11px;white-space:nowrap"><input type="checkbox" class="ec-yr-' + rid + '" value="' + y + '"'
+      + (selYears.indexOf(y)!==-1?' checked':'') + '> ' + y + '</label>';
+  }).join(' ');
+
+  var ceStyle = 'display:block;width:100%;min-height:20px;padding:2px 5px;border:1px solid #93c5fd;border-radius:4px;font-size:12px;outline:none;background:#f0f9ff;white-space:pre-wrap;word-break:break-all;box-sizing:border-box;transition:min-height 0.15s';
+
+  var html = '<div class="school-summary-card exam-card" data-rid="' + rid + '" style="padding:8px 10px;border:2px solid #3b82f6;background:#f8faff">';
+
+  html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px">' + ttSel + sjSel + '</div>';
+
+  html += '<div style="font-size:10px;color:#6b7280;margin-bottom:2px">単元名 *</div>';
+  html += '<div id="ec-unit-' + rid + '" contenteditable="true" style="' + ceStyle + ';font-weight:700;margin-bottom:5px"'
+    + ' onfocus="setExamCeHeight(this,28)" onblur="setExamCeHeight(this,20)">'
+    + esc(s.unitName||'') + '</div>';
+
+  html += '<div style="font-size:10px;color:#6b7280;margin-bottom:2px">学年 *</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">' + grChk + '</div>';
+
+  html += '<div style="font-size:10px;color:#6b7280;margin-bottom:2px">対象校 *</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">' + scChk + '</div>';
+
+  html += '<div style="font-size:10px;color:#6b7280;margin-bottom:2px">配布物</div>';
+  html += '<div id="ec-mat-' + rid + '" contenteditable="true" style="' + ceStyle + ';color:#059669;margin-bottom:5px"'
+    + ' onfocus="setExamCeHeight(this,28)" onblur="setExamCeHeight(this,20)">'
+    + esc(s.materials||'') + '</div>';
+
+  html += '<div style="font-size:10px;color:#6b7280;margin-bottom:2px">出題内容・範囲</div>';
+  html += '<div id="ec-cont-' + rid + '" contenteditable="true" style="' + ceStyle + ';min-height:36px;margin-bottom:5px"'
+    + ' onfocus="setExamCeHeight(this,72)" onblur="setExamCeHeight(this,36)">'
+    + esc(s.content||'') + '</div>';
+
+  html += '<div style="font-size:10px;color:#6b7280;margin-bottom:2px">年度 *</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">' + yrChk + '</div>';
+
+  html += '<div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #dbeafe;padding-top:8px">';
+  html += '<button class="btn-secondary btn-sm" data-rid="' + rid + '" onclick="cancelExamCard(this.dataset.rid)">キャンセル</button>';
+  html += '<button class="btn-primary btn-sm" data-rid="' + rid + '" onclick="saveExamCard(this.dataset.rid)">保存</button>';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
+}
+
+// カードを閉じる（recordId指定）
+function collapseExamCardById(rid) {
+  var el = document.querySelector('.exam-card[data-rid="' + rid + '"]');
+  if (el) collapseExamCard(el, rid);
+}
+
+// カードを閉じて閲覧モードに戻す
+function collapseExamCard(cardEl, recordId) {
+  _examEditingId = null;
+  var s = _examStrategies.find(function(x){ return x.recordId === recordId; });
+  if (s) {
+    cardEl.outerHTML = buildExamCard(s);
+  } else {
+    // 新規追加キャンセル：カードごと削除
+    cardEl.remove();
+    _examStrategies = _examStrategies.filter(function(x){ return x.recordId !== recordId; });
+    renderExam();
+  }
+}
+
+// 自動保存
+function saveExamCard(rid) {
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY);
+  if (!url) { miniToast('GAS URLが設定されていません'); return; }
+
+  var testType = (document.getElementById('ec-tt-' + rid) || {}).value || '';
+  var subject  = (document.getElementById('ec-sj-' + rid) || {}).value || '';
+  var unitEl   = document.getElementById('ec-unit-' + rid);
+  var matEl    = document.getElementById('ec-mat-'  + rid);
+  var contEl   = document.getElementById('ec-cont-' + rid);
+  var unitName = unitEl ? unitEl.innerText.trim() : '';
+  var materials= matEl  ? matEl.innerText.trim()  : '';
+  var cont     = contEl ? contEl.innerText.trim()  : '';
+  var grades   = Array.from(document.querySelectorAll('.ec-gr-' + rid + ':checked')).map(function(c){return c.value;}).join(',');
+  var schools  = Array.from(document.querySelectorAll('.ec-sc-' + rid + ':checked')).map(function(c){return c.value;}).join(',');
+  var years    = Array.from(document.querySelectorAll('.ec-yr-' + rid + ':checked')).map(function(c){return c.value;}).join(',');
+
+  if (!testType) { miniToast('テスト種別を選択してください'); return; }
+  if (!subject)  { miniToast('教科を選択してください'); return; }
+  if (!unitName) { miniToast('単元名を入力してください'); return; }
+  if (!grades)   { miniToast('学年を選択してください'); return; }
+  if (!schools)  { miniToast('対象校を選択してください'); return; }
+  if (!years)    { miniToast('年度を選択してください'); return; }
+
+  var isNew = rid.indexOf('tmp_') === 0;
+  var strategy = { recordId: isNew ? '' : rid, testType: testType, subject: subject,
+    unitName: unitName, grade: grades, schools: schools,
+    content: cont, materials: materials, years: years };
+
+  // _examStrategies を更新
+  var idx = _examStrategies.findIndex(function(x){ return x.recordId === rid; });
+  if (idx !== -1) {
+    Object.assign(_examStrategies[idx], strategy);
+    _examStrategies[idx].recordId = rid;
+  }
+
+  // カードを閲覧モードに戻してから保存
+  var cardEl = document.querySelector('.exam-card[data-rid="' + rid + '"]');
+  _examEditingId = null;
+  if (cardEl) {
+    var displayS = Object.assign({}, strategy, { recordId: rid });
+    cardEl.outerHTML = buildExamCard(displayS);
+  }
+  miniToast('保存中...');
+
+  var tmpId = rid;
+  callGas(url, { action: 'saveExamStrategy', strategy: JSON.stringify(strategy) }, function(res) {
+    if (res && res.success) {
+      if (isNew && res.recordId) {
+        var s2 = _examStrategies.find(function(x){ return x.recordId === tmpId; });
+        if (s2) {
+          s2.recordId = res.recordId;
+          // DOMのdata-ridも更新
+          var el2 = document.querySelector('.exam-card[data-rid="' + tmpId + '"]');
+          if (el2) el2.dataset.rid = res.recordId;
+        }
+      }
+      miniToast('保存しました');
+    } else {
+      miniToast('保存エラー（再読み込みしてください）');
+    }
+  }, 'POST');
+}
+
+function cancelExamCard(rid) {
+  var cardEl = document.querySelector('.exam-card[data-rid="' + rid + '"]');
+  _examEditingId = null;
+  var isNew = rid.indexOf('tmp_') === 0;
+  if (isNew) {
+    // 新規追加キャンセル：_examStrategiesから削除してカードも消す
+    _examStrategies = _examStrategies.filter(function(x){ return x.recordId !== rid; });
+    if (cardEl) cardEl.remove();
+  } else {
+    // 既存レコードのキャンセル：元のデータで閲覧モードに戻す
+    var s = _examStrategies.find(function(x){ return x.recordId === rid; });
+    if (s && cardEl) cardEl.outerHTML = buildExamCard(s);
+  }
+}
+
+// ＋ 追加：空カードをグリッド先頭に差し込む
+function addNewExamCard() {
+  var tmpId = 'tmp_' + Date.now();
+  var newS = { recordId: tmpId, testType: '前期中間', subject: '', unitName: '',
+    grade: '', schools: '', content: '', materials: '',
+    years: String(new Date().getFullYear()) };
+  _examStrategies.unshift(newS);
+  renderExam();
+  // 先頭カードを展開
+  setTimeout(function() {
+    var el = document.querySelector('.exam-card[data-rid="' + tmpId + '"]');
+    if (el) expandExamCard(el, tmpId);
+  }, 0);
+}
+
+function deleteExamStrategy(recordId) {
+  if (!confirm('このレコードを削除しますか？')) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY);
+  if (!url) return;
+
+  // 楽観的UI更新：先に画面から消してからGASに削除
+  var deleted = _examStrategies.find(function(s){ return s.recordId === recordId; });
+  _examStrategies = _examStrategies.filter(function(s){ return s.recordId !== recordId; });
+  renderExam();
+  miniToast('削除しました');
+
+  // 裏でGASに削除（失敗したら元に戻す）
+  callGas(url, { action: 'deleteExamStrategy', recordId: recordId }, function(res) {
+    if (!res || !res.success) {
+      if (deleted) _examStrategies.push(deleted); // 元に戻す
+      renderExam();
+      miniToast('削除エラー（再読み込みしてください）');
+    }
+  }, 'POST');
+}
+
+// =====================================================
+// 設定タブ
+// =====================================================
+function renderSettings() {
+  var su = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  var tu = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
+
+  var modeListHtml = _modes.length
+    ? _modes.map(function(m) {
+        return '<div class="mode-list-item">' +
+          '<div><div style="font-weight:600;font-size:13px">' + esc(m.modeName) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted)">作成：' + esc(m.createdAt) + '</div></div>' +
+          '<button class="btn-danger btn-sm" onclick="deleteMode(\'' + m.modeId + '\',\'' + esc(m.modeName) + '\')">削除</button>' +
+          '</div>';
+      }).join('')
+    : '<p style="font-size:13px;color:var(--text-muted)">カスタムモードはありません</p>';
+
+  document.getElementById('main-content').innerHTML =
+    '<div style="max-width:640px">' +
+    '<div class="card" style="margin-bottom:16px"><div class="card-header">🔗 GAS接続設定</div><div class="card-body">' +
+    '<div class="setting-section"><div class="setting-label">生徒マスタ GAS URL（会員管理GAS）' +
+    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
+    '<span class="gs-help-body">【会員管理GAS】が担当するデータ：<br>・生徒マスタ（時間割・コマ情報）<br>・学校マスタ（テスト記録・行事・学校ワーク）<br>・時間割モード（講習用スナップショット）<br><br>設定タブの「生徒マスタ GAS URL」にセットしてください。</span></span>' +
+    '</div>' +
+    '<input class="setting-input" id="s-student-url" value="' + esc(su) + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
+    '<div class="setting-section"><div class="setting-label">タスクマネージャー GAS URL' +
+    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
+    '<span class="gs-help-body">【タスクマネージャーGAS】が担当するデータ：<br>・本日・今週タブに表示するタスク一覧<br>（授業内・授業外タスクのみ取得）<br><br>タスクマネージャーツールのGAS URLをセットしてください。</span></span>' +
+    '</div>' +
+    '<input class="setting-input" id="s-task-url" value="' + esc(tu) + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
+    '<button class="btn-primary" onclick="saveSettings()">保存して再読み込み</button>' +
+    '</div></div>' +
+    '<div class="card"><div class="card-header">📋 時間割モード管理</div><div class="card-body">' +
+    modeListHtml +
+    '<div style="margin-top:10px"><button class="btn-primary btn-sm" onclick="openModal(\'modal-add-mode\')">＋ モードを追加</button></div>' +
+    '</div></div></div>';
+}
+
+function saveSettings() {
+  localStorage.setItem(GAS_STUDENT_URL_KEY, document.getElementById('s-student-url').value.trim());
+  localStorage.setItem(GAS_TASK_URL_KEY,    document.getElementById('s-task-url').value.trim());
+  miniToast('設定を保存しました。再読み込みします。');
+  setTimeout(loadAll, 800);
+}
+
+// =====================================================
+// モード追加・削除
+// =====================================================
+function submitAddMode() {
+  var name = document.getElementById('new-mode-name').value.trim();
+  if (!name) { miniToast('モード名を入力してください'); return; }
+  var type = document.querySelector('input[name="mode-type"]:checked').value;
+  var data = (type === 'copy') ? { students: JSON.parse(JSON.stringify(_students)) } : {};
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveTimetableMode', mode: JSON.stringify({ modeName: name, data: data }) }, function(res) {
+    if (res && res.success) {
+      closeModal('modal-add-mode');
+      miniToast('モードを作成しました ✓');
+      callGas(url, { action: 'getTimetableModes' }, function(r) {
+        if (r && r.success && r.modes) { _modes = r.modes; localStorage.setItem('cb_cache_modes', JSON.stringify(_modes)); }
+        renderCurrent();
+      });
+    } else miniToast('作成エラー');
+  }, 'POST');
+}
+
+function deleteMode(modeId, modeName) {
+  if (!confirm('「' + modeName + '」を削除しますか？')) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'deleteTimetableMode', modeId: modeId }, function(res) {
+    if (res && res.success) {
+      _modes = _modes.filter(function(m) { return m.modeId !== modeId; });
+      localStorage.setItem('cb_cache_modes', JSON.stringify(_modes));
+      if (_currentMode === modeId) _currentMode = 'normal';
+      miniToast('削除しました ✓');
+      renderCurrent();
+    } else miniToast('削除エラー');
+  }, 'POST');
+}
+
+// =====================================================
+// 学校行事：追加・削除
+// =====================================================
+function openAddEventModal(school) {
+  document.getElementById('event-target-school').value = school;
+  document.getElementById('event-name').value = '';
+  document.getElementById('event-grade').value = '';
+  document.getElementById('event-date').value = '';
+  document.getElementById('event-end-date').value = '';  // 終了日リセット（空=1日行事）
+  document.getElementById('modal-add-event-title').textContent = '行事を追加（' + school + '）';
+  openModal('modal-add-event');
+}
+
+function submitAddEvent() {
+  miniToast('保存中...');
+  var school = document.getElementById('event-target-school').value;
+  var name   = document.getElementById('event-name').value.trim();
+  var grade  = document.getElementById('event-grade').value.trim();
+  var date    = document.getElementById('event-date').value;
+  var endDate = document.getElementById('event-end-date').value;  // 空=1日行事、入力あり=複数日行事
+  if (!name || !date) { miniToast('行事名と開始日は必須です'); return; }
+  var memo  = document.getElementById('event-memo').value.trim();
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveSchoolEvent', event: JSON.stringify({
+    school: school, grade: grade, eventName: name,
+    eventDate: date,       // 開始日（必須）
+    eventEndDate: endDate, // 終了日（空=1日行事）
+    memo: memo
+  })}, function(res) {
+    if (res && res.success) {
+      closeModal('modal-add-event');
+      miniToast('行事を追加しました ✓');
+      callGas(url, { action: 'getSchoolEvents' }, function(r) {
+        if (r && r.success && r.events) {
+          _schoolEvents = r.events;
+          localStorage.setItem('cb_cache_school_events', JSON.stringify(_schoolEvents));
+        }
+        renderSchool();
+      });
+    } else miniToast('保存エラー');
+  }, 'POST');
+}
+
+function deleteSchoolEvent(eventId) {
+  if (!eventId || !confirm('この行事を削除しますか？')) return;
+  miniToast('削除中...');
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'deleteSchoolEvent', eventId: eventId }, function(res) {
+    if (res && res.success) {
+      _schoolEvents = _schoolEvents.filter(function(ev) { return ev.eventId !== eventId; });
+      localStorage.setItem('cb_cache_school_events', JSON.stringify(_schoolEvents));
+      miniToast('削除しました ✓');
+      renderSchool();
+      if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
+    } else miniToast('削除エラー');
+  }, 'POST');
+}
+
+// =====================================================
+// 学校ワークチェック保存
+// =====================================================
+function saveWorkCheck(select) {
+  var school  = select.getAttribute('data-school');
+  var grade   = select.getAttribute('data-grade');
+  var subject = select.getAttribute('data-subject');
+  var val     = select.value;
+
+  // 色を即時反映
+  var bgColor   = val === 'あり' ? '#dcfce7' : val === 'なし' ? '#fee2e2' : '#f3f4f6';
+  var textColor = val === 'あり' ? '#166534' : val === 'なし' ? '#991b1b' : '#6b7280';
+  select.style.background = bgColor;
+  select.style.color = textColor;
+
+  // _schoolWorks を更新
+  var work = _schoolWorks.find(function(w) { return w.school === school && w.grade === grade; });
+  if (!work) {
+    work = { school: school, grade: grade, checks: {} };
+    _schoolWorks.push(work);
+  }
+  work.checks[subject] = val;
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveSchoolWork', work: JSON.stringify({ school: school, grade: grade, checks: work.checks }) }, function(res) {
+    if (res && res.success) {
+      localStorage.setItem('cb_cache_school_works', JSON.stringify(_schoolWorks));
+      miniToast('保存 ✓');
+    } else miniToast('保存エラー');
+  }, 'POST');
+}
+
+function submitAddSchool() {
+  var name = document.getElementById('new-school-name').value.trim();
+  if (!name) { miniToast('学校名を入力してください'); return; }
+  if (_schoolInfo.find(function(si) { return si.school === name; })) { miniToast('すでに登録されています'); return; }
+  _schoolInfo.push({ school: name, memo: '' });
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (url) {
+    callGas(url, { action: 'saveSchoolInfo', info: JSON.stringify(_schoolInfo) }, function() {
+      localStorage.setItem('cb_cache_school_info', JSON.stringify(_schoolInfo));
+    }, 'POST');
+  }
+  closeModal('modal-add-school');
+  miniToast('学校を追加しました ✓');
+  renderSchool();
+}
+
+// =====================================================
+// GAS通信
+// =====================================================
+function callGas(url, params, callback, method) {
+  if (!url) { callback(null); return; }
+  method = method || 'GET';
+  if (method === 'GET') {
+    var qs = Object.keys(params).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+    fetch(url + '?' + qs, { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(callback)
+      .catch(function() { callback(null); });
+  } else {
+    var fd = new FormData();
+    Object.keys(params).forEach(function(k) { fd.append(k, params[k]); });
+    fetch(url, { method: 'POST', redirect: 'follow', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(callback)
+      .catch(function() { callback(null); });
+  }
+}
+
+// =====================================================
+// UIユーティリティ
+// =====================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function miniToast(msg) {
+  var el = document.getElementById('mini-toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 2500);
+}
+
+function showLoading(show) {
+  var el = document.getElementById('loading-overlay');
+  el.classList[show ? 'add' : 'remove']('show');
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// 今日タブ：タスクセクションのトグル
+function toggleTaskSection(header) {
+  var body = document.getElementById('task-section-body');
+  var arrow = document.getElementById('task-toggle-arrow');
+  if (!body) return;
+  var hidden = body.style.display === 'none';
+  body.style.display = hidden ? '' : 'none';
+  if (arrow) arrow.textContent = hidden ? '▼' : '▶';
+}
+
+// 今週タブ：タスクカードのトグル
+function toggleWeekTaskCard(header) {
+  var body = document.getElementById('week-task-card-body');
+  var arrow = document.getElementById('week-task-card-arrow');
+  if (!body) return;
+  var hidden = body.style.display === 'none';
+  body.style.display = hidden ? '' : 'none';
+  if (arrow) arrow.textContent = hidden ? '▼' : '▶';
+}
+
+// ===== タスク詳細モーダル =====
+function openTaskModal(taskId) {
+  var t = (_tasks || []).find(function(x) { return x.id === taskId; });
+  if (!t) return;
+  var statusMap = { todo: '未着手', in_progress: '進行中', done: '完了' };
+  var typeLabel = t.taskType || '—';
+  var body = '<div class="task-detail-row"><span class="task-detail-label">タイトル</span><span class="task-detail-val" style="font-weight:700">' + esc(t.title || '—') + '</span></div>' +
+    '<div class="task-detail-row"><span class="task-detail-label">期限</span><span class="task-detail-val">' + esc(t.dueDate || '—') + '</span></div>' +
+    '<div class="task-detail-row"><span class="task-detail-label">担当</span><span class="task-detail-val">' + esc(t.assignee || '—') + '</span></div>' +
+    '<div class="task-detail-row"><span class="task-detail-label">種別</span><span class="task-detail-val">' + esc(typeLabel) + '</span></div>' +
+    '<div class="task-detail-row"><span class="task-detail-label">教室</span><span class="task-detail-val">' + esc(t.classroom || '両教室') + '</span></div>' +
+    '<div class="task-detail-row"><span class="task-detail-label">ステータス</span><span class="task-detail-val">' + esc(statusMap[t.status] || t.status || '—') + '</span></div>' +
+    '<div class="task-detail-row" style="flex-direction:column;gap:5px"><span class="task-detail-label" style="width:auto">メモ</span>' +
+    '<div class="task-detail-memo">' + esc(t.memo || t.note || t.notes || '（メモなし）') + '</div></div>';
+  document.getElementById('task-modal-title').textContent = t.title || 'タスク詳細';
+  document.getElementById('task-modal-body').innerHTML = body;
+  document.getElementById('task-detail-modal').classList.add('open');
+}
+function closeTaskModal() {
+  document.getElementById('task-detail-modal').classList.remove('open');
+}
+// オーバーレイクリックで閉じる
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('task-detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeTaskModal();
+  });
+});
+
+</script>
+
+<script>
+// ========== グローバルポップアップ制御 ==========
+(function() {
+  var POPUP_STYLE = [
+    'display:none',
+    'position:fixed',
+    'top:-9999px',
+    'left:-9999px',
+    'background:#fff',
+    'border:1px solid #dde3ec',
+    'border-radius:8px',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.13)',
+    'padding:10px 12px',
+    'min-width:180px',
+    'max-width:300px',
+    'font-size:12px',
+    'color:#1a2535',
+    'z-index:9999',
+    'white-space:normal',
+    'line-height:1.6',
+    'pointer-events:none'
+  ].join(';');
+
+  var tPop = document.createElement('div');
+  tPop.id = 'global-t-popup';
+  tPop.setAttribute('style', POPUP_STYLE);
+  document.body.appendChild(tPop);
+
+  var sPop = document.createElement('div');
+  sPop.id = 'global-s-popup';
+  sPop.setAttribute('style', POPUP_STYLE);
+  document.body.appendChild(sPop);
+
+  function placePopup(el, x, y) {
+    var PAD = 14;
+    var w = el.offsetWidth;
+    var h = el.offsetHeight;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var left = x + PAD;
+    var top  = y + PAD;
+    if (left + w > vw - PAD) left = x - w - PAD;
+    if (top  + h > vh - PAD) top  = y - h - PAD;
+    if (left < PAD) left = PAD;
+    if (top  < PAD) top  = PAD;
+    el.style.left = left + 'px';
+    el.style.top  = top  + 'px';
+  }
+
+  function showPopup(el, html, x, y) {
+    el.innerHTML = html;
+    el.style.display = 'block';
+    el.style.left = '-9999px';
+    el.style.top  = '-9999px';
+    requestAnimationFrame(function() { placePopup(el, x, y); });
+  }
+
+  function hidePopup(el) {
+    el.style.display = 'none';
+    el.style.left = '-9999px';
+    el.style.top  = '-9999px';
+  }
+
+  // gs-help 用ポップアップ要素（ダーク背景）
+  var hPop = document.createElement('div');
+  hPop.setAttribute('style', POPUP_STYLE + ';background:#1a2535;color:#fff;line-height:1.7;min-width:260px;max-width:320px');
+  document.body.appendChild(hPop);
+
+  document.addEventListener('mouseover', function(e) {
+    var chip  = e.target.closest('.task-chip-1line');
+    var sChip = e.target.closest('.student-chip');
+    var hChip = e.target.closest('.gs-help');
+
+    if (chip) {
+      var popHtml = chip.getAttribute('data-popup');
+      if (!popHtml) {
+        var inner = chip.querySelector('.t-popup');
+        if (inner) popHtml = inner.innerHTML;
+      }
+      if (popHtml) showPopup(tPop, popHtml, e.clientX, e.clientY);
+    } else {
+      hidePopup(tPop);
+    }
+
+    if (sChip) {
+      var sPopHtml = sChip.getAttribute('data-popup');
+      if (!sPopHtml) {
+        var sInner = sChip.querySelector('.s-popup');
+        if (sInner) sPopHtml = sInner.innerHTML;
+      }
+      if (sPopHtml) showPopup(sPop, sPopHtml, e.clientX, e.clientY);
+    } else {
+      hidePopup(sPop);
+    }
+
+    if (hChip) {
+      var hInner = hChip.querySelector('.gs-help-body');
+      if (hInner) showPopup(hPop, hInner.innerHTML, e.clientX, e.clientY);
+    } else {
+      hidePopup(hPop);
+    }
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tPop.style.display === 'block') {
+      if (e.target.closest('.task-chip-1line')) placePopup(tPop, e.clientX, e.clientY);
+      else hidePopup(tPop);
+    }
+    if (sPop.style.display === 'block') {
+      if (e.target.closest('.student-chip')) placePopup(sPop, e.clientX, e.clientY);
+      else hidePopup(sPop);
+    }
+    if (hPop.style.display === 'block') {
+      if (e.target.closest('.gs-help')) placePopup(hPop, e.clientX, e.clientY);
+      else hidePopup(hPop);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
