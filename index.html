@@ -88,6 +88,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .badge-purple { background: #faf5ff; color: #7c3aed; }
 
 /* GAS設定ヘルプチップ */
+/* タスクエリア汎用ヘルプチップ */
+.cb-help { position: relative; display: inline-flex; align-items: center; margin-left: 6px; cursor: pointer; vertical-align: middle; }
+.cb-help-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--text-muted); color: #fff; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+.cb-help-body { display: none; position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: #2a2a2a; color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 11px; line-height: 1.6; width: 260px; z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,.25); white-space: normal; }
+.cb-help:hover .cb-help-body { display: block; }
 .gs-help { position: relative; display: inline-block; margin-left: 6px; vertical-align: middle; }
 .gs-help-icon { display: inline-flex; align-items: center; justify-content: center;
   width: 16px; height: 16px; border-radius: 50%; background: var(--text-muted);
@@ -387,6 +392,8 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   display: block;
   margin-bottom: 3px;
 }
+.task-bar-section-in  { color: #166534; }
+.task-bar-section-out { color: #854d0e; }
 .task-bar-chips {
   display: flex;
   flex-wrap: wrap;
@@ -419,6 +426,8 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .t-popup-val { font-size: 12px; color: var(--text); flex: 1; }
 .t-popup-memo { margin-top: 6px; background: var(--surface); border-radius: 5px; padding: 6px 8px; font-size: 11px; white-space: pre-wrap; }
 .chip-in      { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.task-chip-del { margin-left: 4px; opacity: 0.5; font-size: 11px; cursor: pointer; }
+.task-chip-del:hover { opacity: 1; color: var(--crimson); }
 .chip-out     { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
 .chip-overdue { background: #fff1f1; color: var(--crimson); border: 1px solid #fecaca; }
 .task-bar-empty { font-size: 12px; color: var(--text-muted); padding: 2px 0; }
@@ -609,8 +618,18 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
       <span class="modal-close" onclick="closeTaskModal()">✕</span>
     </div>
     <div class="modal-body" id="task-modal-body"></div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="task-modal-footer">
       <button class="btn-secondary" onclick="closeTaskModal()">閉じる</button>
+      <button class="btn-secondary" id="task-btn-postpone" onclick="openPostponePanel()" style="display:none">📅 期日変更</button>
+      <button class="btn-primary"   id="task-btn-done"    onclick="completeTask()"      style="display:none">✓ 完了</button>
+    </div>
+    <div id="task-postpone-panel" style="display:none;padding:0 20px 16px;border-top:1px solid var(--border);margin-top:0">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;margin-top:12px">新しい期日</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="task-new-duedate" style="border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--text)" />
+        <button class="btn-primary btn-sm" onclick="submitPostpone()">変更して保存</button>
+        <button class="btn-secondary btn-sm" onclick="closePostponePanel()">キャンセル</button>
+      </div>
     </div>
   </div>
 </div>
@@ -822,6 +841,7 @@ var _weekOffset = 0;
 
 var GAS_STUDENT_URL_KEY = 'cb_gas_student_url';
 var GAS_TASK_URL_KEY    = 'cb_gas_task_url';
+var CB_USER_NAME_KEY    = 'cb_user_name';
 
 // =====================================================
 // 初期化
@@ -911,7 +931,12 @@ function loadAll() {
   if (taskUrl) {
     pending++;
     callGas(taskUrl, { action: 'getTasksForClassBoard' }, function(res) {
-      if (res && res.success && res.tasks) { _tasks = res.tasks; localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks)); }
+      if (res && res.success && res.tasks) {
+        _tasks = res.tasks;
+        localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+        // A-5：自動持越し処理
+        autoCarryOverTasks(taskUrl);
+      }
       done();
     });
   }
@@ -1181,7 +1206,9 @@ function renderToday() {
       (t.memo ? '<div class="t-popup-memo">' + esc(t.memo) + '</div>' : '') +
       '</span>';
     return '<span class="task-chip-1line ' + cls + '" onclick="openTaskModal(\'' + t.id + '\')">' +
-      esc(t.title) + (t.assignee ? '　' + esc(t.assignee) : '') + overdueLabel + popup + '</span>';
+      esc(t.title) + (t.assignee ? '　' + esc(t.assignee) : '') + overdueLabel + popup +
+      '<span class="task-chip-del" onclick="event.stopPropagation();deleteTask(\'' + t.id + '\',this)" title="削除">×</span>' +
+      '</span>';
   }
 
   function makeSection(label, normalTasks, overdueTasks, type) {
@@ -1199,12 +1226,43 @@ function renderToday() {
     var inOver    = tasksFor(cr, '授業内', todayIso, true);
     var outNormal = tasksFor(cr, '授業外', todayIso, false);
     var outOver   = tasksFor(cr, '授業外', todayIso, true);
-    var inSec  = makeSection('📚 授業内', inNormal,  inOver,  '授業内');
-    var outSec = makeSection('🏢 授業外', outNormal, outOver, '授業外');
-    var body = (inSec || outSec) ? outSec + inSec : '<span class="task-bar-empty">タスクなし</span>';
+    var crKey = cr.replace(/\s/g, '_');
+    var inAdd  = makeQuickAddBtn(cr, '授業内',  crKey + '_in');
+    var outAdd = makeQuickAddBtn(cr, '授業外', crKey + '_out');
+    // 授業外セクション（タスクなしでも見出しを表示）
+    var outChips = outOver.map(function(t){ return makeChip(t, true, '授業外'); })
+      .concat(outNormal.map(function(t){ return makeChip(t, false, '授業外'); }));
+    var outSec = '<div class="task-bar-section">' +
+      '<span class="task-bar-section-label task-bar-section-out">🏢 授業外</span>' + outAdd +
+      (outChips.length ? '<div class="task-bar-chips">' + outChips.join('') + '</div>' : '') +
+      '</div>';
+    // 授業内セクション（タスクなしでも見出しを表示）
+    var inChips = inOver.map(function(t){ return makeChip(t, true, '授業内'); })
+      .concat(inNormal.map(function(t){ return makeChip(t, false, '授業内'); }));
+    var inSec = '<div class="task-bar-section">' +
+      '<span class="task-bar-section-label task-bar-section-in">📚 授業内</span>' + inAdd +
+      (inChips.length ? '<div class="task-bar-chips">' + inChips.join('') + '</div>' : '') +
+      '</div>';
     return '<div class="task-bar-col ' + crCls + '">' +
       '<div class="task-bar-col-header">🏫 ' + cr + '</div>' +
-      body + '</div>';
+      outSec + inSec + '</div>';
+  }
+
+  function makeQuickAddBtn(cr, taskType, uid) {
+    var today = getTodayStr();
+    return '<div class="quick-add-wrap" id="qa-wrap-' + uid + '">' +
+      '<button class="quick-add-btn" onclick="toggleQuickAdd(\'' + uid + '\')" title="タスクを追加">＋</button>' +
+      '<div class="quick-add-form" id="qa-form-' + uid + '" style="display:none;clear:both;margin-top:6px">' +
+        '<input type="text" id="qa-title-' + uid + '" placeholder="タスク内容を入力..." class="quick-add-input" />' +
+        '<input type="text" id="qa-memo-' + uid  + '" placeholder="メモ（任意）" class="quick-add-input" style="font-size:11px;margin-top:4px" />' +
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
+          '<label style="font-size:11px;color:var(--text-muted)">期日</label>' +
+          '<input type="date" id="qa-date-' + uid + '" value="' + today + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
+          '<button class="btn-primary btn-sm" onclick="submitQuickAdd(\'' + uid + '\',\'' + esc(cr) + '\',\'' + taskType + '\')">追加</button>' +
+          '<button class="btn-secondary btn-sm" onclick="toggleQuickAdd(\'' + uid + '\')">✕</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }
 
   var kitaCol = makeColHtml('北久里浜', 'col-kita', todayIso);
@@ -1225,7 +1283,10 @@ function renderToday() {
     '<div class="print-header">本日の時間割　' + todayLabel + '　' + _currentClassroom + '</div>' +
     alerts +
     '<div class="task-bar">' +
-    '<div class="task-bar-header"><div class="task-bar-label">📝 今日のタスク' + taskBadge + '</div>' +
+    '<div class="task-bar-header"><div class="task-bar-label">📝 今日のタスク' + taskBadge +
+    '<span class="cb-help"><span class="cb-help-icon">?</span>' +
+    '<span class="cb-help-body">【自動持越し】期日を過ぎた授業内外タスクは、毎日自動で今日の日付に持越されます。完了ボタンを押すか、期日を未来に変更するまで毎日繰り越されます。<br><br>【クイック追加】各エリアの「＋ タスクを追加」から追加したタスクはタスクマネージャーにも反映されます。<br><br>【操作方法】タスクをタップすると期日変更・完了ができます。</span>' +
+    '</span></div>' +
     '<button class="btn-primary btn-sm" onclick="openAddTestModal(\'\')" style="font-size:12px;margin-left:auto">＋ 小テスト追加</button>' +
     '</div>' +
     '<div class="task-bar-cols">' + kitaCol + kuriCol + '</div>' +
@@ -2753,6 +2814,14 @@ function renderSettings() {
 
   document.getElementById('main-content').innerHTML =
     '<div style="max-width:640px">' +
+    '<div class="card" style="margin-bottom:16px"><div class="card-header">👤 使用者設定</div><div class="card-body">' +
+    '<div class="setting-section"><div class="setting-label">使用者名' +
+    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
+    '<span class="gs-help-body">タスクの持越し・完了操作のログに使用します。<br>この端末に保存されます（他の端末には影響しません）。</span></span>' +
+    '</div>' +
+    '<input class="setting-input" id="s-user-name" value="' + esc(localStorage.getItem(CB_USER_NAME_KEY) || '') + '" placeholder="例：川上" style="max-width:200px" /></div>' +
+    '<button class="btn-primary" onclick="saveUserName()">保存</button>' +
+    '</div></div>' +
     '<div class="card" style="margin-bottom:16px"><div class="card-header">🔗 GAS接続設定</div><div class="card-body">' +
     '<div class="setting-section"><div class="setting-label">生徒マスタ GAS URL（会員管理GAS）' +
     '<span class="gs-help"><span class="gs-help-icon">?</span>' +
@@ -2777,6 +2846,13 @@ function saveSettings() {
   localStorage.setItem(GAS_TASK_URL_KEY,    document.getElementById('s-task-url').value.trim());
   miniToast('設定を保存しました。再読み込みします。');
   setTimeout(loadAll, 800);
+}
+
+function saveUserName() {
+  var name = (document.getElementById('s-user-name').value || '').trim();
+  if (!name) { miniToast('使用者名を入力してください'); return; }
+  localStorage.setItem(CB_USER_NAME_KEY, name);
+  miniToast('使用者名を保存しました ✓');
 }
 
 // =====================================================
@@ -2991,9 +3067,12 @@ function toggleWeekTaskCard(header) {
 }
 
 // ===== タスク詳細モーダル =====
+var _currentTaskId = null;
+
 function openTaskModal(taskId) {
   var t = (_tasks || []).find(function(x) { return x.id === taskId; });
   if (!t) return;
+  _currentTaskId = taskId;
   var statusMap = { todo: '未着手', in_progress: '進行中', done: '完了' };
   var typeLabel = t.taskType || '—';
   var body = '<div class="task-detail-row"><span class="task-detail-label">タイトル</span><span class="task-detail-val" style="font-weight:700">' + esc(t.title || '—') + '</span></div>' +
@@ -3006,11 +3085,217 @@ function openTaskModal(taskId) {
     '<div class="task-detail-memo">' + esc(t.memo || t.note || t.notes || '（メモなし）') + '</div></div>';
   document.getElementById('task-modal-title').textContent = t.title || 'タスク詳細';
   document.getElementById('task-modal-body').innerHTML = body;
+  // 操作ボタン表示（完了済みは非表示）
+  var isDone = t.status === 'done';
+  document.getElementById('task-btn-postpone').style.display = isDone ? 'none' : '';
+  document.getElementById('task-btn-done').style.display    = isDone ? 'none' : '';
+  closePostponePanel();
   document.getElementById('task-detail-modal').classList.add('open');
 }
 function closeTaskModal() {
+  _currentTaskId = null;
+  closePostponePanel();
   document.getElementById('task-detail-modal').classList.remove('open');
 }
+function openPostponePanel() {
+  var t = (_tasks || []).find(function(x) { return x.id === _currentTaskId; });
+  var today = new Date().toISOString().slice(0,10);
+  document.getElementById('task-new-duedate').value = (t && t.dueDate) ? t.dueDate : today;
+  document.getElementById('task-postpone-panel').style.display = '';
+}
+function closePostponePanel() {
+  document.getElementById('task-postpone-panel').style.display = 'none';
+}
+
+// ========== A-3：GAS書き込み関数 ==========
+function callSaveTask(taskData, callback) {
+  var url = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!url) { miniToast('タスクマネージャーGAS URLが未設定です'); return; }
+  callGas(url, { action: 'saveTask', task: JSON.stringify(taskData) }, function(res) {
+    if (res && res.success) {
+      callback && callback(res);
+    } else {
+      miniToast('保存エラー：' + (res && res.error ? res.error : '不明なエラー'));
+    }
+  }, 'POST');
+}
+
+function getUserName() {
+  return localStorage.getItem(CB_USER_NAME_KEY) || '（名前未設定）';
+}
+
+function getTodayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+// ========== A-4：期日変更・完了をGASに反映 ==========
+function submitPostpone() {
+  var newDate = document.getElementById('task-new-duedate').value;
+  if (!newDate) { miniToast('期日を選択してください'); return; }
+  var t = (_tasks || []).find(function(x) { return x.id === _currentTaskId; });
+  if (!t) return;
+  var userName = getUserName();
+  var logEntry = getTodayStr() + ' 持越し（' + userName + '）';
+  var updatedMemo = t.memo ? t.memo + '\n' + logEntry : logEntry;
+  var updated = Object.assign({}, t, { dueDate: newDate, memo: updatedMemo });
+  // 即反映
+  var prevDate = t.dueDate;
+  var prevMemo = t.memo;
+  t.dueDate = newDate;
+  t.memo = updatedMemo;
+  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+  miniToast('期日を変更しました ✓');
+  closeTaskModal();
+  renderCurrent();
+  // 裏でGAS送信
+  callSaveTask(updated, function(res) {
+    if (!res || !res.success) {
+      // 失敗時ロールバック
+      t.dueDate = prevDate;
+      t.memo = prevMemo;
+      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+      miniToast('⚠️ 保存に失敗しました。再試行してください。');
+      renderCurrent();
+    }
+  });
+}
+
+function completeTask() {
+  var t = (_tasks || []).find(function(x) { return x.id === _currentTaskId; });
+  if (!t) return;
+  if (!confirm('「' + t.title + '」を完了にしますか？')) return;
+  var userName = getUserName();
+  var logEntry = getTodayStr() + ' 完了（' + userName + '）';
+  var updatedMemo = t.memo ? t.memo + '\n' + logEntry : logEntry;
+  var updated = Object.assign({}, t, { status: 'done', memo: updatedMemo });
+  // 即反映
+  _tasks = _tasks.filter(function(x) { return x.id !== t.id; });
+  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+  miniToast('完了にしました ✓');
+  closeTaskModal();
+  renderCurrent();
+  // 裏でGAS送信
+  callSaveTask(updated, function(res) {
+    if (!res || !res.success) {
+      // 失敗時ロールバック（タスクを戻す）
+      _tasks.push(t);
+      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+      miniToast('⚠️ 保存に失敗しました。再試行してください。');
+      renderCurrent();
+    }
+  });
+}
+
+// ========== タスク削除 ==========
+function deleteTask(taskId, btn) {
+  var t = (_tasks || []).find(function(x) { return x.id === taskId; });
+  if (!t) return;
+  if (!confirm('「' + t.title + '」を削除しますか？\nタスクマネージャーからも削除されます。')) return;
+  var url = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!url) { miniToast('タスクマネージャーGAS URLが未設定です'); return; }
+  // 即反映
+  _tasks = _tasks.filter(function(x) { return x.id !== taskId; });
+  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+  miniToast('削除しました ✓');
+  renderCurrent();
+  // 裏でGAS送信
+  callGas(url, { action: 'deleteTask', id: taskId }, function(res) {
+    if (!res || !res.success) {
+      // 失敗時ロールバック
+      _tasks.push(t);
+      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+      miniToast('⚠️ 削除に失敗しました。再試行してください。');
+      renderCurrent();
+    }
+  }, 'POST');
+}
+
+// ========== A-6：クイック追加 ==========
+function toggleQuickAdd(uid) {
+  var form = document.getElementById('qa-form-' + uid);
+  if (!form) return;
+  var isHidden = form.style.display === 'none';
+  form.style.display = isHidden ? '' : 'none';
+  if (isHidden) {
+    var input = document.getElementById('qa-title-' + uid);
+    if (input) input.focus();
+  }
+}
+
+function submitQuickAdd(uid, classroom, taskType) {
+  var titleEl = document.getElementById('qa-title-' + uid);
+  var memoEl  = document.getElementById('qa-memo-' + uid);
+  var dateEl  = document.getElementById('qa-date-' + uid);
+  var title = (titleEl && titleEl.value || '').trim();
+  if (!title) { miniToast('タスク内容を入力してください'); titleEl && titleEl.focus(); return; }
+  var memo    = (memoEl  && memoEl.value  || '').trim();
+  var dueDate = (dateEl  && dateEl.value  || getTodayStr());
+  var url = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!url) { miniToast('タスクマネージャーGAS URLが未設定です'); return; }
+
+  var newTask = {
+    id:        'cb_' + Date.now(),
+    title:     title,
+    memo:      memo,
+    dueDate:   dueDate,
+    taskType:  taskType,
+    classroom: classroom,
+    assignee:  getUserName(),
+    status:    'todo',
+    category:  '',
+    issueId:   '',
+    createdBy: getUserName()
+  };
+
+  // 即反映
+  _tasks.push(newTask);
+  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+  miniToast('タスクを追加しました ✓');
+  renderCurrent();
+  // 裏でGAS送信
+  callGas(url, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
+    if (!res || !res.success) {
+      // 失敗時ロールバック
+      _tasks = _tasks.filter(function(x) { return x.id !== newTask.id; });
+      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+      miniToast('⚠️ 追加に失敗しました。再試行してください。');
+      renderCurrent();
+    }
+  }, 'POST');
+}
+
+// ========== A-5：自動持越し処理 ==========
+// ページ読み込み時に期日が今日より前の未完了タスク（Class Board表示対象）を今日の日付に自動変更
+function autoCarryOverTasks(taskUrl) {
+  var today = getTodayStr();
+  var targets = (_tasks || []).filter(function(t) {
+    return t.dueDate && t.dueDate < today && t.status !== 'done';
+  });
+  if (targets.length === 0) return;
+
+  var userName = getUserName();
+  var logEntry = today + ' 自動持越し（' + userName + '）';
+  var queue = targets.slice();
+
+  function processNext() {
+    if (queue.length === 0) {
+      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+      miniToast('期限切れタスクを ' + targets.length + ' 件、今日に持越しました');
+      renderCurrent();
+      return;
+    }
+    var t = queue.shift();
+    var updatedMemo = t.memo ? t.memo + '\n' + logEntry : logEntry;
+    var updated = Object.assign({}, t, { dueDate: today, memo: updatedMemo });
+    t.dueDate = today;
+    t.memo = updatedMemo;
+    callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(updated) }, function(res) {
+      processNext();
+    }, 'POST');
+  }
+  processNext();
+}
+
 // オーバーレイクリックで閉じる
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('task-detail-modal').addEventListener('click', function(e) {
