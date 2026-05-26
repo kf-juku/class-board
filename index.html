@@ -430,7 +430,35 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .task-chip-del:hover { opacity: 1; color: var(--crimson); }
 .chip-out     { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
 .chip-overdue { background: #fff1f1; color: var(--crimson); border: 1px solid #fecaca; }
-.task-bar-empty { font-size: 12px; color: var(--text-muted); padding: 2px 0; }
+/* 欠席ボタン */
+.absence-btn { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:4px; border:1px solid #fca5a5; background:#fee2e2; color:#dc2626; font-size:9px; font-weight:700; cursor:pointer; padding:0; line-height:1; flex-shrink:0; transition:background .15s; }
+.student-chip-absent { background:#f3f4f6 !important; border-color:#d1d5db !important; opacity:0.7; }
+.student-chip-absent .s-name { color:#9ca3af !important; }
+.absence-btn:hover { background:#fecaca; }
+.absence-btn-chain { background:#ede9fe; border-color:#a78bfa; color:#7c3aed; }
+.absence-btn-chain:hover { background:#ddd6fe; }
+/* 欠席・振替タブ */
+.absence-list { display:flex; flex-direction:column; gap:12px; padding:16px 0; }
+.absence-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+.absence-card.ac-waiting { border-left:4px solid #ef4444; }
+.absence-card.ac-substituted { border-left:4px solid #22c55e; }
+.absence-card.ac-today-alert { background:#fffbeb; border-color:#fbbf24; }
+.ac-header { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ac-name { font-weight:700; font-size:14px; }
+.ac-badge { font-size:10px; padding:2px 7px; border-radius:20px; font-weight:600; }
+.ac-badge-red { background:#fee2e2; color:#dc2626; }
+.ac-badge-green { background:#dcfce7; color:#166534; }
+.ac-badge-blue { background:#dbeafe; color:#1d4ed8; }
+.ac-badge-yellow { background:#fef9c3; color:#92400e; }
+.ac-badge-purple { background:#ede9fe; color:#6d28d9; }
+.ac-detail { font-size:12px; color:var(--text-muted); }
+.ac-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:4px; }
+.ac-set-sub { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.ac-set-sub input[type=date], .ac-set-sub select { border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; background:var(--card-bg); color:var(--text-main); }
+.ac-alert { background:#fffbeb; border:1px solid #fbbf24; border-radius:8px; padding:8px 12px; font-size:12px; color:#92400e; display:flex; align-items:center; gap:6px; }
+.absence-empty { text-align:center; color:var(--text-muted); font-size:13px; padding:40px 0; }
+.task-bar-empty { }
+/* 今週タブ：ヘッダー直下タスクエリア */ { font-size: 12px; color: var(--text-muted); padding: 2px 0; }
 
 /* 今週タブ：ヘッダー直下タスクエリア */
 .wg-head-task {
@@ -634,6 +662,30 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   </div>
 </div>
 
+<!-- 欠席登録モーダル -->
+<div class="modal-overlay" id="modal-absence" onclick="if(event.target===this)closeModal('modal-absence')">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <span>欠席を記録</span>
+      <span class="modal-close" onclick="closeModal('modal-absence')">✕</span>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <strong id="abs-modal-name" style="font-size:16px"></strong>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="abs-modal-date"></div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">メモ（任意）</label>
+        <input type="text" id="abs-modal-memo" placeholder="理由・連絡事項など" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-absence')">キャンセル</button>
+      <button class="btn-primary" onclick="submitAbsence()">欠席登録</button>
+    </div>
+  </div>
+</div>
+
 <!-- サイドナビ -->
 <nav id="side-nav">
   <div class="nav-logo">
@@ -645,6 +697,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
     <div class="nav-item" onclick="switchTab('week')" id="nav-week"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="7" y1="14" x2="7" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="17" y1="14" x2="17" y2="14"/><line x1="7" y1="18" x2="7" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/></svg></span> 今週</div>
     <div class="nav-item" onclick="switchTab('school')" id="nav-school"><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21V12h6v9"/><path d="M3 9h18"/></svg></span> 学校マスタ</div>
     <div class="nav-item" onclick="switchTab('exam')" id="nav-exam"><span class="icon"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> 定期テスト</div>
+    <div class="nav-item" onclick="switchTab('absence')" id="nav-absence"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span> 欠席・振替</div>
     <div class="nav-item" onclick="switchTab('settings')" id="nav-settings"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> 設定</div>
   </div>
   <div class="nav-footer">
@@ -830,6 +883,7 @@ var _examGradeFilter = 'all';
 var _examSubjectFilter = 'all';
 var _examYearFilter = null; // null=初回未設定、''=全年度選択済み
 var _modes = [];
+var _absenceRecords = [];
 
 // テストのデフォルト種別（自由追加可）
 var DEFAULT_TEST_NAMES = ['前期中間', '前期期末', '後期中間', '学年末'];
@@ -877,6 +931,7 @@ function loadAll() {
   _tasks         = loadCache('tasks',          _tasks);
   _examStrategies = loadCache('exam_strategies', _examStrategies);
   _examSchedules  = loadCache('exam_schedules',  _examSchedules);
+  _absenceRecords  = (loadCache('absence_records', []) || []).map(normalizeAbsenceRecord_);
 
   if (!studentUrl && !taskUrl) {
     showLoading(false); renderCurrent(); updateLastLoaded();
@@ -926,6 +981,14 @@ function loadAll() {
       if (res && res.success && res.schedules) { _examSchedules = res.schedules; localStorage.setItem('cb_cache_exam_schedules', JSON.stringify(_examSchedules)); }
       done();
     });
+    pending++;
+    callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
+      if (res && res.success && res.records) {
+        _absenceRecords = res.records.map(normalizeAbsenceRecord_);
+        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+      }
+      done();
+    });
   }
 
   if (taskUrl) {
@@ -967,7 +1030,7 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
   var ni = document.getElementById('nav-' + tab);
   if (ni) ni.classList.add('active');
-  var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・テスト予定', exam: '定期テスト対策DB', settings: '設定' };
+  var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・テスト予定', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
   document.getElementById('top-title').textContent = titles[tab] || 'Class Board';
   renderCurrent();
 }
@@ -979,6 +1042,7 @@ function renderCurrent() {
     case 'school':   renderSchool();   break;
     case 'exam':     renderExam();     break;
     case 'settings': renderSettings(); break;
+    case 'absence':  renderAbsence();  break;
   }
 }
 
@@ -1129,8 +1193,49 @@ function studentChipHtml(s, opts) {
     popup += '</div>';
   }
 
-  return '<div class="student-chip">' +
+  // 欠席・振替バッジ
+  var absenceBadge = '';
+  var absBtn = '';
+  if (opts && opts.dateStr && opts.classroom && opts.komaTime) {
+    var aRec = (_absenceRecords || []).find(function(r) {
+      return r.studentName === s.name &&
+             r.absenceDate === opts.dateStr &&
+             r.komaTime === opts.komaTime &&
+             r.classroom === opts.classroom &&
+             r.status !== 'cancelled';
+    });
+    var subRec = (_absenceRecords || []).find(function(r) {
+      return r.studentName === s.name &&
+             r.substituteDate === opts.dateStr &&
+             r.substituteKomaTime === opts.komaTime &&
+             r.substituteClassroom === opts.classroom &&
+             r.status !== 'cancelled';
+    });
+    if (aRec) {
+      if (aRec.status === 'scheduled') {
+        absenceBadge = '<span class="badge badge-red" style="font-size:10px;margin-left:2px">振替待ち</span>';
+      } else if (aRec.status === 'substituted') {
+        absenceBadge = '<span class="badge" style="font-size:10px;background:#6366f1;color:#fff;margin-left:2px">振替済</span>';
+      } else {
+        absenceBadge = '<span class="badge badge-red" style="font-size:10px;margin-left:2px">欠席</span>';
+      }
+      // 欠席済→さらに欠席（振替の連鎖）
+      absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\')" title="この振替をさらに欠席処理">↩</button>';
+    } else if (subRec) {
+      absenceBadge = '<span class="badge" style="font-size:10px;background:#0ea5e9;color:#fff;margin-left:2px">⚡振替</span>';
+      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\')" title="欠席を記録">欠</button>';
+    } else {
+      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\')" title="欠席を記録">欠</button>';
+    }
+  }
+
+  var chipAbsentCls = (aRec && aRec.status !== 'cancelled') ? ' student-chip-absent' : '';
+  return '<div class="student-chip' + chipAbsentCls + '">' +
+    '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">' +
     '<span class="s-name">' + esc(s.name) + '</span>' +
+    absenceBadge +
+    absBtn +
+    '</div>' +
     (s.grade ? '<span class="s-sub">' + esc(s.grade) + (s.school ? '・' + esc(s.school) : '') + '</span>' : '') +
     (badges ? '<span class="s-badges">' + badges + '</span>' : '') +
     popup +
@@ -1173,7 +1278,7 @@ function renderToday() {
           var ss = getStudentsForKoma(cr, todayYoubi, kt);
           return '<div class="koma-block">' +
             '<div class="koma-time">⏰ ' + esc(kt) + '</div>' +
-            '<div class="koma-students">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi});}).join('') + '</div>' +
+            '<div class="koma-students">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + '</div>' +
             '</div>';
         }).join('')
       : '<div class="koma-empty">本日の授業はありません</div>';
@@ -1538,6 +1643,21 @@ function alertBannersHtml(todayStudents, todayIso) {
     banners.push(makeBanner('event', SVG.event, label, diff, matched.length, popup, namesAttr));
   });
 
+  // ④ 本日振替予定の生徒アラート（欠席振替機能）
+  var todaySubRecords = (_absenceRecords || []).filter(function(r) {
+    return r.substituteDate === todayIso && r.status === 'scheduled';
+  });
+  if (todaySubRecords.length) {
+    var subNames = todaySubRecords.map(function(r) {
+      return '<strong>' + esc(r.studentName) + '</strong>（' + esc(r.substituteKomaTime||'') + '）';
+    }).join('、');
+    banners.unshift(
+      '<div class="alert-banner" style="background:#fffbeb;border-color:#fbbf24;color:#92400e;border-left-color:#f59e0b">' +
+      '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+      '<span>⚡ 本日振替来塾予定：' + subNames + '</span></div>'
+    );
+  }
+
   return banners.join('');
 }
 
@@ -1713,9 +1833,24 @@ function buildWeekGrid(days, todayIso) {
         // この教室にこのコマ設定がない → グレーアウトセル
         return '<div class="wg-cell wg-cell-no-koma' + todayCls + emptyCls + '"></div>';
       }
+      // 振替でこのコマに来る生徒（通常コマにいない生徒も含む）
+      var subStudents = (_absenceRecords || []).filter(function(r) {
+        return r.substituteDate === iso &&
+               r.substituteKomaTime === kt &&
+               r.substituteClassroom === cr &&
+               r.status === 'scheduled' &&
+               !ss.find(function(s){ return s.name === r.studentName; }); // 通常コマにいない生徒のみ
+      });
+      var subChips = subStudents.map(function(r) {
+        // 振替生徒は _students から情報を引く
+        var stu = (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
+        return studentChipHtml(stu, {classroom:cr, komaTime:kt, youbi:YOUBIS[i], dateStr:iso});
+      });
+      var normalChips = ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso});});
+      var allChips = normalChips.concat(subChips);
       return '<div class="wg-cell' + todayCls + emptyCls + '">' +
-        (ss.length
-          ? ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i]});}).join('')
+        (allChips.length
+          ? allChips.join('')
           : (dayHasStudent[i] ? '<span style="color:#ccc;font-size:11px">—</span>' : ''))
         + '</div>';
     }).join('');
@@ -2795,6 +2930,290 @@ function deleteExamStrategy(recordId) {
   }, 'POST');
 }
 
+
+// =====================================================
+// 欠席・振替タブ
+// =====================================================
+
+// 欠席レコードの日付を yyyy-MM-dd に正規化（GASがDate型で返した場合の対策）
+function normalizeAbsenceRecord_(r) {
+  function toIso(v) {
+    if (!v || v === '') return '';
+    // すでに yyyy-MM-dd 形式ならそのまま
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return String(v);
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return String(v);
+    var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+    var dd = ('0' + d.getDate()).slice(-2);
+    return d.getFullYear() + '-' + mm + '-' + dd;
+  }
+  return Object.assign({}, r, {
+    absenceDate:    toIso(r.absenceDate),
+    substituteDate: toIso(r.substituteDate)
+  });
+}
+
+
+function renderAbsence() {
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  var todayIso = getTodayStr();
+
+  // 振替待ちアラート（本日が振替予定日の生徒）
+  var todaySubAlerts = (_absenceRecords || []).filter(function(r) {
+    return r.substituteDate === todayIso && r.status !== 'cancelled' && r.status !== 'done';
+  });
+
+  var alertHtml = '';
+  if (todaySubAlerts.length) {
+    alertHtml = '<div class="ac-alert" style="margin-bottom:12px">⚠️ 本日振替予定の生徒がいます：' +
+      todaySubAlerts.map(function(r){ return '<strong>' + esc(r.studentName) + '</strong>（' + esc(r.substituteKomaTime||'') + '）'; }).join('、') +
+      '</div>';
+  }
+
+  // 振替待ち（未確定）リスト
+  var waiting = (_absenceRecords || []).filter(function(r) {
+    return r.status === 'absent'; // 振替日未定のみ
+  });
+  var scheduled = (_absenceRecords || []).filter(function(r) {
+    return r.status === 'scheduled'; // 振替日確定済み
+  });
+  // 振替済み（直近30日）
+  var done30 = (_absenceRecords || []).filter(function(r) {
+    var d30 = new Date(); d30.setDate(d30.getDate() - 30);
+    return (r.status === 'substituted' || r.status === 'done') &&
+      r.absenceDate >= isoDate(d30);
+  });
+
+  function cardHtml(r) {
+    var statusBadge = '';
+    var cardCls = 'absence-card';
+    if (r.status === 'absent') {
+      statusBadge = '<span class="ac-badge ac-badge-red">振替待ち</span>';
+      cardCls += ' ac-waiting';
+    } else if (r.status === 'scheduled') {
+      statusBadge = '<span class="ac-badge" style="background:#dbeafe;color:#1d4ed8">振替確定</span>';
+      cardCls += ' ac-waiting'; // 左赤ボーダーは維持（まだ来塾前）
+    } else if (r.status === 'substituted' || r.status === 'done') {
+      statusBadge = '<span class="ac-badge ac-badge-green">振替済</span>';
+      cardCls += ' ac-substituted';
+    }
+    // 振替先情報
+    var subInfo = '';
+    if (r.substituteDate) {
+      subInfo = '振替：' + esc(r.substituteDate) + ' ' + esc(r.substituteKomaTime||'') + ' ' + esc(r.substituteClassroom||'');
+    }
+    // 振替設定UI（振替待ちのみ）
+    var setSubHtml = '';
+    if (r.status === 'absent' || r.status === 'scheduled') { // 両方とも変更可
+      var uid = 'sub_' + (r.id || '').replace(/[^a-z0-9]/gi,'_');
+      setSubHtml = '<div class="ac-set-sub" id="set-sub-' + uid + '">' +
+        '<input type="date" id="sub-date-' + uid + '" value="' + esc(r.substituteDate||'') + '" style="width:130px" />' +
+        '<select id="sub-koma-' + uid + '">' +
+          getAllKomaOptions(r.substituteKomaTime) +
+        '</select>' +
+        '<select id="sub-cr-' + uid + '">' +
+          '<option value="北久里浜"' + (r.substituteClassroom==='北久里浜'?' selected':'') + '>北久里浜</option>' +
+          '<option value="久里浜"'   + (r.substituteClassroom==='久里浜'  ?' selected':'') + '>久里浜</option>' +
+        '</select>' +
+        '<button class="btn-primary btn-sm" onclick="saveSubstitute(\'' + (r.id||'') + '\',\'' + uid + '\')">振替確定</button>' +
+        '<button class="btn-secondary btn-sm" onclick="cancelAbsence(\'' + (r.id||'') + '\')">キャンセル</button>' +
+      '</div>';
+    }
+    return '<div class="' + cardCls + '">' +
+      '<div class="ac-header">' +
+        '<span class="ac-name">' + esc(r.studentName) + '</span>' +
+        statusBadge +
+        (r.absenceDate ? '<span class="ac-detail">欠席日：' + esc(r.absenceDate) + ' ' + esc(r.komaTime||'') + ' ' + esc(r.classroom||'') + '</span>' : '') +
+      '</div>' +
+      (subInfo ? '<div class="ac-detail">' + subInfo + '</div>' : '') +
+      (r.memo ? '<div class="ac-detail" style="color:var(--text-main)">メモ：' + esc(r.memo) + '</div>' : '') +
+      '<div class="ac-actions">' + setSubHtml + '</div>' +
+    '</div>';
+  }
+
+  var activeRecords = waiting.concat(scheduled); // 振替待ち＋振替確定（まだ来塾前）
+  var waitingHtml = activeRecords.length
+    ? activeRecords.map(cardHtml).join('')
+    : '<div class="absence-empty">対応が必要な欠席はありません ✓</div>';
+
+  var doneHtml = done30.length
+    ? '<details style="margin-top:16px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none">過去30日の振替済み（' + done30.length + '件）</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">' + done30.map(cardHtml).join('') + '</div></details>'
+    : '';
+
+  var helpHtml = '<span class="cb-help"><span class="cb-help-icon">?</span>' +
+    '<span class="cb-help-body">【欠席ボタン】本日・今週タブの生徒名横の「欠」ボタンで欠席を記録します。<br><br>【振替待ちリスト】欠席登録した生徒が一覧に表示されます。振替日時が決まったら「振替確定」で登録してください。<br><br>【連鎖欠席】振替予定の生徒がさらに欠席した場合は「↩」ボタンで連鎖欠席を記録できます。<br><br>【アラート】本日振替予定の生徒がいる場合は画面上部に表示されます。</span>' +
+    '</span>';
+
+  document.getElementById('main-content').innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<h3 style="margin:0;font-size:16px">🔄 欠席・振替管理</h3>' + helpHtml +
+      '<button class="btn-secondary btn-sm" style="margin-left:auto" onclick="reloadAbsence()">🔄 更新</button>' +
+    '</div>' +
+    alertHtml +
+    '<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--crimson)">対応中（振替待ち ' + waiting.length + '件 / 振替確定 ' + scheduled.length + '件）</div>' +
+    '<div class="absence-list">' + waitingHtml + '</div>' +
+    doneHtml;
+}
+
+function getAllKomaOptions(selected) {
+  // 全教室の全コマ時間帯を集約
+  var komaSet = {};
+  (_students || []).forEach(function(s) {
+    (s.komas || []).forEach(function(k) { if (k.time) komaSet[k.time] = true; });
+  });
+  var komas = Object.keys(komaSet).sort();
+  if (!komas.length) komas = ['15:00〜16:30','16:30〜18:00','18:00〜19:30','19:30〜21:00'];
+  return '<option value="">コマ選択</option>' +
+    komas.map(function(k) {
+      return '<option value="' + esc(k) + '"' + (selected===k?' selected':'') + '>' + esc(k) + '</option>';
+    }).join('');
+}
+
+function reloadAbsence() {
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!studentUrl) return;
+  callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
+    if (res && res.success && res.records) {
+      _absenceRecords = res.records.map(normalizeAbsenceRecord_);
+      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+    }
+    renderAbsence();
+  });
+}
+
+function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId) {
+  // 重複チェック
+  var existing = (_absenceRecords || []).find(function(r) {
+    return r.studentName === studentName &&
+           r.absenceDate === dateStr &&
+           r.komaTime === komaTime &&
+           r.status !== 'cancelled';
+  });
+  if (existing && !chainFromId) {
+    miniToast('⚠️ この生徒はすでに欠席登録済みです');
+    return;
+  }
+
+  _absenceModalData = { studentName: studentName, dateStr: dateStr, komaTime: komaTime, classroom: classroom, chainFromId: chainFromId || '' };
+
+  // モーダル表示
+  var mo = document.getElementById('modal-absence');
+  if (!mo) return;
+  document.getElementById('abs-modal-name').textContent = studentName;
+  document.getElementById('abs-modal-date').textContent = dateStr + ' ' + komaTime;
+  document.getElementById('abs-modal-memo').value = '';
+  openModal('modal-absence');
+}
+
+var _absenceModalData = {};
+
+function submitAbsence() {
+  var d = _absenceModalData;
+  if (!d.studentName) return;
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
+
+  var memo = document.getElementById('abs-modal-memo').value.trim();
+  var record = {
+    studentName: d.studentName,
+    absenceDate: d.dateStr,
+    komaTime:    d.komaTime,
+    classroom:   d.classroom,
+    status:      'absent',
+    memo:        memo,
+    chainFromId: d.chainFromId || ''
+  };
+
+  // 楽観的UI
+  var tempId = 'tmp_' + Date.now();
+  record.id = tempId;
+  _absenceRecords.push(record);
+  localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+  closeModal('modal-absence');
+  miniToast('欠席を登録しました ✓');
+  if (_currentTab === 'absence') renderAbsence();
+  else renderCurrent();
+
+  // GAS保存
+  callGas(studentUrl, { action: 'saveAbsenceRecord', record: record }, function(res) {
+    if (res && res.success && res.id) {
+      var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
+      if (idx >= 0) _absenceRecords[idx].id = res.id;
+      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+    } else {
+      // ロールバック
+      _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
+      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+      miniToast('⚠️ 欠席登録に失敗しました');
+      renderCurrent();
+    }
+  }, 'POST');
+}
+
+function saveSubstitute(recordId, uid) {
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
+
+  var subDate = document.getElementById('sub-date-' + uid).value;
+  var subKoma = document.getElementById('sub-koma-' + uid).value;
+  var subCr   = document.getElementById('sub-cr-' + uid).value;
+
+  if (!subDate || !subKoma) { miniToast('⚠️ 振替日とコマを選択してください'); return; }
+
+  // 重複チェック（同日同コマに既に予定がある生徒）
+  var rec = (_absenceRecords || []).find(function(r){ return r.id === recordId; });
+  if (!rec) return;
+  var conflict = (_absenceRecords || []).find(function(r) {
+    return r.id !== recordId &&
+           r.studentName === rec.studentName &&
+           r.substituteDate === subDate &&
+           r.substituteKomaTime === subKoma &&
+           r.status !== 'cancelled';
+  });
+  if (conflict) {
+    miniToast('⚠️ この生徒はその日時に既に振替予定があります');
+    return;
+  }
+
+  // 楽観的UI
+  var prev = { substituteDate: rec.substituteDate, substituteKomaTime: rec.substituteKomaTime, substituteClassroom: rec.substituteClassroom, status: rec.status };
+  rec.substituteDate = subDate; rec.substituteKomaTime = subKoma; rec.substituteClassroom = subCr; rec.status = 'scheduled';
+  localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+  miniToast('振替日時を確定しました ✓');
+  renderAbsence();
+
+  callGas(studentUrl, { action: 'updateAbsenceRecord', record: { id: recordId, substituteDate: subDate, substituteKomaTime: subKoma, substituteClassroom: subCr, status: 'scheduled' } }, function(res) {
+    if (!res || !res.success) {
+      rec.substituteDate = prev.substituteDate; rec.substituteKomaTime = prev.substituteKomaTime; rec.substituteClassroom = prev.substituteClassroom; rec.status = prev.status;
+      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+      miniToast('⚠️ 振替確定に失敗しました');
+      renderAbsence();
+    }
+  }, 'POST');
+}
+
+function cancelAbsence(recordId) {
+  if (!confirm('この欠席記録をキャンセルしますか？')) return;
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  var rec = (_absenceRecords || []).find(function(r){ return r.id === recordId; });
+  if (!rec) return;
+
+  var prev = rec.status;
+  rec.status = 'cancelled';
+  localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+  miniToast('欠席記録をキャンセルしました');
+  renderAbsence();
+
+  callGas(studentUrl, { action: 'updateAbsenceRecord', record: { id: recordId, status: 'cancelled' } }, function(res) {
+    if (!res || !res.success) {
+      rec.status = prev;
+      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+      miniToast('⚠️ キャンセルに失敗しました');
+      renderAbsence();
+    }
+  }, 'POST');
+}
+
 // =====================================================
 // 設定タブ
 // =====================================================
@@ -3017,7 +3436,10 @@ function callGas(url, params, callback, method) {
       .catch(function() { callback(null); });
   } else {
     var fd = new FormData();
-    Object.keys(params).forEach(function(k) { fd.append(k, params[k]); });
+    Object.keys(params).forEach(function(k) {
+      var v = params[k];
+      fd.append(k, (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v);
+    });
     fetch(url, { method: 'POST', redirect: 'follow', body: fd })
       .then(function(r) { return r.json(); })
       .then(callback)
