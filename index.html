@@ -152,7 +152,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .week-grid.cr-kuri { border-color: var(--kurihama-border); }
 .koma-block { border-bottom: 1px solid var(--border); }
 .koma-block:last-child { border-bottom: none; }
-.koma-time { font-size: 11px; color: var(--text-muted); padding: 8px 12px 4px; font-weight: 600; background: #fafbfc; border-bottom: 1px dashed var(--border); }
+.koma-time { font-size: 11px; color: var(--text-muted); padding: 8px 12px 4px; font-weight: 600; background: #fafbfc; border-bottom: 1px dashed var(--border); display: flex; align-items: center; gap: 8px; }
+.koma-count { font-size: 10px; font-weight: 500; color: var(--text-muted, #888); white-space: nowrap; }
+.count-warn, .koma-count.count-warn, .wg-count.count-warn { color: #b45309 !important; font-weight: 600 !important; }
+.count-danger, .koma-count.count-danger, .wg-count.count-danger { color: #dc2626 !important; font-weight: 600 !important; }
+.wg-count { font-size: 9px; font-weight: 500; color: var(--text-muted, #888); margin-bottom: 3px; white-space: nowrap; display: block; }
 .koma-students { padding: 8px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .koma-empty { padding: 14px 12px; font-size: 12px; color: #bbb; }
 
@@ -1276,8 +1280,13 @@ function renderToday() {
     var komaHtml = komas.length
       ? komas.map(function(kt) {
           var ss = getStudentsForKoma(cr, todayYoubi, kt);
+          var _cnt = komaCountLabel_(ss, todayIso, kt, cr);
+          var _cntTotal = (_cnt && typeof _cnt === 'object') ? _cnt.total : 0;
+          var _cntCls = _cntTotal >= 15 ? ' count-danger' : _cntTotal >= 12 ? ' count-warn' : '';
+          var _cntTitle = ' title="12人以上：黄色 / 15人以上：赤"';
+          var countHtml = (_cnt && typeof _cnt === 'object') ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cnt.label + '</span>' : '';
           return '<div class="koma-block">' +
-            '<div class="koma-time">⏰ ' + esc(kt) + '</div>' +
+            '<div class="koma-time">⏰ ' + esc(kt) + countHtml + '</div>' +
             '<div class="koma-students">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + '</div>' +
             '</div>';
         }).join('')
@@ -1848,9 +1857,14 @@ function buildWeekGrid(days, todayIso) {
       });
       var normalChips = ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso});});
       var allChips = normalChips.concat(subChips);
+      var _wCnt = komaCountLabel_(ss, iso, kt, cr);
+      var _wTotal = (_wCnt && typeof _wCnt === 'object') ? _wCnt.total : 0;
+      var _wCls = _wTotal >= 15 ? ' count-danger' : _wTotal >= 12 ? ' count-warn' : '';
+      var _wTitle = ' title="12人以上：黄色 / 15人以上：赤"';
+      var wgCountDiv = (_wCnt && typeof _wCnt === 'object') ? '<div class="wg-count' + _wCls + '"' + _wTitle + '>' + _wCnt.label + '</div>' : '';
       return '<div class="wg-cell' + todayCls + emptyCls + '">' +
         (allChips.length
-          ? allChips.join('')
+          ? wgCountDiv + allChips.join('')
           : (dayHasStudent[i] ? '<span style="color:#ccc;font-size:11px">—</span>' : ''))
         + '</div>';
     }).join('');
@@ -2936,6 +2950,64 @@ function deleteExamStrategy(recordId) {
 // =====================================================
 
 // 欠席レコードの日付を yyyy-MM-dd に正規化（GASがDate型で返した場合の対策）
+
+// コマの人数カウントラベルを生成する
+// students: 通常在籍の生徒配列, dateStr: 'yyyy-MM-dd', komaTime: 時間帯文字列, classroom: 教室名
+function komaCountLabel_(students, dateStr, komaTime, classroom) {
+  // 振替来塾者を追加（通常在籍にいない生徒のみ）
+  var subStudents = (_absenceRecords || [])
+    .filter(function(r) {
+      return r.substituteDate === dateStr &&
+             r.substituteKomaTime === komaTime &&
+             r.substituteClassroom === classroom &&
+             r.status === 'scheduled' &&
+             !students.find(function(s){ return s.name === r.studentName; });
+    })
+    .map(function(r) {
+      return (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
+    });
+
+  // 欠席者を除外
+  var absentNames = (_absenceRecords || [])
+    .filter(function(r) {
+      return r.absenceDate === dateStr &&
+             r.komaTime === komaTime &&
+             r.classroom === classroom &&
+             r.status !== 'cancelled';
+    })
+    .map(function(r){ return r.studentName; });
+
+  var all = students.concat(subStudents).filter(function(s){
+    if (absentNames.indexOf(s.name) >= 0) return false;
+    // 対象コマが online 設定の生徒は除外
+    var komas = s.komas || [];
+    var isOnline = komas.some(function(k){
+      return k.classroom === classroom && k.time === komaTime && k.online === true;
+    });
+    return !isOnline;
+  });
+
+  if (all.length === 0) return '';
+
+  var sho = 0, chu = 0, ko = 0, other = 0;
+  all.forEach(function(s) {
+    var g = s.grade || '';
+    if (g.indexOf('小') === 0) sho++;
+    else if (g.indexOf('中') === 0) chu++;
+    else if (g.indexOf('高') === 0) ko++;
+    else other++;
+  });
+
+  var parts = [];
+  if (sho > 0)   parts.push('小' + sho);
+  if (chu > 0)   parts.push('中' + chu);
+  if (ko > 0)    parts.push('高' + ko);
+  if (other > 0) parts.push('他' + other);
+
+  var total = all.length;
+  return { label: parts.join('・') + '（計' + total + '人）', total: total };
+}
+
 function normalizeAbsenceRecord_(r) {
   function toIso(v) {
     if (!v || v === '') return '';
@@ -3547,7 +3619,7 @@ function getUserName() {
 }
 
 function getTodayStr() {
-  return new Date().toISOString().slice(0,10);
+  return isoDate(new Date());
 }
 
 // ========== A-4：期日変更・完了をGASに反映 ==========
