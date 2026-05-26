@@ -2761,7 +2761,7 @@ function renderSettings() {
     '<input class="setting-input" id="s-student-url" value="' + esc(su) + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
     '<div class="setting-section"><div class="setting-label">タスクマネージャー GAS URL' +
     '<span class="gs-help"><span class="gs-help-icon">?</span>' +
-    '<span class="gs-help-body">【タスクマネージャーGAS】が担当するデータ：<br>・本日・今週タブに表示するタスク一覧<br>（授業内・授業外タスクのみ取得）<br><br>タスクマネージャーツールのGAS URLをセットしてください。</span></span>' +
+    '<span class="gs-help-body">【タスクマネージャーGAS】が担当するデータ：<br>・本日・今週タブに表示するタスク一覧<br><br>【表示条件】タスクマネージャー側で以下をすべて設定したタスクのみ表示されます：<br>・タスク種別：「授業内」または「授業外」<br>・期日：設定済み<br>・教室：設定済み（北久里浜 / 久里浜）<br><br>タスクマネージャーツールのGAS URLをセットしてください。</span></span>' +
     '</div>' +
     '<input class="setting-input" id="s-task-url" value="' + esc(tu) + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
     '<button class="btn-primary" onclick="saveSettings()">保存して再読み込み</button>' +
