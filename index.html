@@ -18,6 +18,8 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
   --radius: 10px;
   --nav-width: 158px;
+  --card-bg: #ffffff;
+  --text-main: #1a2535;
   /* 教室カラー */
   --kitakurihama-bg: #e8f4fd;
   --kitakurihama-header: #2a8bbf;
@@ -462,7 +464,6 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .ac-alert { background:#fffbeb; border:1px solid #fbbf24; border-radius:8px; padding:8px 12px; font-size:12px; color:#92400e; display:flex; align-items:center; gap:6px; }
 .absence-empty { text-align:center; color:var(--text-muted); font-size:13px; padding:40px 0; }
 .task-bar-empty { }
-/* 今週タブ：ヘッダー直下タスクエリア */ { font-size: 12px; color: var(--text-muted); padding: 2px 0; }
 
 /* 今週タブ：ヘッダー直下タスクエリア */
 .wg-head-task {
@@ -2609,6 +2610,8 @@ function openExamScheduleModal() {
 }
 
 function submitExamSchedule() {
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
   var testType  = document.getElementById('esch-type').value;
   var year      = document.getElementById('esch-year').value;
   var startDate = document.getElementById('esch-start').value;
@@ -3032,7 +3035,7 @@ function renderAbsence() {
 
   // 振替待ちアラート（本日が振替予定日の生徒）
   var todaySubAlerts = (_absenceRecords || []).filter(function(r) {
-    return r.substituteDate === todayIso && r.status !== 'cancelled' && r.status !== 'done';
+    return r.substituteDate === todayIso && r.status === 'scheduled';
   });
 
   var alertHtml = '';
