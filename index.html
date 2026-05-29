@@ -443,6 +443,13 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   pointer-events: none;
 }
 .rec-card-wrap:hover .rec-popup { display: block; }
+.quick-add-btn {
+  width: 20px; height: 20px; border-radius: 50%; background: #e5e7eb; color: #374151;
+  border: none; cursor: pointer; font-size: 16px; font-weight: 400;
+  display: inline-flex; align-items: center; justify-content: center;
+  line-height: 1; padding: 0; flex-shrink: 0;
+}
+.quick-add-btn:hover { background: var(--crimson); color: #fff; }
 .chip-in      { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 .task-chip-del { margin-left: 4px; opacity: 0.5; font-size: 11px; cursor: pointer; }
 .task-chip-del:hover { opacity: 1; color: var(--crimson); }
@@ -1475,14 +1482,14 @@ function renderToday() {
     var outChips = outOver.map(function(t){ return makeChip(t, true, '授業外'); })
       .concat(outNormal.map(function(t){ return makeChip(t, false, '授業外'); }));
     var outSec = '<div class="task-bar-section">' +
-      '<span class="task-bar-section-label task-bar-section-out">🏢 授業外</span>' + outAdd +
+      '<span class="task-bar-section-label task-bar-section-out"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#9ca3af;margin-right:5px;flex-shrink:0"></span>授業外</span>' + outAdd +
       (outChips.length ? '<div class="task-bar-chips">' + outChips.join('') + '</div>' : '') +
       '</div>';
     // 授業内セクション（タスクなしでも見出しを表示）
     var inChips = inOver.map(function(t){ return makeChip(t, true, '授業内'); })
       .concat(inNormal.map(function(t){ return makeChip(t, false, '授業内'); }));
     var inSec = '<div class="task-bar-section">' +
-      '<span class="task-bar-section-label task-bar-section-in">📚 授業内</span>' + inAdd +
+      '<span class="task-bar-section-label task-bar-section-in"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3b82f6;margin-right:5px;flex-shrink:0"></span>授業内</span>' + inAdd +
       (inChips.length ? '<div class="task-bar-chips">' + inChips.join('') + '</div>' : '') +
       '</div>';
     return '<div class="task-bar-col ' + crCls + '">' +
@@ -1808,7 +1815,15 @@ function alertBannersHtml(todayStudents, todayIso) {
     );
   }
 
-  return banners.join('');
+  if (!banners.length) return '';
+  // 振替アラートは全幅（grid-column:1/-1）で表示
+  var bannersHtml = banners.map(function(b) {
+    if (b.indexOf('⚡') >= 0) {
+      return '<div style="grid-column:1/-1">' + b + '</div>';
+    }
+    return b;
+  }).join('');
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' + bannersHtml + '</div>';
 }
 
 function highlightStudents(banner) {
