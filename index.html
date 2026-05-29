@@ -1414,6 +1414,8 @@ function renderToday() {
         '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
           '<label style="font-size:11px;color:var(--text-muted)">期日</label>' +
           '<input type="date" id="qa-date-' + uid + '" value="' + today + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
+          '<input type="time" id="qa-time-' + uid + '" value="" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
+          '<select id="qa-cat-' + uid + '" onchange="onCbQuickCatChange(\'' + uid + '\')" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option></select>' +
           '<button class="btn-primary btn-sm" onclick="submitQuickAdd(\'' + uid + '\',\'' + esc(cr) + '\',\'' + taskType + '\')">追加</button>' +
           '<button class="btn-secondary btn-sm" onclick="toggleQuickAdd(\'' + uid + '\')">✕</button>' +
         '</div>' +
@@ -3782,14 +3784,33 @@ function toggleQuickAdd(uid) {
   }
 }
 
+// Gカレ対象カテゴリ選択時にデフォルト値をセット（ClassBoard用）
+var CB_GCAL_AUTO_CATEGORIES = ['生徒対応', '問い合わせ対応'];
+function onCbQuickCatChange(uid) {
+  var catEl  = document.getElementById('qa-cat-'  + uid);
+  var timeEl = document.getElementById('qa-time-' + uid);
+  var dateEl = document.getElementById('qa-date-' + uid);
+  if (!catEl) return;
+  var cat = catEl.value;
+  if (CB_GCAL_AUTO_CATEGORIES.indexOf(cat) === -1) return;
+  // 時刻が未設定なら13:00をセット
+  if (timeEl && !timeEl.value) timeEl.value = '13:00';
+  // 期日が未設定なら今日をセット
+  if (dateEl && !dateEl.value) dateEl.value = getTodayStr();
+}
+
 function submitQuickAdd(uid, classroom, taskType) {
   var titleEl = document.getElementById('qa-title-' + uid);
-  var memoEl  = document.getElementById('qa-memo-' + uid);
-  var dateEl  = document.getElementById('qa-date-' + uid);
+  var memoEl  = document.getElementById('qa-memo-'  + uid);
+  var dateEl  = document.getElementById('qa-date-'  + uid);
+  var timeEl  = document.getElementById('qa-time-'  + uid);
+  var catEl   = document.getElementById('qa-cat-'   + uid);
   var title = (titleEl && titleEl.value || '').trim();
   if (!title) { miniToast('タスク内容を入力してください'); titleEl && titleEl.focus(); return; }
-  var memo    = (memoEl  && memoEl.value  || '').trim();
-  var dueDate = (dateEl  && dateEl.value  || getTodayStr());
+  var memo     = (memoEl  && memoEl.value  || '').trim();
+  var dueDate  = (dateEl  && dateEl.value  || getTodayStr());
+  var dueTime  = (timeEl  && timeEl.value  || '');
+  var category = (catEl   && catEl.value   || '');
   var url = localStorage.getItem(GAS_TASK_URL_KEY) || '';
   if (!url) { miniToast('タスクマネージャーGAS URLが未設定です'); return; }
 
@@ -3798,11 +3819,12 @@ function submitQuickAdd(uid, classroom, taskType) {
     title:     title,
     memo:      memo,
     dueDate:   dueDate,
+    dueTime:   dueTime,
     taskType:  taskType,
     classroom: classroom,
     assignee:  getUserName(),
     status:    'todo',
-    category:  '',
+    category:  category,
     issueId:   '',
     createdBy: getUserName()
   };
@@ -3810,18 +3832,61 @@ function submitQuickAdd(uid, classroom, taskType) {
   // 即反映
   _tasks.push(newTask);
   localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
-  miniToast('タスクを追加しました ✓');
+
+  // Gカレ自動登録（カテゴリ・dueDate・dueTime・classroom が揃っているとき）
+  var willGcal = CB_GCAL_AUTO_CATEGORIES.indexOf(category) !== -1 && dueDate && dueTime && classroom;
+  miniToast('タスクを追加しました ✓' + (willGcal ? ' 📅 Gカレにも登録' : ''));
   renderCurrent();
-  // 裏でGAS送信
+
+  // 裏でGAS送信（saveTask）
   callGas(url, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
     if (!res || !res.success) {
-      // 失敗時ロールバック
       _tasks = _tasks.filter(function(x) { return x.id !== newTask.id; });
       localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       miniToast('⚠️ 追加に失敗しました。再試行してください。');
       renderCurrent();
+      return;
+    }
+    // Gカレ登録（saveTask 成功後に実行）
+    if (willGcal) {
+      pushCbTaskToGcal(newTask, url);
     }
   }, 'POST');
+}
+
+// ClassBoard からGカレに登録する関数
+function pushCbTaskToGcal(task, taskUrl) {
+  // gcal_settings のマッピングを使うため、Task Manager GAS に createCalendarEvent を呼ぶ
+  // classroom → calendarId のマッピングはTask Manager側のgcal_settingsに依存
+  // まずgcal_settingsを取得してから登録する
+  callGas(taskUrl, { action: 'getGcalSettings' }, function(res) {
+    if (!res || !res.classMappings) return;
+    var mappings = res.classMappings;
+    // exportOn:true かつ classroom が一致するマッピングを探す
+    var m = null;
+    for (var i = 0; i < mappings.length; i++) {
+      if (mappings[i].exportOn && mappings[i].classroom === task.classroom) {
+        m = mappings[i]; break;
+      }
+    }
+    if (!m) return; // マッピングなし → 登録しない
+    callGas(taskUrl, {
+      action:     'createCalendarEvent',
+      calendarId: m.calId,
+      title:      task.title,
+      dueDate:    task.dueDate,
+      dueTime:    task.dueTime,
+      memo:       task.memo || ''
+    }, function(gcalRes) {
+      if (gcalRes && gcalRes.gcalEventId) {
+        // gcalEventId をタスクに書き戻してGASに同期
+        task.gcalEventId = gcalRes.gcalEventId;
+        task.gcalCalId   = m.calId;
+        localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+        callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(task) }, null, 'POST');
+      }
+    });
+  });
 }
 
 // ========== A-5：自動持越し処理 ==========
