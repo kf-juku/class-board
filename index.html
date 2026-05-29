@@ -434,6 +434,15 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .t-popup-label { font-size: 10px; font-weight: 700; color: var(--text-muted); width: 50px; flex-shrink: 0; padding-top: 1px; }
 .t-popup-val { font-size: 12px; color: var(--text); flex: 1; }
 .t-popup-memo { margin-top: 6px; background: var(--surface); border-radius: 5px; padding: 6px 8px; font-size: 11px; white-space: pre-wrap; }
+.rec-card-wrap { position: relative; }
+.rec-card-wrap .rec-popup {
+  display: none; position: absolute; left: 0; top: calc(100% + 4px);
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: var(--shadow-md); padding: 10px 12px; min-width: 200px; max-width: 280px;
+  font-size: 12px; color: var(--text); z-index: 9999; white-space: normal; line-height: 1.6;
+  pointer-events: none;
+}
+.rec-card-wrap:hover .rec-popup { display: block; }
 .chip-in      { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 .task-chip-del { margin-left: 4px; opacity: 0.5; font-size: 11px; cursor: pointer; }
 .task-chip-del:hover { opacity: 1; color: var(--crimson); }
@@ -1588,13 +1597,24 @@ function examStrategySection(todayIso) {
     if (grades)  metaParts.push(grades);
     if (schools) metaParts.push(schools);
     if (yearStr) metaParts.push(yearStr);
-    var h = '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:5px;padding:5px 8px;opacity:' + (isPast?'0.75':'1') + '">';
+    // ホバーポップアップ用の全情報
+    var popRows = '';
+    popRows += '<div style="font-weight:700;font-size:13px;margin-bottom:6px">' + esc(r.unitName||'') + '</div>';
+    if (r.subject) popRows += '<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:#6b7280;width:40px;flex-shrink:0;padding-top:1px">教科</span><span style="font-size:12px;flex:1">' + esc(r.subject) + '</span></div>';
+    if (grades)    popRows += '<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:#6b7280;width:40px;flex-shrink:0;padding-top:1px">学年</span><span style="font-size:12px;flex:1">' + esc(grades) + '</span></div>';
+    if (schools)   popRows += '<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:#6b7280;width:40px;flex-shrink:0;padding-top:1px">学校</span><span style="font-size:12px;flex:1">' + esc(schools) + '</span></div>';
+    if (r.materials) popRows += '<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:#6b7280;width:40px;flex-shrink:0;padding-top:1px">教材</span><span style="font-size:12px;flex:1;color:#059669">' + esc(r.materials) + '</span></div>';
+    if (yearStr)   popRows += '<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:#6b7280;width:40px;flex-shrink:0;padding-top:1px">年度</span><span style="font-size:12px;flex:1">' + esc(yearStr) + '</span></div>';
+    var h = '<div class="rec-card-wrap">';
+    h += '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:5px;padding:5px 8px;opacity:' + (isPast?'0.75':'1') + '">';
     h += '<div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow:hidden">';
     h += '<span style="background:' + subBg + ';color:' + subCol + ';font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;flex-shrink:0">' + esc(r.subject||'') + '</span>';
     h += '<span style="font-size:12px;font-weight:700;color:' + (isPast?'#6b7280':'var(--text)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.unitName) + '</span>';
     h += '</div>';
     if (metaParts.length) h += '<div style="font-size:10px;color:' + textCol + ';margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(metaParts.join('　')) + '</div>';
     if (r.materials) h += '<div style="font-size:10px;color:' + (isPast?'#9ca3af':'#059669') + ';margin-top:1px">📄 ' + esc(r.materials) + '</div>';
+    h += '</div>';
+    h += '<div class="rec-popup">' + popRows + '</div>';
     h += '</div>';
     return h;
   }
