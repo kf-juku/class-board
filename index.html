@@ -1095,10 +1095,20 @@ function getActiveModeStudents() {
 
 function getStudentsForKoma(classroom, youbi, komaTime) {
   var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+  // hiraKoma（平日振替）が指定された曜日・時間に一致するか判定
+  // hiraKoma の値は "月17:30〜18:20" のような形式（youbi + time を結合した文字列）
+  function matchesKoma(k) {
+    if (k.classroom !== classroom) return false;
+    // 通常コマ・オンラインコマ
+    if (k.youbi === youbi && k.time === komaTime) return true;
+    // 平日振替コマ: hiraKoma が "youbi + time" の形式で保存されている
+    if (k.satType === 'hira' && k.hiraKoma) {
+      return k.hiraKoma === (youbi + komaTime);
+    }
+    return false;
+  }
   function lessonRank(s) {
-    var koma = (s.komas || []).filter(function(k) {
-      return k.classroom === classroom && k.youbi === youbi && k.time === komaTime;
-    })[0];
+    var koma = (s.komas || []).filter(function(k) { return matchesKoma(k); })[0];
     if (!koma) return 0;
     if (koma.online) return 2;
     if ((koma.id || '').indexOf('ca_') === 0) return 1;
@@ -1109,9 +1119,7 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     return idx >= 0 ? idx : 99;
   }
   return getActiveModeStudents().filter(function(s) {
-    return (s.komas || []).some(function(k) {
-      return k.classroom === classroom && k.youbi === youbi && k.time === komaTime;
-    });
+    return (s.komas || []).some(function(k) { return matchesKoma(k); });
   }).sort(function(a, b) {
     var lr = lessonRank(a) - lessonRank(b);
     if (lr !== 0) return lr;
