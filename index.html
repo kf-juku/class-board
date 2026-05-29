@@ -66,6 +66,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   background: #fff; border-bottom: 1px solid var(--border);
   padding: 10px 24px; display: flex; align-items: center; justify-content: space-between;
   box-shadow: var(--shadow-sm); flex-shrink: 0;
+  position: sticky; top: 0; z-index: 100;
 }
 .top-bar .page-title { font-size: 15px; font-weight: 700; color: var(--text); white-space: nowrap; }
 .top-bar-center { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: .02em; flex: 1; text-align: center; }
@@ -195,7 +196,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .task-overdue { color: var(--crimson); }
 
 /* モードタブ */
-.mode-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.mode-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; position: sticky; top: 52px; z-index: 90; background: #fff; padding: 8px 0 4px; margin-top: -8px; }
 .mode-tab { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text-muted); transition: all .15s; display: flex; align-items: center; gap: 6px; }
 .mode-tab:hover { background: var(--surface); }
 .mode-tab.active { background: var(--crimson); color: #fff; border-color: var(--crimson); }
@@ -225,7 +226,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .week-grid { display: grid; width: 100%; border: 1px solid var(--border); border-radius: var(--radius); overflow: visible; background: #fff; }
 
 /* ヘッダー行（曜日・日付）：白背景・濃い文字 */
-.wg-head { background: #fff; font-weight: 700; font-size: 11px; color: var(--text); text-align: center; padding: 6px 2px; border-right: 1px solid var(--border); border-bottom: 2px solid var(--border); }
+.wg-head { background: #fff; font-weight: 700; font-size: 11px; color: var(--text); text-align: center; padding: 6px 2px; border-right: 1px solid var(--border); border-bottom: 2px solid var(--border); position: sticky; top: 52px; z-index: 80; }
 .wg-head:last-child { border-right: none; }
 .wg-head .wg-date { font-size: 10px; font-weight: 400; color: var(--text-muted); margin-top: 1px; }
 
@@ -1147,7 +1148,16 @@ function studentChipHtml(s, opts) {
   var koma = null;
   if (opts && opts.classroom && opts.komaTime && opts.youbi) {
     koma = (s.komas || []).filter(function(k) {
-      return k.classroom === opts.classroom && k.time === opts.komaTime && k.youbi === opts.youbi;
+      // classroomが未設定（土曜コマ等）または一致する場合にマッチ
+      var crMatch = !k.classroom || k.classroom === opts.classroom;
+      if (!crMatch) return false;
+      // 通常コマ・オンラインコマ
+      if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
+      // 平日振替コマ（satType=hira）: hiraKoma が "youbi + komaTime" の形式
+      if (k.satType === 'hira' && k.hiraKoma) {
+        return k.hiraKoma === (opts.youbi + opts.komaTime);
+      }
+      return false;
     })[0] || null;
   }
 
