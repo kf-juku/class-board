@@ -85,6 +85,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .badge-red { background: var(--crimson-light); color: var(--crimson); }
 .badge-blue { background: #eff6ff; color: #2563eb; }
 .badge-green { background: #f0fdf4; color: #16a34a; }
+.badge-gray { background: #f3f4f6; color: #6b7280; }
 .badge-orange { background: #fff7ed; color: #ea580c; }
 .badge-gray { background: #f1f5f9; color: #64748b; }
 .badge-purple { background: #faf5ff; color: #7c3aed; }
@@ -1150,58 +1151,78 @@ function studentChipHtml(s, opts) {
     })[0] || null;
   }
 
-  // 授業種類ラベル（このコマの情報を優先、なければ全コマ・attrで判定）
+  // 授業種類ラベル（このコマの情報を優先、なければattrで判定）
   var isJuken = (s.tags || []).indexOf('受験生') >= 0 || s.grade === '中3' || s.grade === '高3';
   var lessonLabel = '';
   if (koma) {
-    var komaIsOnline = !!koma.online;
     var komaIsCa = (koma.id || '').indexOf('ca_') === 0;
-    if (komaIsOnline) {
-      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">online</span>';
+    if (koma.online) {
+      lessonLabel = '<span class="badge badge-gray" style="font-size:10px">online</span>';
     } else if (komaIsCa) {
-      lessonLabel = '<span class="badge badge-green" style="font-size:10px">CA</span>';
+      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
+    } else if (koma.satType === 'eiken') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#FAEEDA;color:#854F0B">英検</span>';
+    } else if (koma.satType === 'sat') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#EAF3DE;color:#3B6D11">土曜演習</span>';
+    } else if (koma.satType === 'juken') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#ede9fe;color:#6d28d9">受験特訓</span>';
+    } else if (koma.satType === 'hira') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#EAF3DE;color:#3B6D11">土曜演習</span>';
     } else {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     }
   } else {
     if (s.attrCa && s.attrJuku) {
-      lessonLabel = '<span class="badge badge-green" style="font-size:10px">CA+塾</span>';
+      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
     } else if (s.attrCa) {
-      lessonLabel = '<span class="badge badge-green" style="font-size:10px">CA</span>';
+      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
     } else if (s.attrJuku) {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
-    }
-    if ((s.komas || []).some(function(k) { return k.online; })) {
-      lessonLabel += '<span class="badge badge-blue" style="font-size:10px">online</span>';
     }
   }
 
   var badges = '';
-  if (isJuken) badges += '<span class="badge badge-red" style="font-size:10px">受験</span>';
   badges += lessonLabel;
 
-  // ポップアップ：読み・コース・部活・指導方針・メモ
+  // ポップアップ：よみ・コース・全通塾コマ・部活・指導方針（学年・学校はチップ本体に表示するため除外）
   var popup = '';
-  var hasDetail = s.kana || s.course || s.club || s.policy || s.memo || s.school || s.grade;
+  var hasDetail = s.kana || s.course || s.club || s.policy || (s.komas && s.komas.length > 0);
   if (hasDetail) {
     popup = '<div class="s-popup">';
     if (s.kana) {
       popup += '<div class="sp-row"><div class="sp-val" style="color:#888;font-size:11px">' + esc(s.kana) + '</div></div>';
     }
-    if (s.grade || s.school) {
-      popup += '<div class="sp-row"><div class="sp-val">' + esc(s.grade || '') + (s.school ? '　' + esc(s.school) : '') + '</div></div>';
-    }
     if (s.course) {
-      popup += '<div class="sp-row"><div class="sp-label">コース</div><div class="sp-val">' + esc(s.course) + '</div></div>';
+      var _courses = s.course.split(/[,、・]/).map(function(c){ return c.trim(); }).filter(Boolean);
+      var _courseBadges = _courses.map(function(c) {
+        var col = courseColor_(c);
+        return '<span style="display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px;margin:1px 2px;background:' + col.bg + ';color:' + col.color + '">' + esc(c) + '</span>';
+      }).join('');
+      popup += '<div class="sp-row"><div class="sp-label">コース</div><div class="sp-val">' + _courseBadges + '</div></div>';
+    }
+    // 全通塾コマ一覧
+    if (s.komas && s.komas.length > 0) {
+      var komaLines = s.komas.map(function(k) {
+        var typeLabel;
+        if (k.online) typeLabel = '［online］';
+        else if ((k.id || '').indexOf('ca_') === 0) typeLabel = '［CA］';
+        else if (k.satType === 'eiken') typeLabel = '［英検対策］';
+        else if (k.satType === 'sat')   typeLabel = '［土曜演習］';
+        else if (k.satType === 'juken') typeLabel = '［受験特訓］';
+        else if (k.satType === 'hira')  typeLabel = '［土曜振替：' + (k.hiraKoma || '') + '］';
+        else typeLabel = '［塾］';
+        var youbi = k.youbi || '';
+        var time  = k.time  || (k.hiraKoma || '');
+        var cr    = k.classroom ? ' ' + k.classroom : '';
+        return youbi + ' ' + time + cr + typeLabel;
+      }).join('<br>');
+      popup += '<div class="sp-row"><div class="sp-label">通塾コマ</div><div class="sp-val" style="line-height:1.6">' + komaLines + '</div></div>';
     }
     if (s.club) {
       popup += '<div class="sp-row"><div class="sp-label">部活・習い事</div><div class="sp-val">' + esc(s.club) + '</div></div>';
     }
     if (s.policy) {
       popup += '<div class="sp-row"><div class="sp-label">指導方針</div><div class="sp-val">' + esc(s.policy) + '</div></div>';
-    }
-    if (s.memo) {
-      popup += '<div class="sp-row"><div class="sp-label">メモ</div><div class="sp-val">' + esc(s.memo) + '</div></div>';
     }
     popup += '</div>';
   }
@@ -1249,7 +1270,7 @@ function studentChipHtml(s, opts) {
     absenceBadge +
     absBtn +
     '</div>' +
-    (s.grade ? '<span class="s-sub">' + esc(s.grade) + (s.school ? '・' + esc(s.school) : '') + '</span>' : '') +
+    ((s.grade || s.school) ? '<span class="s-sub">' + esc(s.grade || '') + (s.school ? '・' + esc(s.school) : '') + '</span>' : '') +
     (badges ? '<span class="s-badges">' + badges + '</span>' : '') +
     popup +
     '</div>';
@@ -3017,6 +3038,27 @@ function komaCountLabel_(students, dateStr, komaTime, classroom) {
 
   var total = all.length;
   return { label: parts.join('・') + '（計' + total + '人）', total: total };
+}
+
+
+// コース名からハッシュ値で色を自動決定
+var COURSE_COLORS = [
+  { bg: '#dbeafe', color: '#1d4ed8' }, // 青
+  { bg: '#dcfce7', color: '#166534' }, // 緑
+  { bg: '#ede9fe', color: '#6d28d9' }, // 紫
+  { bg: '#fef9c3', color: '#a16207' }, // 黄
+  { bg: '#fee2e2', color: '#dc2626' }, // 赤
+  { bg: '#ffedd5', color: '#c2410c' }, // オレンジ
+  { bg: '#f0fdf4', color: '#15803d' }, // 薄緑
+  { bg: '#fce7f3', color: '#be185d' }, // ピンク
+];
+function courseColor_(name) {
+  if (!name) return null;
+  var hash = 0;
+  for (var i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) & 0xfffffff;
+  }
+  return COURSE_COLORS[hash % COURSE_COLORS.length];
 }
 
 function normalizeAbsenceRecord_(r) {
