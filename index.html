@@ -1269,9 +1269,9 @@ function studentChipHtml(s, opts) {
     '<span class="s-name">' + esc(s.name) + '</span>' +
     absenceBadge +
     absBtn +
+    (badges ? '<span class="s-badges" style="margin-left:auto">' + badges + '</span>' : '') +
     '</div>' +
     ((s.grade || s.school) ? '<span class="s-sub">' + esc(s.grade || '') + (s.school ? '・' + esc(s.school) : '') + '</span>' : '') +
-    (badges ? '<span class="s-badges">' + badges + '</span>' : '') +
     popup +
     '</div>';
 }
