@@ -1882,6 +1882,10 @@ function renderWeek() {
     '<button class="btn-secondary btn-sm" onclick="_weekOffset++;renderWeek()">来週 →</button>' +
     '<button class="btn-secondary btn-sm" onclick="_weekOffset=0;renderWeek()">今週</button>' +
     '<button class="btn-secondary btn-sm" onclick="window.print()">🖨️ 印刷</button>' +
+    '<span style="font-size:11px;color:#9ca3af;margin-left:auto;display:flex;gap:6px;align-items:center">' +
+    '<span style="background:#f3f4f6;color:#6b7280;border-radius:4px;padding:1px 6px;font-size:11px">← → 週切替</span>' +
+    '<span style="background:#f3f4f6;color:#6b7280;border-radius:4px;padding:1px 6px;font-size:11px">Tab 教室切替</span>' +
+    '</span>' +
     '</div>' +
     '<div class="classroom-tabs">' +
     ['北久里浜','久里浜'].map(function(cr2) {
@@ -4321,6 +4325,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 })();
+// ── キーボードショートカット ──
+// ←→: 今週タブの週切り替え / Tab: 教室切り替え
+document.addEventListener('keydown', function(e) {
+  // 入力フォームにフォーカスがある場合はスキップ
+  var tag = (document.activeElement || {}).tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  // ← → キーで週切り替え（今週・今月タブのみ）
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    if (_currentTab === 'week') {
+      e.preventDefault();
+      _weekOffset += (e.key === 'ArrowLeft' ? -1 : 1);
+      renderWeek();
+    }
+  }
+
+  // Tab キーで教室切り替え（今日・今週・今月タブ）
+  if (e.key === 'Tab') {
+    if (_currentTab === 'today' || _currentTab === 'week' || _currentTab === 'month') {
+      e.preventDefault();
+      var classrooms = ['北久里浜', '久里浜'];
+      var idx = classrooms.indexOf(_currentClassroom);
+      _currentClassroom = classrooms[(idx + 1) % classrooms.length];
+      renderCurrent();
+    }
+  }
+});
+
 </script>
 
 </body>
