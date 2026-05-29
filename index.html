@@ -228,7 +228,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 /* ヘッダー行（曜日・日付）：白背景・濃い文字 */
 .wg-head { background: #fff; font-weight: 700; font-size: 11px; color: var(--text); text-align: center; padding: 6px 2px; border-right: 1px solid var(--border); border-bottom: 2px solid var(--border); }
 .wg-head:last-child { border-right: none; }
-.week-grid-header { display: grid; background: #fff; position: sticky; top: 116px; z-index: 80; border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; border-bottom: 2px solid var(--border); }
+.week-grid-header { display: grid; background: #fff; position: sticky; z-index: 80; border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; border-bottom: 2px solid var(--border); }
 .week-grid-header.cr-kita { border-color: var(--kitakurihama-border); }
 .week-grid-header.cr-kuri { border-color: var(--kurihama-border); }
 .wg-head .wg-date { font-size: 10px; font-weight: 400; color: var(--text-muted); margin-top: 1px; }
@@ -1782,6 +1782,16 @@ function renderWeek() {
     '<div class="week-grid-wrap">' + buildWeekGrid(days, todayIso) + '</div>';
 
   document.getElementById('main-content').innerHTML = html;
+  // week-grid-header の sticky top をclassroom-tabsの下に動的設定
+  requestAnimationFrame(function() {
+    var ct = document.querySelector('.classroom-tabs');
+    var wgh = document.querySelector('.week-grid-header');
+    if (ct && wgh) {
+      var content = document.getElementById('content');
+      var ctBottom = ct.getBoundingClientRect().bottom - content.getBoundingClientRect().top + content.scrollTop;
+      wgh.style.top = ctBottom + 'px';
+    }
+  });
 }
 function buildWeekGrid(days, todayIso) {
   var YOUBIS = ['月','火','水','木','金','土'];
