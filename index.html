@@ -1415,7 +1415,7 @@ function renderToday() {
           '<label style="font-size:11px;color:var(--text-muted)">期日</label>' +
           '<input type="date" id="qa-date-' + uid + '" value="' + today + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
           '<input type="time" id="qa-time-' + uid + '" value="" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
-          '<select id="qa-cat-' + uid + '" onchange="onCbQuickCatChange(\'' + uid + '\')" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option></select>' +
+          '<select id="qa-cat-' + uid + '" onchange="onCbQuickCatChange(\'' + uid + '\')" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option><option value="振替">振替</option></select>' +
           '<button class="btn-primary btn-sm" onclick="submitQuickAdd(\'' + uid + '\',\'' + esc(cr) + '\',\'' + taskType + '\')">追加</button>' +
           '<button class="btn-secondary btn-sm" onclick="toggleQuickAdd(\'' + uid + '\')">✕</button>' +
         '</div>' +
@@ -3785,7 +3785,7 @@ function toggleQuickAdd(uid) {
 }
 
 // Gカレ対象カテゴリ選択時にデフォルト値をセット（ClassBoard用）
-var CB_GCAL_AUTO_CATEGORIES = ['生徒対応', '問い合わせ対応'];
+var CB_GCAL_AUTO_CATEGORIES = ['生徒対応', '問い合わせ対応', '振替'];
 function onCbQuickCatChange(uid) {
   var catEl  = document.getElementById('qa-cat-'  + uid);
   var timeEl = document.getElementById('qa-time-' + uid);
