@@ -672,24 +672,89 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 
 <!-- 欠席登録モーダル -->
 <div class="modal-overlay" id="modal-absence" onclick="if(event.target===this)closeModal('modal-absence')">
-  <div class="modal" style="max-width:360px">
+  <div class="modal" style="max-width:380px">
     <div class="modal-header">
       <span>欠席を記録</span>
       <span class="modal-close" onclick="closeModal('modal-absence')">✕</span>
     </div>
     <div class="modal-body">
-      <div style="margin-bottom:12px">
+      <!-- 生徒名・コマ情報 -->
+      <div style="margin-bottom:14px">
         <strong id="abs-modal-name" style="font-size:16px"></strong>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="abs-modal-date"></div>
       </div>
-      <div>
-        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">メモ（任意）</label>
-        <input type="text" id="abs-modal-memo" placeholder="理由・連絡事項など" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box" />
+      <!-- Step1: 振替日決まったか分岐 -->
+      <div id="abs-step1">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">振替日は決まっていますか？</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary" style="flex:1" onclick="showAbsStep('A')">✅ 決まった</button>
+          <button class="btn-secondary" style="flex:1" onclick="showAbsStep('B')">📞 まだ未定</button>
+        </div>
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('modal-absence')">キャンセル</button>
-      <button class="btn-primary" onclick="submitAbsence()">欠席登録</button>
+      <!-- Step2A: 振替日確定 -->
+      <div id="abs-step2a" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">▶ 振替日時を入力</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">日付</label>
+            <input type="date" id="abs-sub-date" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px" />
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">コマ</label>
+            <select id="abs-sub-koma" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px" onchange="onAbsKomaChange()"></select>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">教室</label>
+            <select id="abs-sub-cr" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px">
+              <option value="北久里浜">北久里浜</option>
+              <option value="久里浜">久里浜</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">時刻</label>
+            <input type="text" id="abs-sub-time" readonly placeholder="コマ選択で自動入力" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;background:#f8f8f8;color:var(--text-muted)" />
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">メモ（任意）</label>
+          <input type="text" id="abs-modal-memo-a" placeholder="理由・連絡事項など" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-secondary" style="flex:1" onclick="showAbsStep('1')">← 戻る</button>
+          <button class="btn-primary" style="flex:1" onclick="submitAbsence('A')">欠席＋振替登録</button>
+        </div>
+      </div>
+      <!-- Step2B: アポ未定 -->
+      <div id="abs-step2b" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">▶ 振替日決めタスクを作成します</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">期日</label>
+            <input type="date" id="abs-b-date" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px" />
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">時刻</label>
+            <input type="time" id="abs-b-time" value="13:00" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px" />
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">教室</label>
+            <select id="abs-b-cr" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px">
+              <option value="北久里浜">北久里浜</option>
+              <option value="久里浜">久里浜</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">メモ（任意）</label>
+          <input type="text" id="abs-modal-memo-b" placeholder="理由・連絡事項など" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-secondary" style="flex:1" onclick="showAbsStep('1')">← 戻る</button>
+          <button class="btn-primary" style="flex:1" onclick="submitAbsence('B')">欠席登録</button>
+        </div>
+      </div>
+      <!-- 後方互換用（非表示） -->
+      <input type="hidden" id="abs-modal-memo" />
     </div>
   </div>
 </div>
@@ -1193,6 +1258,18 @@ function studentChipHtml(s, opts) {
     }
   }
 
+  // コマからコース名を取得
+  var _courseName = '';
+  if (koma) {
+    var _komaIsCa = (koma.id || '').indexOf('ca_') === 0;
+    if (koma.online)             _courseName = 'online';
+    else if (_komaIsCa)          _courseName = 'CA';
+    else if (koma.satType === 'eiken')  _courseName = '英検';
+    else if (koma.satType === 'juken')  _courseName = '受験特訓';
+    else if (koma.satType === 'sat' || koma.satType === 'hira') _courseName = '土曜演習';
+    else                         _courseName = '塾';
+  }
+
   var badges = '';
   badges += lessonLabel;
 
@@ -1266,12 +1343,12 @@ function studentChipHtml(s, opts) {
         absenceBadge = '<span class="badge badge-red" style="font-size:10px;margin-left:2px">欠席</span>';
       }
       // 欠席済→さらに欠席（振替の連鎖）
-      absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\')" title="この振替をさらに欠席処理">↩</button>';
+      absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\')" title="この振替をさらに欠席処理">↩</button>';
     } else if (subRec) {
       absenceBadge = '<span class="badge" style="font-size:10px;background:#0ea5e9;color:#fff;margin-left:2px">⚡振替</span>';
-      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\')" title="欠席を記録">欠</button>';
+      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\')" title="欠席を記録">欠</button>';
     } else {
-      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\')" title="欠席を記録">欠</button>';
+      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\')" title="欠席を記録">欠</button>';
     }
   }
 
@@ -3221,7 +3298,7 @@ function reloadAbsence() {
   });
 }
 
-function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId) {
+function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId, courseName) {
   // 重複チェック
   var existing = (_absenceRecords || []).find(function(r) {
     return r.studentName === studentName &&
@@ -3234,60 +3311,221 @@ function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId
     return;
   }
 
-  _absenceModalData = { studentName: studentName, dateStr: dateStr, komaTime: komaTime, classroom: classroom, chainFromId: chainFromId || '' };
+  _absenceModalData = {
+    studentName: studentName,
+    dateStr:     dateStr,
+    komaTime:    komaTime,
+    classroom:   classroom,
+    chainFromId: chainFromId || '',
+    courseName:  courseName  || ''
+  };
 
   // モーダル表示
   var mo = document.getElementById('modal-absence');
   if (!mo) return;
   document.getElementById('abs-modal-name').textContent = studentName;
-  document.getElementById('abs-modal-date').textContent = dateStr + ' ' + komaTime;
-  document.getElementById('abs-modal-memo').value = '';
+  document.getElementById('abs-modal-date').textContent = dateStr + ' ' + komaTime + (courseName ? ' (' + courseName + ')' : '');
+
+  // メモリセット
+  document.getElementById('abs-modal-memo-a') && (document.getElementById('abs-modal-memo-a').value = '');
+  document.getElementById('abs-modal-memo-b') && (document.getElementById('abs-modal-memo-b').value = '');
+
+  // Step2B の初期値セット（本日・13:00・欠席した教室）
+  var dateB = document.getElementById('abs-b-date');
+  var timeB = document.getElementById('abs-b-time');
+  var crB   = document.getElementById('abs-b-cr');
+  if (dateB) dateB.value = getTodayStr();
+  if (timeB) timeB.value = '13:00';
+  if (crB)   crB.value   = classroom;
+
+  // Step2A のコマ選択肢を生成・教室をデフォルトセット
+  var komaEl = document.getElementById('abs-sub-koma');
+  if (komaEl) komaEl.innerHTML = getAllKomaOptions('');
+  var crA = document.getElementById('abs-sub-cr');
+  if (crA) crA.value = classroom;
+  var subTime = document.getElementById('abs-sub-time');
+  if (subTime) subTime.value = '';
+
+  // Step1 を表示
+  showAbsStep('1');
   openModal('modal-absence');
+}
+
+// モーダルのステップ切り替え
+function showAbsStep(step) {
+  document.getElementById('abs-step1').style.display  = (step === '1') ? '' : 'none';
+  document.getElementById('abs-step2a').style.display = (step === 'A') ? '' : 'none';
+  document.getElementById('abs-step2b').style.display = (step === 'B') ? '' : 'none';
+}
+
+// コマ選択したら開始時刻を自動抽出（例：「15:00〜16:30」→「15:00」）
+function onAbsKomaChange() {
+  var komaEl  = document.getElementById('abs-sub-koma');
+  var timeEl  = document.getElementById('abs-sub-time');
+  if (!komaEl || !timeEl) return;
+  var koma = komaEl.value;
+  if (!koma) { timeEl.value = ''; return; }
+  // 「HH:MM〜HH:MM」形式から開始時刻を取得
+  var m = koma.match(/^(\d{1,2}:\d{2})/);
+  timeEl.value = m ? m[1] : '';
 }
 
 var _absenceModalData = {};
 
-function submitAbsence() {
+function submitAbsence(mode) {
   var d = _absenceModalData;
   if (!d.studentName) return;
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
 
-  var memo = document.getElementById('abs-modal-memo').value.trim();
-  var record = {
-    studentName: d.studentName,
-    absenceDate: d.dateStr,
-    komaTime:    d.komaTime,
-    classroom:   d.classroom,
-    status:      'absent',
-    memo:        memo,
-    chainFromId: d.chainFromId || ''
-  };
+  var courseName = d.courseName || '';
+  var courseLabel = courseName ? '（' + courseName + '）' : '';
 
-  // 楽観的UI
-  var tempId = 'tmp_' + Date.now();
-  record.id = tempId;
-  _absenceRecords.push(record);
-  localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
-  closeModal('modal-absence');
-  miniToast('欠席を登録しました ✓');
-  if (_currentTab === 'absence') renderAbsence();
-  else renderCurrent();
+  if (mode === 'A') {
+    // ===== 振替日確定ルート =====
+    var subDate = (document.getElementById('abs-sub-date') || {}).value || '';
+    var subKoma = (document.getElementById('abs-sub-koma') || {}).value || '';
+    var subCr   = (document.getElementById('abs-sub-cr')   || {}).value || d.classroom;
+    var subTime = (document.getElementById('abs-sub-time') || {}).value || '';
+    var memo    = (document.getElementById('abs-modal-memo-a') || {}).value.trim();
+    if (!subDate || !subKoma) { miniToast('⚠️ 振替日とコマを選択してください'); return; }
 
-  // GAS保存
-  callGas(studentUrl, { action: 'saveAbsenceRecord', record: record }, function(res) {
-    if (res && res.success && res.id) {
-      var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
-      if (idx >= 0) _absenceRecords[idx].id = res.id;
-      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
-    } else {
-      // ロールバック
-      _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
-      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
-      miniToast('⚠️ 欠席登録に失敗しました');
-      renderCurrent();
+    var record = {
+      studentName:          d.studentName,
+      absenceDate:          d.dateStr,
+      komaTime:             d.komaTime,
+      classroom:            d.classroom,
+      status:               'scheduled',
+      substituteDate:       subDate,
+      substituteKomaTime:   subKoma,
+      substituteClassroom:  subCr,
+      memo:                 memo,
+      chainFromId:          d.chainFromId || ''
+    };
+    var tempId = 'tmp_' + Date.now();
+    record.id = tempId;
+    _absenceRecords.push(record);
+    localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+    closeModal('modal-absence');
+    miniToast('欠席＋振替を登録しました ✓');
+    if (_currentTab === 'absence') renderAbsence();
+    else renderCurrent();
+
+    // GAS保存
+    callGas(studentUrl, { action: 'saveAbsenceRecord', record: record }, function(res) {
+      if (res && res.success && res.id) {
+        var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
+        if (idx >= 0) _absenceRecords[idx].id = res.id;
+        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+      } else {
+        _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
+        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+        miniToast('⚠️ 欠席登録に失敗しました');
+        renderCurrent();
+      }
+    }, 'POST');
+
+    // タスク登録（振替カテゴリ・授業外）
+    if (taskUrl) {
+      var taskTitle = '振替' + courseLabel + '：' + d.studentName + '（' + subDate + ' ' + subTime + '）';
+      var newTask = {
+        id:        'cb_' + Date.now(),
+        title:     taskTitle,
+        memo:      memo,
+        dueDate:   subDate,
+        dueTime:   subTime,
+        taskType:  '授業外',
+        classroom: subCr,
+        assignee:  getUserName(),
+        status:    'todo',
+        category:  '振替',
+        issueId:   '',
+        createdBy: getUserName()
+      };
+      _tasks.push(newTask);
+      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+      var willGcal = CB_GCAL_AUTO_CATEGORIES.indexOf('振替') !== -1 && subDate && subTime && subCr;
+      if (willGcal) miniToast('振替タスクをGカレにも登録しました 📅');
+      callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
+        if (!res || !res.success) {
+          _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
+          localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+        } else if (willGcal) {
+          pushCbTaskToGcal(newTask, taskUrl);
+        }
+      }, 'POST');
     }
-  }, 'POST');
+
+  } else {
+    // ===== アポ未定ルート =====
+    var dateB = (document.getElementById('abs-b-date') || {}).value || getTodayStr();
+    var timeB = (document.getElementById('abs-b-time') || {}).value || '13:00';
+    var crB   = (document.getElementById('abs-b-cr')   || {}).value || d.classroom;
+    var memo  = (document.getElementById('abs-modal-memo-b') || {}).value.trim();
+
+    var record = {
+      studentName: d.studentName,
+      absenceDate: d.dateStr,
+      komaTime:    d.komaTime,
+      classroom:   d.classroom,
+      status:      'absent',
+      memo:        memo,
+      chainFromId: d.chainFromId || ''
+    };
+    var tempId = 'tmp_' + Date.now();
+    record.id = tempId;
+    _absenceRecords.push(record);
+    localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+    closeModal('modal-absence');
+    miniToast('欠席を登録しました ✓');
+    if (_currentTab === 'absence') renderAbsence();
+    else renderCurrent();
+
+    // GAS保存
+    callGas(studentUrl, { action: 'saveAbsenceRecord', record: record }, function(res) {
+      if (res && res.success && res.id) {
+        var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
+        if (idx >= 0) _absenceRecords[idx].id = res.id;
+        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+      } else {
+        _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
+        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
+        miniToast('⚠️ 欠席登録に失敗しました');
+        renderCurrent();
+      }
+    }, 'POST');
+
+    // タスク登録（生徒対応カテゴリ・授業内）
+    if (taskUrl) {
+      var taskTitle = '振替日決める' + courseLabel + '：' + d.studentName;
+      var newTask = {
+        id:        'cb_' + Date.now() + '_b',
+        title:     taskTitle,
+        memo:      memo,
+        dueDate:   dateB,
+        dueTime:   timeB,
+        taskType:  '授業内',
+        classroom: crB,
+        assignee:  getUserName(),
+        status:    'todo',
+        category:  '生徒対応',
+        issueId:   '',
+        createdBy: getUserName()
+      };
+      _tasks.push(newTask);
+      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+      var willGcalB = CB_GCAL_AUTO_CATEGORIES.indexOf('生徒対応') !== -1 && dateB && timeB && crB;
+      callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
+        if (!res || !res.success) {
+          _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
+          localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+        } else if (willGcalB) {
+          pushCbTaskToGcal(newTask, taskUrl);
+        }
+      }, 'POST');
+    }
+  }
 }
 
 function saveSubstitute(recordId, uid) {
