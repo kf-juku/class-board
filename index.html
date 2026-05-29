@@ -1298,6 +1298,9 @@ function taskChipsForDate(dateStr) {
 // 今日タブ
 // =====================================================
 function renderToday() {
+  // 本日タブではtop-barのstickyを復元
+  var tb = document.querySelector('.top-bar');
+  if (tb) tb.style.position = 'sticky';
   var today = new Date();
   var todayYoubi = YOUBI_MAP[today.getDay()];
   var todayIso = isoDate(today);
@@ -1740,6 +1743,9 @@ function clearHighlight() {
 // 今週タブ
 // =====================================================
 function renderWeek() {
+  // 今週タブではtop-barのstickyは不要（曜日行stickyと干渉するため）
+  var tb = document.querySelector('.top-bar');
+  if (tb) tb.style.position = 'relative';
   var mon = weekStartDate(_weekOffset);
   var days = [0,1,2,3,4,5].map(function(i) { return addDays(mon, i); });
   var todayIso = isoDate(new Date());
