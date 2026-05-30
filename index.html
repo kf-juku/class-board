@@ -1420,7 +1420,7 @@ function renderToday() {
           var _cntCls = _cntTotal >= 15 ? ' count-danger' : _cntTotal >= 12 ? ' count-warn' : '';
           var _cntTitle = ' title="12人以上：黄色 / 15人以上：赤"';
           var countHtml = (_cnt && typeof _cnt === 'object') ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cnt.label + '</span>' : '';
-          // 最終コマの場合、受験特訓（classroom未設定）の生徒を相乗り表示
+          // 最終コマの場合、受験特訓（classroom未設定・土曜）の生徒を相乗り表示
           var allKomas = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
           var isLastKoma = allKomas.length > 0 && allKomas[allKomas.length - 1] === kt;
           var jukenBlock = '';
@@ -1428,13 +1428,15 @@ function renderToday() {
             var jukenStudents = getActiveModeStudents().filter(function(s) {
               return (s.komas || []).some(function(k2) {
                 return k2.satType === 'juken' && k2.youbi === todayYoubi;
+              }) && (s.komas || []).some(function(k2) {
+                // その教室に通常コマを持つ生徒のみ（教室混在を防ぐ）
+                return k2.classroom === cr;
               });
             });
             if (jukenStudents.length) {
-              var jukenTime = (jukenStudents[0].komas.find(function(k2){ return k2.satType === 'juken'; }) || {}).time || '';
               jukenBlock = '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">' +
-                '<div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:3px">受験特訓 ' + esc(jukenTime) + '</div>' +
-                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso}); }).join('') +
+                '<div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:3px">受験特訓 19:00〜21:30</div>' +
+                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜20:30',youbi:todayYoubi,dateStr:todayIso}); }).join('') +
                 '</div>';
             }
           }
@@ -2046,13 +2048,13 @@ function buildWeekGrid(days, todayIso) {
       var jukenBlockW = '';
       if (isLastKomaW && !emptyCls) {
         var jukenStu = getActiveModeStudents().filter(function(s) {
-          return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; });
+          return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; })
+            && (s.komas || []).some(function(k2) { return k2.classroom === cr; });
         });
         if (jukenStu.length) {
-          var jukenT = (jukenStu[0].komas.find(function(k2){ return k2.satType === 'juken'; }) || {}).time || '';
           jukenBlockW = '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e5e7eb">' +
-            '<div style="font-size:9px;color:#6d28d9;font-weight:700;margin-bottom:2px">受験特訓 ' + esc(jukenT) + '</div>' +
-            jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso}); }).join('') +
+            '<div style="font-size:9px;color:#6d28d9;font-weight:700;margin-bottom:2px">受験特訓 19:00〜21:30</div>' +
+            jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜20:30',youbi:YOUBIS[i],dateStr:iso}); }).join('') +
             '</div>';
         }
       }
