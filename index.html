@@ -2052,14 +2052,20 @@ function buildWeekGrid(days, todayIso) {
       var _wTitle = ' title="12人以上：黄色 / 15人以上：赤"';
       var wgCountDiv = (_wCnt && typeof _wCnt === 'object') ? '<div class="wg-count' + _wCls + '"' + _wTitle + '>' + _wCnt.label + '</div>' : '';
       // 最終コマに受験特訓を相乗り
-      var isLastKomaW = komas.length > 0 && komas[komas.length - 1] === kt;
+      // 両教室統合後の最終コマでなく、その日その教室で生徒がいる最後のコマを使う
       var jukenBlockW = '';
-      if (isLastKomaW && !emptyCls) {
-        var jukenStu = getActiveModeStudents().filter(function(s) {
-          return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; })
-            && getMainClassroom(s) === cr;
+      var jukenStu = getActiveModeStudents().filter(function(s) {
+        return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; })
+          && getMainClassroom(s) === cr;
+      });
+      if (jukenStu.length > 0) {
+        // その日その教室で生徒がいるコマのうち最後のコマを判定
+        var dayKomasWithStudents = komas.filter(function(k2) {
+          return getStudentsForKoma(cr, YOUBIS[i], k2).length > 0;
         });
-        if (jukenStu.length) {
+        var lastActiveKoma = dayKomasWithStudents.length > 0 ? dayKomasWithStudents[dayKomasWithStudents.length - 1] : null;
+        var isLastActiveKoma = lastActiveKoma && lastActiveKoma === kt;
+        if (isLastActiveKoma) {
           jukenBlockW = '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e5e7eb">' +
             '<div style="font-size:9px;color:#6d28d9;font-weight:700;margin-bottom:2px">受験特訓 19:00〜21:30</div>' +
             jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜20:30',youbi:YOUBIS[i],dateStr:iso}); }).join('') +
