@@ -1212,6 +1212,17 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
   });
 }
 
+// 生徒の主所属教室を判定（通常コマのclassroom最頻値）
+function getMainClassroom(s) {
+  var counts = {};
+  (s.komas || []).forEach(function(k) {
+    if (k.classroom) counts[k.classroom] = (counts[k.classroom] || 0) + 1;
+  });
+  var best = null, bestN = 0;
+  Object.keys(counts).forEach(function(cr) { if (counts[cr] > bestN) { best = cr; bestN = counts[cr]; } });
+  return best;
+}
+
 function getKomasForClassroom(classroom) {
   var times = {};
   getActiveModeStudents().forEach(function(s) {
@@ -1428,10 +1439,7 @@ function renderToday() {
             var jukenStudents = getActiveModeStudents().filter(function(s) {
               return (s.komas || []).some(function(k2) {
                 return k2.satType === 'juken' && k2.youbi === todayYoubi;
-              }) && (s.komas || []).some(function(k2) {
-                // その教室に通常コマを持つ生徒のみ（教室混在を防ぐ）
-                return k2.classroom === cr;
-              });
+              }) && getMainClassroom(s) === cr;
             });
             if (jukenStudents.length) {
               jukenBlock = '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">' +
@@ -2049,7 +2057,7 @@ function buildWeekGrid(days, todayIso) {
       if (isLastKomaW && !emptyCls) {
         var jukenStu = getActiveModeStudents().filter(function(s) {
           return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; })
-            && (s.komas || []).some(function(k2) { return k2.classroom === cr; });
+            && getMainClassroom(s) === cr;
         });
         if (jukenStu.length) {
           jukenBlockW = '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e5e7eb">' +
