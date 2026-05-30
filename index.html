@@ -1216,8 +1216,7 @@ function getKomasForClassroom(classroom) {
   var times = {};
   getActiveModeStudents().forEach(function(s) {
     (s.komas || []).forEach(function(k) {
-      // classroom が一致、または classroom 未設定（受験特訓・土曜演習等）のコマを含める
-      if (k.classroom === classroom || !k.classroom) times[k.time] = true;
+      if (k.classroom === classroom) times[k.time] = true;
     });
   });
   return Object.keys(times).sort(function(a, b) {
@@ -1421,9 +1420,27 @@ function renderToday() {
           var _cntCls = _cntTotal >= 15 ? ' count-danger' : _cntTotal >= 12 ? ' count-warn' : '';
           var _cntTitle = ' title="12人以上：黄色 / 15人以上：赤"';
           var countHtml = (_cnt && typeof _cnt === 'object') ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cnt.label + '</span>' : '';
+          // 最終コマの場合、受験特訓（classroom未設定）の生徒を相乗り表示
+          var allKomas = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
+          var isLastKoma = allKomas.length > 0 && allKomas[allKomas.length - 1] === kt;
+          var jukenBlock = '';
+          if (isLastKoma) {
+            var jukenStudents = getActiveModeStudents().filter(function(s) {
+              return (s.komas || []).some(function(k2) {
+                return k2.satType === 'juken' && k2.youbi === todayYoubi;
+              });
+            });
+            if (jukenStudents.length) {
+              var jukenTime = (jukenStudents[0].komas.find(function(k2){ return k2.satType === 'juken'; }) || {}).time || '';
+              jukenBlock = '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">' +
+                '<div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:3px">受験特訓 ' + esc(jukenTime) + '</div>' +
+                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso}); }).join('') +
+                '</div>';
+            }
+          }
           return '<div class="koma-block">' +
             '<div class="koma-time">⏰ ' + esc(kt) + countHtml + '</div>' +
-            '<div class="koma-students">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + '</div>' +
+            '<div class="koma-students">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + jukenBlock + '</div>' +
             '</div>';
         }).join('')
       : '<div class="koma-empty">本日の授業はありません</div>';
@@ -2024,9 +2041,24 @@ function buildWeekGrid(days, todayIso) {
       var _wCls = _wTotal >= 15 ? ' count-danger' : _wTotal >= 12 ? ' count-warn' : '';
       var _wTitle = ' title="12人以上：黄色 / 15人以上：赤"';
       var wgCountDiv = (_wCnt && typeof _wCnt === 'object') ? '<div class="wg-count' + _wCls + '"' + _wTitle + '>' + _wCnt.label + '</div>' : '';
+      // 最終コマに受験特訓を相乗り
+      var isLastKomaW = komas.length > 0 && komas[komas.length - 1] === kt;
+      var jukenBlockW = '';
+      if (isLastKomaW && !emptyCls) {
+        var jukenStu = getActiveModeStudents().filter(function(s) {
+          return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; });
+        });
+        if (jukenStu.length) {
+          var jukenT = (jukenStu[0].komas.find(function(k2){ return k2.satType === 'juken'; }) || {}).time || '';
+          jukenBlockW = '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e5e7eb">' +
+            '<div style="font-size:9px;color:#6d28d9;font-weight:700;margin-bottom:2px">受験特訓 ' + esc(jukenT) + '</div>' +
+            jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso}); }).join('') +
+            '</div>';
+        }
+      }
       return '<div class="wg-cell' + todayCls + emptyCls + '">' +
-        (allChips.length
-          ? wgCountDiv + allChips.join('')
+        (allChips.length || jukenBlockW
+          ? wgCountDiv + allChips.join('') + jukenBlockW
           : (dayHasStudent[i] ? '<span style="color:#ccc;font-size:11px">—</span>' : ''))
         + '</div>';
     }).join('');
