@@ -1216,7 +1216,8 @@ function getKomasForClassroom(classroom) {
   var times = {};
   getActiveModeStudents().forEach(function(s) {
     (s.komas || []).forEach(function(k) {
-      if (k.classroom === classroom) times[k.time] = true;
+      // classroom が一致、または classroom 未設定（受験特訓・土曜演習等）のコマを含める
+      if (k.classroom === classroom || !k.classroom) times[k.time] = true;
     });
   });
   return Object.keys(times).sort(function(a, b) {
