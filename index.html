@@ -1011,6 +1011,12 @@ function loadAll() {
     return target;
   }
   _students    = loadCache('students',     _students);
+  // 受験特訓コマのtime正規化（旧データ対応）
+  _students.forEach(function(s) {
+    (s.komas || []).forEach(function(k) {
+      if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
+    });
+  });
   _schoolInfo  = loadCache('school_info',  _schoolInfo);
   _schoolTasks = loadCache('school_tasks', _schoolTasks);
   _testRecords   = loadCache('test_records',   _testRecords);
@@ -1030,7 +1036,15 @@ function loadAll() {
   if (studentUrl) {
     pending += 4;
     callGas(studentUrl, { action: 'getStudentsForClassBoard' }, function(res) {
-      if (res && res.success && res.students) { _students = res.students; localStorage.setItem('cb_cache_students', JSON.stringify(_students)); }
+      if (res && res.success && res.students) {
+        // 受験特訓コマのtime正規化（旧データが'19:00〜20:30'の場合に修正）
+        res.students.forEach(function(s) {
+          (s.komas || []).forEach(function(k) {
+            if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
+          });
+        });
+        _students = res.students; localStorage.setItem('cb_cache_students', JSON.stringify(_students));
+      }
       done();
     });
     callGas(studentUrl, { action: 'getSchoolInfo' }, function(res) {
@@ -1495,7 +1509,7 @@ function renderToday() {
       '<div class="t-popup-row"><span class="t-popup-label">種別</span><span class="t-popup-val">' + esc(t.taskType || '—') + '</span></div>' +
       (t.memo ? '<div class="t-popup-memo">' + esc(t.memo) + '</div>' : '') +
       '</span>';
-    var timeLabel = (type !== '授業内' && t.dueTime) ? '<span style="font-size:10px;opacity:.7"> ' + esc(t.dueTime) + '</span>' : '';
+    var timeLabel = t.dueTime ? '<span style="font-size:10px;opacity:.7"> ' + esc(t.dueTime) + '</span>' : '';
     return '<span class="task-chip-1line ' + cls + '" onclick="openTaskModal(\'' + t.id + '\')">' +
       esc(t.title) + (t.assignee ? '　' + esc(t.assignee) : '') + timeLabel + overdueLabel + popup +
       '<span class="task-chip-del" onclick="event.stopPropagation();deleteTask(\'' + t.id + '\',this)" title="削除">×</span>' +
@@ -1985,7 +1999,7 @@ function buildWeekGrid(days, todayIso) {
       '<div class="t-popup-row"><span class="t-popup-label">種別</span><span class="t-popup-val">' + esc(t.taskType || '—') + '</span></div>' +
       (t.memo ? '<div class="t-popup-memo">' + esc(t.memo) + '</div>' : '') +
       '</span>';
-    var timeLabel2 = (t.taskType !== '授業内' && t.dueTime) ? '<span style="font-size:10px;opacity:.7"> ' + esc(t.dueTime) + '</span>' : '';
+    var timeLabel2 = t.dueTime ? '<span style="font-size:10px;opacity:.7"> ' + esc(t.dueTime) + '</span>' : '';
     return '<span class="task-chip-1line ' + cls + '" onclick="openTaskModal(\'' + t.id + '\')">' +
       esc(t.title) + (t.assignee ? ' ' + esc(t.assignee) : '') + timeLabel2 + popup + '</span>';
   }
