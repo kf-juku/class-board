@@ -1457,7 +1457,7 @@ function renderToday() {
             if (jukenStudents.length) {
               jukenBlock = '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">' +
                 '<div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:3px">受験特訓 19:00〜21:30</div>' +
-                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜20:30',youbi:todayYoubi,dateStr:todayIso}); }).join('') +
+                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:todayYoubi,dateStr:todayIso}); }).join('') +
                 '</div>';
             }
           }
@@ -1495,8 +1495,9 @@ function renderToday() {
       '<div class="t-popup-row"><span class="t-popup-label">種別</span><span class="t-popup-val">' + esc(t.taskType || '—') + '</span></div>' +
       (t.memo ? '<div class="t-popup-memo">' + esc(t.memo) + '</div>' : '') +
       '</span>';
+    var timeLabel = (type !== '授業内' && t.dueTime) ? '<span style="font-size:10px;opacity:.7"> ' + esc(t.dueTime) + '</span>' : '';
     return '<span class="task-chip-1line ' + cls + '" onclick="openTaskModal(\'' + t.id + '\')">' +
-      esc(t.title) + (t.assignee ? '　' + esc(t.assignee) : '') + overdueLabel + popup +
+      esc(t.title) + (t.assignee ? '　' + esc(t.assignee) : '') + timeLabel + overdueLabel + popup +
       '<span class="task-chip-del" onclick="event.stopPropagation();deleteTask(\'' + t.id + '\',this)" title="削除">×</span>' +
       '</span>';
   }
@@ -1984,8 +1985,9 @@ function buildWeekGrid(days, todayIso) {
       '<div class="t-popup-row"><span class="t-popup-label">種別</span><span class="t-popup-val">' + esc(t.taskType || '—') + '</span></div>' +
       (t.memo ? '<div class="t-popup-memo">' + esc(t.memo) + '</div>' : '') +
       '</span>';
+    var timeLabel2 = (t.taskType !== '授業内' && t.dueTime) ? '<span style="font-size:10px;opacity:.7"> ' + esc(t.dueTime) + '</span>' : '';
     return '<span class="task-chip-1line ' + cls + '" onclick="openTaskModal(\'' + t.id + '\')">' +
-      esc(t.title) + (t.assignee ? ' ' + esc(t.assignee) : '') + popup + '</span>';
+      esc(t.title) + (t.assignee ? ' ' + esc(t.assignee) : '') + timeLabel2 + popup + '</span>';
   }
 
   function dayTaskCellHtml(iso, todayCls, isEmpty) {
@@ -2092,7 +2094,7 @@ function buildWeekGrid(days, todayIso) {
         if (isLastActiveKoma) {
           jukenBlockW = '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e5e7eb">' +
             '<div style="font-size:9px;color:#6d28d9;font-weight:700;margin-bottom:2px">受験特訓 19:00〜21:30</div>' +
-            jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜20:30',youbi:YOUBIS[i],dateStr:iso}); }).join('') +
+            jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:YOUBIS[i],dateStr:iso}); }).join('') +
             '</div>';
         }
       }
