@@ -1159,7 +1159,8 @@ var YOUBI_MAP = ['日','月','火','水','木','金','土'];
 function weekStartDate(offset) {
   var now = new Date();
   var dow = now.getDay();
-  var diff = (dow === 0) ? -6 : (1 - dow);
+  // 日曜(0)は翌月曜を今週の始まりとする（+1）、それ以外は通常通り
+  var diff = (dow === 0) ? 1 : (1 - dow);
   var mon = new Date(now);
   mon.setDate(now.getDate() + diff + offset * 7);
   mon.setHours(0,0,0,0);
@@ -1242,11 +1243,13 @@ function studentChipHtml(s, opts) {
   var koma = null;
   if (opts && opts.classroom && opts.komaTime && opts.youbi) {
     koma = (s.komas || []).filter(function(k) {
-      // classroomが未設定（土曜コマ等）または一致する場合にマッチ
+      // classroomが未設定（受験特訓・土曜コマ等）または一致する場合にマッチ
       var crMatch = !k.classroom || k.classroom === opts.classroom;
       if (!crMatch) return false;
       // 通常コマ・オンラインコマ
       if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
+      // 受験特訓コマ（classroom未設定・satType=juken）は時間のみで照合
+      if (k.satType === 'juken' && k.time === opts.komaTime) return true;
       // 平日振替コマ（satType=hira）: hiraKoma が "youbi + komaTime" の形式
       if (k.satType === 'hira' && k.hiraKoma) {
         return k.hiraKoma === (opts.youbi + opts.komaTime);
