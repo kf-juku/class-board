@@ -672,16 +672,8 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
     <div class="modal-body" id="task-modal-body"></div>
     <div class="modal-footer" id="task-modal-footer">
       <button class="btn-secondary" onclick="closeTaskModal()">閉じる</button>
-      <button class="btn-secondary" id="task-btn-postpone" onclick="openPostponePanel()" style="display:none">📅 期日変更</button>
-      <button class="btn-primary"   id="task-btn-done"    onclick="completeTask()"      style="display:none">✓ 完了</button>
-    </div>
-    <div id="task-postpone-panel" style="display:none;padding:0 20px 16px;border-top:1px solid var(--border);margin-top:0">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;margin-top:12px">新しい期日</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="date" id="task-new-duedate" style="border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--text)" />
-        <button class="btn-primary btn-sm" onclick="submitPostpone()">変更して保存</button>
-        <button class="btn-secondary btn-sm" onclick="closePostponePanel()">キャンセル</button>
-      </div>
+      <button class="btn-primary"   id="task-btn-save"   onclick="submitTaskEdit()"    style="display:none">💾 保存</button>
+      <button class="btn-primary"   id="task-btn-done"   onclick="completeTask()"      style="display:none">✓ 完了</button>
     </div>
   </div>
 </div>
@@ -1281,9 +1273,7 @@ function studentChipHtml(s, opts) {
       // classroomが一致する場合のみ通す（土曜コマは classroom が設定されている場合のみ）
       var crMatch = k.classroom === opts.classroom;
       if (!crMatch) return false;
-      // 通常コマ・オンラインコマ
-      if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
-      // 平日振替コマ（satType=hira）: hiraKoma の判定
+      // 平日振替コマ（satType=hira）を先に判定（通常コマより優先）
       // 新形式: "教室_youbi+time" / 旧形式: "youbi+time" ← 後方互換
       if (k.satType === 'hira' && k.hiraKoma) {
         var hiraTarget2 = opts.youbi + opts.komaTime;
@@ -1291,6 +1281,8 @@ function studentChipHtml(s, opts) {
         if (hiraVal2.indexOf('_') !== -1) hiraVal2 = hiraVal2.split('_').slice(1).join('_');
         return hiraVal2 === hiraTarget2;
       }
+      // 通常コマ・オンラインコマ
+      if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
       return false;
     })[0] || null;
   }
@@ -4053,38 +4045,75 @@ function openTaskModal(taskId) {
   var t = (_tasks || []).find(function(x) { return x.id === taskId; });
   if (!t) return;
   _currentTaskId = taskId;
-  var statusMap = { todo: '未着手', in_progress: '進行中', done: '完了' };
-  var typeLabel = t.taskType || '—';
-  var body = '<div class="task-detail-row"><span class="task-detail-label">タイトル</span><span class="task-detail-val" style="font-weight:700">' + esc(t.title || '—') + '</span></div>' +
-    '<div class="task-detail-row"><span class="task-detail-label">期限</span><span class="task-detail-val">' + esc(t.dueDate || '—') + '</span></div>' +
-    '<div class="task-detail-row"><span class="task-detail-label">担当</span><span class="task-detail-val">' + esc(t.assignee || '—') + '</span></div>' +
-    '<div class="task-detail-row"><span class="task-detail-label">種別</span><span class="task-detail-val">' + esc(typeLabel) + '</span></div>' +
-    '<div class="task-detail-row"><span class="task-detail-label">教室</span><span class="task-detail-val">' + esc(t.classroom || '両教室') + '</span></div>' +
-    '<div class="task-detail-row"><span class="task-detail-label">ステータス</span><span class="task-detail-val">' + esc(statusMap[t.status] || t.status || '—') + '</span></div>' +
-    '<div class="task-detail-row" style="flex-direction:column;gap:5px"><span class="task-detail-label" style="width:auto">メモ</span>' +
-    '<div class="task-detail-memo">' + esc(t.memo || t.note || t.notes || '（メモなし）') + '</div></div>';
+  var isDone = t.status === 'done';
+  // 担当者リストを既存タスクから動的生成
+  var assigneeSet = {};
+  (_tasks || []).forEach(function(tk) { if (tk.assignee) assigneeSet[tk.assignee] = true; });
+  var assigneeOptions = Object.keys(assigneeSet).map(function(a) {
+    return '<option value="' + esc(a) + '"' + (a === (t.assignee||'') ? ' selected' : '') + '>' + esc(a) + '</option>';
+  }).join('');
+  var inputStyle = 'width:100%;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text);background:var(--bg);box-sizing:border-box;';
+  var rowStyle = 'display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;';
+  var labelStyle = 'font-size:11px;color:var(--text-muted);width:52px;flex-shrink:0;padding-top:6px;';
+  var body =
+    '<div style="' + rowStyle + '"><span style="' + labelStyle + '">タイトル</span>' +
+    '<input id="te-title" type="text" value="' + esc(t.title||'') + '" style="' + inputStyle + '" /></div>' +
+    '<div style="' + rowStyle + '"><span style="' + labelStyle + '">期限</span>' +
+    '<input id="te-duedate" type="date" value="' + esc(t.dueDate||'') + '" style="' + inputStyle + 'width:auto;" /></div>' +
+    '<div style="' + rowStyle + '"><span style="' + labelStyle + '">担当</span>' +
+    '<select id="te-assignee" style="' + inputStyle + '">' +
+    '<option value="">（未設定）</option>' + assigneeOptions + '</select></div>' +
+    '<div style="' + rowStyle + '"><span style="' + labelStyle + '">種別</span>' +
+    '<select id="te-tasktype" style="' + inputStyle + '">' +
+    ['授業外','授業内'].map(function(v){ return '<option value="' + v + '"' + (v === (t.taskType||'') ? ' selected' : '') + '>' + v + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div style="' + rowStyle + '"><span style="' + labelStyle + '">教室</span>' +
+    '<select id="te-classroom" style="' + inputStyle + '">' +
+    ['','北久里浜','久里浜'].map(function(v){ return '<option value="' + v + '"' + (v === (t.classroom||'') ? ' selected' : '') + '>' + (v||'両教室') + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div style="' + rowStyle + 'align-items:flex-start;"><span style="' + labelStyle + '">メモ</span>' +
+    '<textarea id="te-memo" rows="4" style="' + inputStyle + 'resize:vertical;">' + esc(t.memo||t.note||t.notes||'') + '</textarea></div>';
   document.getElementById('task-modal-title').textContent = t.title || 'タスク詳細';
   document.getElementById('task-modal-body').innerHTML = body;
-  // 操作ボタン表示（完了済みは非表示）
-  var isDone = t.status === 'done';
-  document.getElementById('task-btn-postpone').style.display = isDone ? 'none' : '';
-  document.getElementById('task-btn-done').style.display    = isDone ? 'none' : '';
-  closePostponePanel();
+  document.getElementById('task-btn-save').style.display = isDone ? 'none' : '';
+  document.getElementById('task-btn-done').style.display = isDone ? 'none' : '';
   document.getElementById('task-detail-modal').classList.add('open');
 }
 function closeTaskModal() {
   _currentTaskId = null;
-  closePostponePanel();
   document.getElementById('task-detail-modal').classList.remove('open');
 }
-function openPostponePanel() {
+function openPostponePanel() {}
+function closePostponePanel() {}
+function submitTaskEdit() {
   var t = (_tasks || []).find(function(x) { return x.id === _currentTaskId; });
-  var today = new Date().toISOString().slice(0,10);
-  document.getElementById('task-new-duedate').value = (t && t.dueDate) ? t.dueDate : today;
-  document.getElementById('task-postpone-panel').style.display = '';
-}
-function closePostponePanel() {
-  document.getElementById('task-postpone-panel').style.display = 'none';
+  if (!t) return;
+  var newTitle    = (document.getElementById('te-title')    || {}).value || t.title;
+  var newDueDate  = (document.getElementById('te-duedate')  || {}).value || t.dueDate;
+  var newAssignee = (document.getElementById('te-assignee') || {}).value;
+  var newTaskType = (document.getElementById('te-tasktype') || {}).value || t.taskType;
+  var newClassroom= (document.getElementById('te-classroom')|| {}).value;
+  var newMemo     = (document.getElementById('te-memo')     || {}).value;
+  var updated = Object.assign({}, t, {
+    title:     newTitle,
+    dueDate:   newDueDate,
+    assignee:  newAssignee,
+    taskType:  newTaskType,
+    classroom: newClassroom,
+    memo:      newMemo
+  });
+  // 即反映
+  Object.assign(t, updated);
+  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
+  miniToast('タスクを保存しました ✓');
+  closeTaskModal();
+  renderCurrent();
+  // 裏でGAS送信
+  callSaveTask(updated, function(res) {
+    if (!res || !res.success) {
+      miniToast('⚠️ 保存に失敗しました。再試行してください。');
+    }
+  });
 }
 
 // ========== A-3：GAS書き込み関数 ==========
