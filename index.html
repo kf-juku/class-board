@@ -1337,6 +1337,19 @@ function studentChipHtml(s, opts) {
     else                         _courseName = '塾';
   }
 
+  // 振替生徒で absenceCourse が指定されている場合はバッジを上書き
+  if (opts && opts.absenceCourse) {
+    var _ac = opts.absenceCourse;
+    if (_ac === '土曜演習') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#EAF3DE;color:#3B6D11">土曜演習</span>';
+    } else if (_ac === '英検') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#FAEEDA;color:#854F0B">英検</span>';
+    } else if (_ac === '受験特訓') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#ede9fe;color:#6d28d9">受験特訓</span>';
+    } else if (_ac === 'CA') {
+      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
+    }
+  }
   var badges = '';
   badges += lessonLabel;
 
@@ -2094,7 +2107,7 @@ function buildWeekGrid(days, todayIso) {
       var subChips = subStudents.map(function(r) {
         // 振替生徒は _students から情報を引く
         var stu = (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
-        return studentChipHtml(stu, {classroom:cr, komaTime:kt, youbi:YOUBIS[i], dateStr:iso});
+        return studentChipHtml(stu, {classroom:cr, komaTime:kt, youbi:YOUBIS[i], dateStr:iso, absenceCourse: r.absenceCourse || ''});
       });
       var normalChips = ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso});});
       var allChips = normalChips.concat(subChips);
@@ -3567,7 +3580,8 @@ function submitAbsence(mode) {
       substituteKomaTime:   subKoma,
       substituteClassroom:  subCr,
       memo:                 memo,
-      chainFromId:          d.chainFromId || ''
+      chainFromId:          d.chainFromId || '',
+      absenceCourse:        d.courseName  || ''
     };
     var tempId = 'tmp_' + Date.now();
     record.id = tempId;
