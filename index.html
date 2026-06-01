@@ -1221,7 +1221,14 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     return idx >= 0 ? idx : 99;
   }
   return getActiveModeStudents().filter(function(s) {
-    return (s.komas || []).some(function(k) { return matchesKoma(k); });
+    return (s.komas || []).some(function(k) {
+      if (!matchesKoma(k)) return false;
+      // classroomが未設定の土曜コマ（sat/eiken/hira）はgetMainClassroomで教室を判定
+      if (!k.classroom && k.satType && k.satType !== 'juken') {
+        return getMainClassroom(s) === classroom;
+      }
+      return true;
+    });
   }).sort(function(a, b) {
     var lr = lessonRank(a) - lessonRank(b);
     if (lr !== 0) return lr;
