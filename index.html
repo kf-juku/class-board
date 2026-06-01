@@ -2008,7 +2008,7 @@ function buildWeekGrid(days, todayIso) {
   });
 
   // 空の日は minmax(32px,auto)、生徒ありは 1fr
-  var colDefs = days.map(function(d, i) { return dayHasStudent[i] ? '1fr' : '20px'; });
+  var colDefs = days.map(function(d, i) { return dayHasStudent[i] ? 'minmax(0, 1fr)' : '20px'; });
   var gridStyle = 'grid-template-columns: 68px ' + colDefs.join(' ') + ';';
 
   // ===== タスクチップ生成（曜日別） =====
