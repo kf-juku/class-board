@@ -2569,9 +2569,24 @@ function toggleSubjBtn(btn) {
 function openAddTestModal(school) {
   // 学校プルダウンを最新の生徒データで生成
   var sel = document.getElementById('test-target-school');
-  var schools = Array.from(new Set(_students.map(function(s){return s.school;}).filter(Boolean))).sort();
+  // 在籍生徒の中学校を人数順で固定（小学校除外）
+  // 集計日: 2026-06-01 / 在籍数: 公郷中14, 大津中9, 久里浜中8, 大矢部中5, 北下浦中4, 神明中3, 浦賀中3, 岩戸中2, 野比中2, 長沢中1
+  var SCHOOL_LIST = [
+    {name:'公郷中',   count:14},
+    {name:'大津中',   count:9},
+    {name:'久里浜中', count:8},
+    {name:'大矢部中', count:5},
+    {name:'北下浦中', count:4},
+    {name:'神明中',   count:3},
+    {name:'浦賀中',   count:3},
+    {name:'岩戸中',   count:2},
+    {name:'野比中',   count:2},
+    {name:'長沢中',   count:1}
+  ];
   sel.innerHTML = '<option value="">-- 学校を選択 --</option>' +
-    schools.map(function(s){ return '<option value="' + s.replace(/"/g,'&quot;') + '">' + s + '</option>'; }).join('');
+    SCHOOL_LIST.map(function(s){
+      return '<option value="' + s.name + '">' + s.name + '　' + s.count + '人</option>';
+    }).join('');
   sel.value = school || '';
   // 学校固定時はプルダウンを非表示（学校マスタから呼ぶケース）
   document.getElementById('test-school-group').style.display = school ? 'none' : '';
