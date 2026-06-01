@@ -1197,6 +1197,8 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
   // hiraKoma（平日振替）が指定された曜日・時間に一致するか判定
   // hiraKoma の値は "月17:30〜18:20" のような形式（youbi + time を結合した文字列）
   function matchesKoma(k) {
+    // 受験特訓コマは相乗り専用ブロックで表示するためここでは除外
+    if (k.satType === 'juken') return false;
     // classroomが未設定（土曜コマ等）または一致する場合のみ通す
     if (k.classroom && k.classroom !== classroom) return false;
     // 通常コマ・オンラインコマ
@@ -1257,13 +1259,17 @@ function studentChipHtml(s, opts) {
   var koma = null;
   if (opts && opts.classroom && opts.komaTime && opts.youbi) {
     koma = (s.komas || []).filter(function(k) {
-      // classroomが未設定（受験特訓・土曜コマ等）または一致する場合にマッチ
-      var crMatch = !k.classroom || k.classroom === opts.classroom;
+      // 受験特訓ブロック専用の呼び出し（opts.isJuken=true）のときのみjukenコマをマッチ
+      if (opts.isJuken) {
+        return k.satType === 'juken' && k.youbi === opts.youbi;
+      }
+      // 受験特訓コマは通常コマのchip生成では無視する
+      if (k.satType === 'juken') return false;
+      // classroomが一致する場合のみ通す（土曜コマは classroom が設定されている場合のみ）
+      var crMatch = k.classroom === opts.classroom;
       if (!crMatch) return false;
       // 通常コマ・オンラインコマ
       if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
-      // 受験特訓コマ（classroom未設定・satType=juken）は時間のみで照合
-      if (k.satType === 'juken' && k.time === opts.komaTime) return true;
       // 平日振替コマ（satType=hira）: hiraKoma が "youbi + komaTime" の形式
       if (k.satType === 'hira' && k.hiraKoma) {
         return k.hiraKoma === (opts.youbi + opts.komaTime);
@@ -1471,7 +1477,7 @@ function renderToday() {
             if (jukenStudents.length) {
               jukenBlock = '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">' +
                 '<div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:3px">受験特訓 19:00〜21:30</div>' +
-                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:todayYoubi,dateStr:todayIso}); }).join('') +
+                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:todayYoubi,dateStr:todayIso,isJuken:true}); }).join('') +
                 '</div>';
             }
           }
@@ -2108,7 +2114,7 @@ function buildWeekGrid(days, todayIso) {
         if (isLastActiveKoma) {
           jukenBlockW = '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e5e7eb">' +
             '<div style="font-size:9px;color:#6d28d9;font-weight:700;margin-bottom:2px">受験特訓 19:00〜21:30</div>' +
-            jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:YOUBIS[i],dateStr:iso}); }).join('') +
+            jukenStu.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:YOUBIS[i],dateStr:iso,isJuken:true}); }).join('') +
             '</div>';
         }
       }
