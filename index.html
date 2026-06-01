@@ -1203,9 +1203,15 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     if (k.classroom && k.classroom !== classroom) return false;
     // 通常コマ・オンラインコマ
     if (k.youbi === youbi && k.time === komaTime) return true;
-    // 平日振替コマ: hiraKoma が "youbi + time" の形式で保存されている
+    // 平日振替コマ: hiraKoma の判定
+    // 新形式: "教室_youbi+time" (例: 北久里浜_月17:15〜18:35)
+    // 旧形式: "youbi+time" (例: 月17:15〜18:35) ← 後方互換
     if (k.satType === 'hira' && k.hiraKoma) {
-      return k.hiraKoma === (youbi + komaTime);
+      var hiraTarget = youbi + komaTime;
+      var hiraVal = k.hiraKoma;
+      // 新形式の場合は "_" 以降を比較
+      if (hiraVal.indexOf('_') !== -1) hiraVal = hiraVal.split('_').slice(1).join('_');
+      return hiraVal === hiraTarget;
     }
     return false;
   }
@@ -1277,9 +1283,13 @@ function studentChipHtml(s, opts) {
       if (!crMatch) return false;
       // 通常コマ・オンラインコマ
       if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
-      // 平日振替コマ（satType=hira）: hiraKoma が "youbi + komaTime" の形式
+      // 平日振替コマ（satType=hira）: hiraKoma の判定
+      // 新形式: "教室_youbi+time" / 旧形式: "youbi+time" ← 後方互換
       if (k.satType === 'hira' && k.hiraKoma) {
-        return k.hiraKoma === (opts.youbi + opts.komaTime);
+        var hiraTarget2 = opts.youbi + opts.komaTime;
+        var hiraVal2 = k.hiraKoma;
+        if (hiraVal2.indexOf('_') !== -1) hiraVal2 = hiraVal2.split('_').slice(1).join('_');
+        return hiraVal2 === hiraTarget2;
       }
       return false;
     })[0] || null;
