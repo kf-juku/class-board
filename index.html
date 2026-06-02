@@ -4482,154 +4482,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-</script>
-
-<script>
-// ========== グローバルポップアップ制御 ==========
-(function() {
-  var POPUP_STYLE = [
-    'display:none',
-    'position:fixed',
-    'top:-9999px',
-    'left:-9999px',
-    'background:#fff',
-    'border:1px solid #dde3ec',
-    'border-radius:8px',
-    'box-shadow:0 4px 16px rgba(0,0,0,0.13)',
-    'padding:10px 12px',
-    'min-width:180px',
-    'max-width:300px',
-    'font-size:12px',
-    'color:#1a2535',
-    'z-index:9999',
-    'white-space:normal',
-    'line-height:1.6',
-    'pointer-events:none'
-  ].join(';');
-
-  var tPop = document.createElement('div');
-  tPop.id = 'global-t-popup';
-  tPop.setAttribute('style', POPUP_STYLE);
-  document.body.appendChild(tPop);
-
-  var sPop = document.createElement('div');
-  sPop.id = 'global-s-popup';
-  sPop.setAttribute('style', POPUP_STYLE);
-  document.body.appendChild(sPop);
-
-  function placePopup(el, x, y) {
-    var PAD = 14;
-    var w = el.offsetWidth;
-    var h = el.offsetHeight;
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-    var left = x + PAD;
-    var top  = y + PAD;
-    if (left + w > vw - PAD) left = x - w - PAD;
-    if (top  + h > vh - PAD) top  = y - h - PAD;
-    if (left < PAD) left = PAD;
-    if (top  < PAD) top  = PAD;
-    el.style.left = left + 'px';
-    el.style.top  = top  + 'px';
-  }
-
-  function showPopup(el, html, x, y) {
-    el.innerHTML = html;
-    el.style.display = 'block';
-    el.style.left = '-9999px';
-    el.style.top  = '-9999px';
-    requestAnimationFrame(function() { placePopup(el, x, y); });
-  }
-
-  function hidePopup(el) {
-    el.style.display = 'none';
-    el.style.left = '-9999px';
-    el.style.top  = '-9999px';
-  }
-
-  // gs-help 用ポップアップ要素（ダーク背景）
-  var hPop = document.createElement('div');
-  hPop.setAttribute('style', POPUP_STYLE + ';background:#1a2535;color:#fff;line-height:1.7;min-width:260px;max-width:320px');
-  document.body.appendChild(hPop);
-
-  document.addEventListener('mouseover', function(e) {
-    var chip  = e.target.closest('.task-chip-1line');
-    var sChip = e.target.closest('.student-chip');
-    var hChip = e.target.closest('.gs-help');
-
-    if (chip) {
-      var popHtml = chip.getAttribute('data-popup');
-      if (!popHtml) {
-        var inner = chip.querySelector('.t-popup');
-        if (inner) popHtml = inner.innerHTML;
-      }
-      if (popHtml) showPopup(tPop, popHtml, e.clientX, e.clientY);
-    } else {
-      hidePopup(tPop);
-    }
-
-    if (sChip) {
-      var sPopHtml = sChip.getAttribute('data-popup');
-      if (!sPopHtml) {
-        var sInner = sChip.querySelector('.s-popup');
-        if (sInner) sPopHtml = sInner.innerHTML;
-      }
-      if (sPopHtml) showPopup(sPop, sPopHtml, e.clientX, e.clientY);
-    } else {
-      hidePopup(sPop);
-    }
-
-    if (hChip) {
-      var hInner = hChip.querySelector('.gs-help-body');
-      if (hInner) showPopup(hPop, hInner.innerHTML, e.clientX, e.clientY);
-    } else {
-      hidePopup(hPop);
-    }
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (tPop.style.display === 'block') {
-      if (e.target.closest('.task-chip-1line')) placePopup(tPop, e.clientX, e.clientY);
-      else hidePopup(tPop);
-    }
-    if (sPop.style.display === 'block') {
-      if (e.target.closest('.student-chip')) placePopup(sPop, e.clientX, e.clientY);
-      else hidePopup(sPop);
-    }
-    if (hPop.style.display === 'block') {
-      if (e.target.closest('.gs-help')) placePopup(hPop, e.clientX, e.clientY);
-      else hidePopup(hPop);
-    }
-  });
-})();
-// ── キーボードショートカット ──
-// ←→: 今週タブの週切り替え / Tab: 教室切り替え
-document.addEventListener('keydown', function(e) {
-  // 入力フォームにフォーカスがある場合はスキップ
-  var tag = (document.activeElement || {}).tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-  // ← → キーで週切り替え（今週・今月タブのみ）
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-    if (_currentTab === 'week') {
-      e.preventDefault();
-      _weekOffset += (e.key === 'ArrowLeft' ? -1 : 1);
-      renderWeek();
-    }
-  }
-
-  // Tab キーで教室切り替え（今日・今週・今月タブ）
-  if (e.key === 'Tab') {
-    if (_currentTab === 'today' || _currentTab === 'week' || _currentTab === 'month') {
-      e.preventDefault();
-      var classrooms = ['北久里浜', '久里浜'];
-      var idx = classrooms.indexOf(_currentClassroom);
-      _currentClassroom = classrooms[(idx + 1) % classrooms.length];
-      renderCurrent();
-    }
-  }
-});
-
 
 // =====================================================
 // チェックリスト機能
@@ -4872,6 +4724,154 @@ function rerenderCurrentTab() {
   if (tab === 'today') renderToday();
   else if (tab === 'week') renderWeek();
 }
+</script>
+
+<script>
+// ========== グローバルポップアップ制御 ==========
+(function() {
+  var POPUP_STYLE = [
+    'display:none',
+    'position:fixed',
+    'top:-9999px',
+    'left:-9999px',
+    'background:#fff',
+    'border:1px solid #dde3ec',
+    'border-radius:8px',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.13)',
+    'padding:10px 12px',
+    'min-width:180px',
+    'max-width:300px',
+    'font-size:12px',
+    'color:#1a2535',
+    'z-index:9999',
+    'white-space:normal',
+    'line-height:1.6',
+    'pointer-events:none'
+  ].join(';');
+
+  var tPop = document.createElement('div');
+  tPop.id = 'global-t-popup';
+  tPop.setAttribute('style', POPUP_STYLE);
+  document.body.appendChild(tPop);
+
+  var sPop = document.createElement('div');
+  sPop.id = 'global-s-popup';
+  sPop.setAttribute('style', POPUP_STYLE);
+  document.body.appendChild(sPop);
+
+  function placePopup(el, x, y) {
+    var PAD = 14;
+    var w = el.offsetWidth;
+    var h = el.offsetHeight;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var left = x + PAD;
+    var top  = y + PAD;
+    if (left + w > vw - PAD) left = x - w - PAD;
+    if (top  + h > vh - PAD) top  = y - h - PAD;
+    if (left < PAD) left = PAD;
+    if (top  < PAD) top  = PAD;
+    el.style.left = left + 'px';
+    el.style.top  = top  + 'px';
+  }
+
+  function showPopup(el, html, x, y) {
+    el.innerHTML = html;
+    el.style.display = 'block';
+    el.style.left = '-9999px';
+    el.style.top  = '-9999px';
+    requestAnimationFrame(function() { placePopup(el, x, y); });
+  }
+
+  function hidePopup(el) {
+    el.style.display = 'none';
+    el.style.left = '-9999px';
+    el.style.top  = '-9999px';
+  }
+
+  // gs-help 用ポップアップ要素（ダーク背景）
+  var hPop = document.createElement('div');
+  hPop.setAttribute('style', POPUP_STYLE + ';background:#1a2535;color:#fff;line-height:1.7;min-width:260px;max-width:320px');
+  document.body.appendChild(hPop);
+
+  document.addEventListener('mouseover', function(e) {
+    var chip  = e.target.closest('.task-chip-1line');
+    var sChip = e.target.closest('.student-chip');
+    var hChip = e.target.closest('.gs-help');
+
+    if (chip) {
+      var popHtml = chip.getAttribute('data-popup');
+      if (!popHtml) {
+        var inner = chip.querySelector('.t-popup');
+        if (inner) popHtml = inner.innerHTML;
+      }
+      if (popHtml) showPopup(tPop, popHtml, e.clientX, e.clientY);
+    } else {
+      hidePopup(tPop);
+    }
+
+    if (sChip) {
+      var sPopHtml = sChip.getAttribute('data-popup');
+      if (!sPopHtml) {
+        var sInner = sChip.querySelector('.s-popup');
+        if (sInner) sPopHtml = sInner.innerHTML;
+      }
+      if (sPopHtml) showPopup(sPop, sPopHtml, e.clientX, e.clientY);
+    } else {
+      hidePopup(sPop);
+    }
+
+    if (hChip) {
+      var hInner = hChip.querySelector('.gs-help-body');
+      if (hInner) showPopup(hPop, hInner.innerHTML, e.clientX, e.clientY);
+    } else {
+      hidePopup(hPop);
+    }
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tPop.style.display === 'block') {
+      if (e.target.closest('.task-chip-1line')) placePopup(tPop, e.clientX, e.clientY);
+      else hidePopup(tPop);
+    }
+    if (sPop.style.display === 'block') {
+      if (e.target.closest('.student-chip')) placePopup(sPop, e.clientX, e.clientY);
+      else hidePopup(sPop);
+    }
+    if (hPop.style.display === 'block') {
+      if (e.target.closest('.gs-help')) placePopup(hPop, e.clientX, e.clientY);
+      else hidePopup(hPop);
+    }
+  });
+})();
+// ── キーボードショートカット ──
+// ←→: 今週タブの週切り替え / Tab: 教室切り替え
+document.addEventListener('keydown', function(e) {
+  // 入力フォームにフォーカスがある場合はスキップ
+  var tag = (document.activeElement || {}).tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  // ← → キーで週切り替え（今週・今月タブのみ）
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    if (_currentTab === 'week') {
+      e.preventDefault();
+      _weekOffset += (e.key === 'ArrowLeft' ? -1 : 1);
+      renderWeek();
+    }
+  }
+
+  // Tab キーで教室切り替え（今日・今週・今月タブ）
+  if (e.key === 'Tab') {
+    if (_currentTab === 'today' || _currentTab === 'week' || _currentTab === 'month') {
+      e.preventDefault();
+      var classrooms = ['北久里浜', '久里浜'];
+      var idx = classrooms.indexOf(_currentClassroom);
+      _currentClassroom = classrooms[(idx + 1) % classrooms.length];
+      renderCurrent();
+    }
+  }
+});
+
 
 </script>
 
