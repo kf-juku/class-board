@@ -4590,8 +4590,10 @@ function checklistBarHtml() {
     // items に originalIdx を付けてソート
     var itemsWithIdx = items.map(function(it, i) { return { it: it, idx: i }; });
     itemsWithIdx.sort(function(a, b) {
-      var crA = CR_ORDER.indexOf((a.it.classroom || '').split(/[・,]/)[0].trim());
-      var crB = CR_ORDER.indexOf((b.it.classroom || '').split(/[・,]/)[0].trim());
+      var stuA = (_students || []).find(function(s) { return (s.uid||s.name) === (a.it.uid||a.it.name) || s.name === a.it.name; });
+      var stuB = (_students || []).find(function(s) { return (s.uid||s.name) === (b.it.uid||b.it.name) || s.name === b.it.name; });
+      var crA = CR_ORDER.indexOf((stuA && stuA.classroom) || (a.it.classroom || '').split(/[・,]/)[0].trim());
+      var crB = CR_ORDER.indexOf((stuB && stuB.classroom) || (b.it.classroom || '').split(/[・,]/)[0].trim());
       if (crA === -1) crA = 99; if (crB === -1) crB = 99;
       if (crA !== crB) return crA - crB;
       var gA = GRADE_ORDER.indexOf(a.it.grade || '');
@@ -4604,7 +4606,9 @@ function checklistBarHtml() {
     var crGroups = {};
     var crList = [];
     itemsWithIdx.forEach(function(obj) {
-      var cr = (obj.it.classroom || '').split(/[・,]/)[0].trim() || '（未設定）';
+      // _studentsからs.classroomを引く（古いデータの互換）
+      var stu = (_students || []).find(function(s) { return (s.uid || s.name) === (obj.it.uid || obj.it.name) || s.name === obj.it.name; });
+      var cr = (stu && stu.classroom) || (obj.it.classroom || '').split(/[・,]/)[0].trim() || '（未設定）';
       if (!crGroups[cr]) { crGroups[cr] = []; crList.push(cr); }
       crGroups[cr].push(obj);
     });
@@ -4796,7 +4800,7 @@ function renderClStudentList() {
   }
 
   listEl.innerHTML = filtered.map(function(s) {
-    var crList = getMainClassroom(s) || '';
+    var crList = s.classroom || '';
     var chk = renderClStudentList._noCheck ? '' : ' checked';
     return '<label class="cl-student-item">' +
       '<input type="checkbox" class="cl-s-check" data-uid="' + (s.uid||s.name) + '" data-name="' + esc(s.name) + '" data-grade="' + esc(s.grade||'') + '" data-cr="' + esc(crList) + '"' + chk + '>' +
