@@ -658,6 +658,34 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 /* 今週グリッド内のchipは小さく */
 .week-grid .task-chip-1line { font-size: 9px; padding: 1px 4px; display: block; margin-bottom: 2px; white-space: nowrap; overflow: visible; max-width: 100%; cursor: pointer; }
 .week-grid .task-chip-1line:hover { opacity: 0.75; }
+
+/* ─── チェックリスト帯 ─── */
+.cl-bar { background: #fff; border: 1px solid #c7d2fe; border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+.cl-bar-header { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #eef2ff; border-bottom: 1px solid #c7d2fe; font-size: 13px; font-weight: 700; color: #3730a3; }
+.cl-bar-header .cl-add-btn { margin-left: auto; background: #4f46e5; color: #fff; border: none; border-radius: 5px; padding: 3px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.cl-bar-header .cl-add-btn:hover { background: #4338ca; }
+.cl-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #e0e7ff; cursor: pointer; font-size: 13px; }
+.cl-item:last-child { border-bottom: none; }
+.cl-item:hover { background: #f5f3ff; }
+.cl-item-title { flex: 1; font-weight: 600; color: #1e1b4b; }
+.cl-item-progress { font-size: 12px; color: #6b7280; white-space: nowrap; }
+.cl-item-progress.done { color: #16a34a; font-weight: 700; }
+/* ─── チェックリスト詳細モーダル ─── */
+.cl-detail-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.cl-detail-row:last-child { border-bottom: none; }
+.cl-detail-name { flex: 1; }
+.cl-detail-meta { font-size: 11px; color: var(--text-muted); }
+.cl-check-btn { padding: 3px 12px; border-radius: 5px; border: 1.5px solid #d1d5db; background: #fff; color: #374151; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.cl-check-btn.done { background: #dcfce7; border-color: #86efac; color: #15803d; font-weight: 700; }
+.cl-check-btn:hover:not(.done) { background: #f0fdf4; border-color: #86efac; }
+/* ─── チェックリスト作成モーダル ─── */
+.cl-filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cl-filter-chip { padding: 3px 10px; border-radius: 20px; border: 1.5px solid #d1d5db; background: #f9fafb; font-size: 12px; cursor: pointer; user-select: none; }
+.cl-filter-chip.active { border-color: #4f46e5; background: #eef2ff; color: #3730a3; font-weight: 700; }
+.cl-student-list { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 4px; margin-bottom: 10px; }
+.cl-student-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+.cl-student-item:hover { background: #f5f3ff; }
+.cl-student-item input[type=checkbox] { accent-color: #4f46e5; width: 15px; height: 15px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -677,6 +705,79 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
     </div>
   </div>
 </div>
+<!-- チェックリスト作成モーダル -->
+<div class="modal-overlay" id="modal-add-checklist">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span>チェックリストを作成</span>
+      <span class="modal-close" onclick="closeModal('modal-add-checklist')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">タイトル</label>
+        <input id="cl-new-title" type="text" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box" placeholder="例：保護者連絡済み確認" />
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">開始日</label>
+        <input id="cl-new-date" type="date" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px" />
+      </div>
+      <div style="margin-bottom:6px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">対象者を絞り込む</label>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">種別</div>
+        <div class="cl-filter-row" id="cl-filter-type">
+          <span class="cl-filter-chip active" data-val="塾">塾</span>
+          <span class="cl-filter-chip active" data-val="CA">CA</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">教室</div>
+        <div class="cl-filter-row" id="cl-filter-cr">
+          <span class="cl-filter-chip active" data-val="北久里浜">北久里浜</span>
+          <span class="cl-filter-chip active" data-val="久里浜">久里浜</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">学年</div>
+        <div class="cl-filter-row" id="cl-filter-grade">
+          <span class="cl-filter-chip active" data-val="小1">小1</span>
+          <span class="cl-filter-chip active" data-val="小2">小2</span>
+          <span class="cl-filter-chip active" data-val="小3">小3</span>
+          <span class="cl-filter-chip active" data-val="小4">小4</span>
+          <span class="cl-filter-chip active" data-val="小5">小5</span>
+          <span class="cl-filter-chip active" data-val="小6">小6</span>
+          <span class="cl-filter-chip active" data-val="中1">中1</span>
+          <span class="cl-filter-chip active" data-val="中2">中2</span>
+          <span class="cl-filter-chip active" data-val="中3">中3</span>
+          <span class="cl-filter-chip active" data-val="高1">高1</span>
+          <span class="cl-filter-chip active" data-val="高2">高2</span>
+          <span class="cl-filter-chip active" data-val="高3">高3</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <button class="btn-secondary btn-sm" onclick="clSelectAll(true)">全選択</button>
+        <button class="btn-secondary btn-sm" onclick="clSelectAll(false)">全解除</button>
+        <span id="cl-selected-count" style="margin-left:auto;font-size:12px;color:var(--text-muted);align-self:center"></span>
+      </div>
+      <div class="cl-student-list" id="cl-student-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-add-checklist')">キャンセル</button>
+      <button class="btn-primary" onclick="submitChecklist()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- チェックリスト詳細モーダル -->
+<div class="modal-overlay" id="modal-checklist-detail">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span id="cl-detail-title">チェックリスト</span>
+      <span class="modal-close" onclick="closeModal('modal-checklist-detail')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </div>
+    <div class="modal-body" id="cl-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" style="color:#ef4444;border-color:#ef4444" onclick="deleteChecklist()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> リスト削除</button>
+      <button class="btn-secondary" onclick="closeModal('modal-checklist-detail')">閉じる</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- 欠席登録モーダル -->
 <div class="modal-overlay" id="modal-absence" onclick="if(event.target===this)closeModal('modal-absence')">
@@ -953,6 +1054,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 // =====================================================
 var _students = [];
 var _tasks = [];
+var _checklists = [];
 var _schoolInfo = [];
 var _schoolTasks = [];
 var _testRecords = [];
@@ -1088,6 +1190,9 @@ function loadAll() {
 
   if (taskUrl) {
     pending++;
+    loadChecklists(taskUrl, function(cls) {
+      _checklists = cls;
+    });
     callGas(taskUrl, { action: 'getTasksForClassBoard' }, function(res) {
       if (res && res.success && res.tasks) {
         _tasks = res.tasks;
@@ -1132,8 +1237,8 @@ function switchTab(tab) {
 
 function renderCurrent() {
   switch (_currentTab) {
-    case 'today':    renderToday();    break;
-    case 'week':     renderWeek();     break;
+    case 'today':    localStorage.setItem('cb_active_tab','today'); renderToday();    break;
+    case 'week':     localStorage.setItem('cb_active_tab','week'); renderWeek();     break;
     case 'school':   renderSchool();   break;
     case 'exam':     renderExam();     break;
     case 'settings': renderSettings(); break;
@@ -1617,6 +1722,7 @@ function renderToday() {
     '</div>' +
     '<div class="print-header">本日の時間割　' + todayLabel + '　' + _currentClassroom + '</div>' +
     alerts +
+    checklistBarHtml() +
     '<div class="task-bar">' +
     '<div class="task-bar-header"><div class="task-bar-label" style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> 今日のタスク' + taskBadge +
     '<span class="cb-help"><span class="cb-help-icon">?</span>' +
@@ -1979,7 +2085,8 @@ function renderWeek() {
     '</span>' +
     '</div>' +
     '<div class="print-header">今週の時間割　' + weekLabel + '　' + _currentClassroom + '</div>' +
-    '<div class="week-grid-wrap">' + buildWeekGrid(days, todayIso) + '</div>';
+    '<div class="week-grid-wrap">' + buildWeekGrid(days, todayIso) + '</div>' +
+    checklistBarHtml();
 
   document.getElementById('main-content').innerHTML = html;
 
@@ -4522,6 +4629,249 @@ document.addEventListener('keydown', function(e) {
     }
   }
 });
+
+
+// =====================================================
+// チェックリスト機能
+// =====================================================
+var _currentClId = null; // 詳細モーダルで開いているチェックリストID
+
+// ── 初期化：起動時にGASからチェックリスト取得 ──
+function loadChecklists(taskUrl, callback) {
+  if (!taskUrl) { callback([]); return; }
+  callGas(taskUrl, { action: 'getChecklists' }, function(res) {
+    if (res && res.ok && Array.isArray(res.data)) {
+      callback(res.data);
+    } else {
+      callback([]);
+    }
+  });
+}
+
+// ── チェックリスト帯HTML（本日タブ・今週タブ共通） ──
+function checklistBarHtml() {
+  var todayIso = isoDate(new Date());
+  var active = _checklists.filter(function(cl) {
+    return cl.status !== 'done' && cl.startDate <= todayIso;
+  });
+  if (active.length === 0) return '';
+
+  var ico_list = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+  var ico_plus = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+
+  var items = active.map(function(cl) {
+    var done = (cl.items || []).filter(function(it) { return it.done; }).length;
+    var total = (cl.items || []).length;
+    var allDone = done === total && total > 0;
+    return '<div class="cl-item" onclick="openChecklistDetail('' + cl.id + '')">' +
+      '<div class="cl-item-title">' + esc(cl.title) + '</div>' +
+      '<div class="cl-item-progress' + (allDone ? ' done' : '') + '">' + done + '/' + total + '名</div>' +
+      '</div>';
+  }).join('');
+
+  return '<div class="cl-bar">' +
+    '<div class="cl-bar-header">' + ico_list + ' チェックリスト' +
+    '<button class="cl-add-btn" onclick="event.stopPropagation();openAddChecklist()">' + ico_plus + ' 追加</button>' +
+    '</div>' + items + '</div>';
+}
+
+// ── 作成モーダルを開く ──
+function openAddChecklist() {
+  document.getElementById('cl-new-title').value = '';
+  document.getElementById('cl-new-date').value = isoDate(new Date());
+  // フィルターチップをすべてactiveに戻す
+  ['cl-filter-type','cl-filter-cr','cl-filter-grade'].forEach(function(id) {
+    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
+      c.classList.add('active');
+    });
+  });
+  // フィルターイベント設定
+  ['cl-filter-type','cl-filter-cr','cl-filter-grade'].forEach(function(id) {
+    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
+      c.onclick = function() {
+        c.classList.toggle('active');
+        renderClStudentList();
+      };
+    });
+  });
+  renderClStudentList();
+  openModal('modal-add-checklist');
+}
+
+// ── 生徒リスト描画 ──
+function renderClStudentList() {
+  var types   = getActiveChips('cl-filter-type');
+  var crs     = getActiveChips('cl-filter-cr');
+  var grades  = getActiveChips('cl-filter-grade');
+
+  var filtered = _students.filter(function(s) {
+    if (s.status !== '在籍') return false;
+    var sType = (s.course === 'CA' || (s.komaList || []).some(function(k){ return k.courseType === 'CA'; })) ? 'CA' : '塾';
+    if (!types.includes(sType)) return false;
+    if (!crs.includes(s.classroom || '')) return false;
+    if (!grades.includes(s.grade || '')) return false;
+    return true;
+  });
+
+  var listEl = document.getElementById('cl-student-list');
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center">条件に合う生徒がいません</div>';
+    document.getElementById('cl-selected-count').textContent = '';
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(function(s) {
+    return '<label class="cl-student-item">' +
+      '<input type="checkbox" class="cl-s-check" data-uid="' + s.uid + '" data-name="' + esc(s.name) + '" data-grade="' + esc(s.grade||'') + '" data-cr="' + esc(s.classroom||'') + '" checked>' +
+      '<span>' + esc(s.name) + '</span>' +
+      '<span style="font-size:11px;color:#9ca3af;margin-left:4px">' + esc(s.grade||'') + ' ' + esc(s.classroom||'') + '</span>' +
+      '</label>';
+  }).join('');
+
+  listEl.querySelectorAll('.cl-s-check').forEach(function(cb) {
+    cb.addEventListener('change', updateClSelectedCount);
+  });
+  updateClSelectedCount();
+}
+
+function getActiveChips(containerId) {
+  var arr = [];
+  document.getElementById(containerId).querySelectorAll('.cl-filter-chip.active').forEach(function(c) {
+    arr.push(c.dataset.val);
+  });
+  return arr;
+}
+
+function updateClSelectedCount() {
+  var checked = document.getElementById('cl-student-list').querySelectorAll('.cl-s-check:checked').length;
+  document.getElementById('cl-selected-count').textContent = checked + '名選択中';
+}
+
+function clSelectAll(flag) {
+  document.getElementById('cl-student-list').querySelectorAll('.cl-s-check').forEach(function(cb) {
+    cb.checked = flag;
+  });
+  updateClSelectedCount();
+}
+
+// ── チェックリスト保存 ──
+function submitChecklist() {
+  var title = document.getElementById('cl-new-title').value.trim();
+  if (!title) { miniToast('タイトルを入力してください'); return; }
+  var startDate = document.getElementById('cl-new-date').value || isoDate(new Date());
+
+  var items = [];
+  document.getElementById('cl-student-list').querySelectorAll('.cl-s-check:checked').forEach(function(cb) {
+    items.push({ uid: cb.dataset.uid, name: cb.dataset.name, grade: cb.dataset.grade, classroom: cb.dataset.cr, done: false, doneAt: '' });
+  });
+  if (items.length === 0) { miniToast('対象者を1名以上選択してください'); return; }
+
+  var cl = {
+    id: 'cl_' + Date.now(),
+    title: title,
+    startDate: startDate,
+    status: 'active',
+    items: items,
+    createdAt: isoDate(new Date())
+  };
+
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  closeModal('modal-add-checklist');
+
+  // 楽観的UI：先に表示
+  _checklists.push(cl);
+  rerenderCurrentTab();
+  miniToast('チェックリストを作成しました ✓');
+
+  // GAS保存
+  if (taskUrl) {
+    callGas(taskUrl, { action: 'saveChecklist', checklist: JSON.stringify(cl) }, function(res) {
+      if (!res || !res.ok) miniToast('⚠️ GAS保存に失敗しました（ローカルには保存済み）');
+    }, 'POST');
+  }
+}
+
+// ── 詳細モーダルを開く ──
+function openChecklistDetail(clId) {
+  var cl = _checklists.find(function(c) { return c.id === clId; });
+  if (!cl) return;
+  _currentClId = clId;
+  document.getElementById('cl-detail-title').textContent = cl.title;
+  renderClDetailBody(cl);
+  openModal('modal-checklist-detail');
+}
+
+function renderClDetailBody(cl) {
+  var done = (cl.items || []).filter(function(it) { return it.done; }).length;
+  var total = (cl.items || []).length;
+  var html = '<div style="font-size:12px;color:#6b7280;margin-bottom:12px">開始日：' + cl.startDate + '　' + done + '/' + total + '名完了</div>';
+  html += (cl.items || []).map(function(it, idx) {
+    var btnCls = it.done ? 'cl-check-btn done' : 'cl-check-btn';
+    var btnLabel = it.done ? '✓ 完了済み' : '完了にする';
+    return '<div class="cl-detail-row">' +
+      '<div class="cl-detail-name">' + esc(it.name) + '<span class="cl-detail-meta"> ' + esc(it.grade||'') + ' ' + esc(it.classroom||'') + '</span></div>' +
+      '<button class="' + btnCls + '" onclick="toggleClItem('' + cl.id + '',' + idx + ')">' + btnLabel + '</button>' +
+      '</div>';
+  }).join('');
+  document.getElementById('cl-detail-body').innerHTML = html;
+}
+
+// ── 完了トグル ──
+function toggleClItem(clId, idx) {
+  var cl = _checklists.find(function(c) { return c.id === clId; });
+  if (!cl) return;
+  var it = cl.items[idx];
+
+  if (it.done) {
+    // 解除確認
+    if (!confirm(esc(it.name) + ' の完了を取り消しますか？')) return;
+    it.done = false;
+    it.doneAt = '';
+  } else {
+    it.done = true;
+    it.doneAt = isoDate(new Date());
+  }
+
+  // 全員完了チェック
+  var allDone = cl.items.every(function(i) { return i.done; });
+  if (allDone) {
+    cl.status = 'done';
+    closeModal('modal-checklist-detail');
+    miniToast('全員完了！チェックリストを完了しました ✓');
+    rerenderCurrentTab();
+  } else {
+    renderClDetailBody(cl);
+    rerenderCurrentTab();
+  }
+
+  // GAS更新
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (taskUrl) {
+    callGas(taskUrl, { action: 'updateChecklistItem', id: clId, idx: idx, done: it.done, doneAt: it.doneAt }, null, 'POST');
+  }
+}
+
+// ── リスト削除 ──
+function deleteChecklist() {
+  if (!confirm('このチェックリストを削除しますか？')) return;
+  var clId = _currentClId;
+  _checklists = _checklists.filter(function(c) { return c.id !== clId; });
+  closeModal('modal-checklist-detail');
+  rerenderCurrentTab();
+  miniToast('チェックリストを削除しました ✓');
+
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (taskUrl) {
+    callGas(taskUrl, { action: 'deleteChecklist', id: clId }, null, 'POST');
+  }
+}
+
+// ── 現在のタブを再描画 ──
+function rerenderCurrentTab() {
+  var tab = localStorage.getItem('cb_active_tab') || 'today';
+  if (tab === 'today') renderToday();
+  else if (tab === 'week') renderWeek();
+}
 
 </script>
 
