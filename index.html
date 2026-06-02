@@ -675,6 +675,13 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cl-card-body.open { display: block; }
 .cl-card-memo { background: #f9fafb; border-radius: 5px; padding: 5px 8px; font-size: 11px; color: #6b7280; margin-bottom: 6px; white-space: pre-wrap; }
 .cl-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.cl-cr-group { margin-bottom: 6px; }
+.cl-cr-group:last-child { margin-bottom: 0; }
+.cl-cr-group-label { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-bottom: 4px; display: inline-block; }
+.cl-cr-group.kita .cl-cr-group-label { background: #bfdbfe; color: #1e40af; }
+.cl-cr-group.kuri .cl-cr-group-label { background: #fed7aa; color: #92400e; }
+.cl-cr-group.kita { background: #eff6ff; border-radius: 5px; padding: 5px 6px; }
+.cl-cr-group.kuri { background: #fff7ed; border-radius: 5px; padding: 5px 6px; }
 .cl-chip { position: relative; display: inline-flex; align-items: center; background: #eef2ff; color: #3730a3; border-radius: 20px; padding: 2px 9px; font-size: 11px; cursor: pointer; border: 1.5px solid transparent; transition: background .15s; user-select: none; }
 .cl-chip:hover { background: #e0e7ff; }
 .cl-chip.done { background: #dcfce7; color: #15803d; border-color: #86efac; text-decoration: line-through; opacity: .75; }
@@ -4558,7 +4565,8 @@ function checklistBarHtml() {
     var progCls = allDone ? ' all-done' : '';
     var memoHtml = cl.memo ? '<div class="cl-card-memo">' + esc(cl.memo) + '</div>' : '';
 
-    var chips = items.map(function(it, idx) {
+    // チップ生成ヘルパー
+    function makeChip(it, originalIdx) {
       var doneCls = it.done ? ' done' : '';
       var popupRows = active.map(function(cl2) {
         var it2 = (cl2.items || []).find(function(x) { return x.name === it.name; });
@@ -4569,12 +4577,46 @@ function checklistBarHtml() {
           : '<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#9ca3af\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>';
         return '<div class=\"cl-chip-popup-row' + rowCls + '\">' + ico + ' ' + esc(cl2.title) + '</div>';
       }).join('');
-
-      return '<span class="cl-chip' + doneCls + '" onclick="event.stopPropagation();clChipClick(\'' + cl.id + '\',' + idx + ',this)">' +
+      return '<span class="cl-chip' + doneCls + '" onclick="event.stopPropagation();clChipClick(\'' + cl.id + '\',' + originalIdx + ',this)">' +
         esc(it.name) +
         '<span class="cl-chip-popup"><div class="cl-chip-popup-name">' + esc(it.name) + '</div>' + popupRows + '</span>' +
         '</span>';
+    }
+
+    // 並び順: 教室別 → 学年順 → 未完了優先
+    var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+    var CR_ORDER = ['北久里浜', '久里浜'];
+
+    // items に originalIdx を付けてソート
+    var itemsWithIdx = items.map(function(it, i) { return { it: it, idx: i }; });
+    itemsWithIdx.sort(function(a, b) {
+      var crA = CR_ORDER.indexOf(a.it.classroom || '');
+      var crB = CR_ORDER.indexOf(b.it.classroom || '');
+      if (crA === -1) crA = 99; if (crB === -1) crB = 99;
+      if (crA !== crB) return crA - crB;
+      var gA = GRADE_ORDER.indexOf(a.it.grade || '');
+      var gB = GRADE_ORDER.indexOf(b.it.grade || '');
+      if (gA === -1) gA = 99; if (gB === -1) gB = 99;
+      return gA - gB;
+    });
+
+    // 教室ごとにグループ化してHTML生成
+    var crGroups = {};
+    var crList = [];
+    itemsWithIdx.forEach(function(obj) {
+      var cr = obj.it.classroom || '（未設定）';
+      if (!crGroups[cr]) { crGroups[cr] = []; crList.push(cr); }
+      crGroups[cr].push(obj);
+    });
+    var chips = crList.map(function(cr) {
+      var crCls = cr === '北久里浜' ? ' kita' : cr === '久里浜' ? ' kuri' : '';
+      var chipsHtml = crGroups[cr].map(function(obj) { return makeChip(obj.it, obj.idx); }).join('');
+      return '<div class="cl-cr-group' + crCls + '">' +
+        '<div class="cl-cr-group-label">' + esc(cr) + '</div>' +
+        '<div class="cl-chips">' + chipsHtml + '</div>' +
+        '</div>';
     }).join('');
+    chips = '<div>' + chips + '</div>';
 
     var bodyId = 'cl-body-' + cl.id;
     var cardId = 'cl-card-' + cl.id;
