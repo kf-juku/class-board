@@ -4457,6 +4457,8 @@ function submitQuickAdd(uid, classroom, taskType) {
 
 // ClassBoard からGカレに登録する関数
 function pushCbTaskToGcal(task, taskUrl) {
+  // dueTime がない場合は登録しない
+  if (!task.dueTime) return;
   // gcal_settings のマッピングを使うため、Task Manager GAS に createCalendarEvent を呼ぶ
   // classroom → calendarId のマッピングはTask Manager側のgcal_settingsに依存
   // まずgcal_settingsを取得してから登録する
