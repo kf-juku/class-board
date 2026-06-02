@@ -4557,9 +4557,17 @@ function renderClStudentList() {
 
   var filtered = _students.filter(function(s) {
     if (s.status !== '在籍') return false;
-    var sType = (s.course === 'CA' || (s.komaList || []).some(function(k){ return k.courseType === 'CA'; })) ? 'CA' : '塾';
-    if (!types.includes(sType)) return false;
-    if (!crs.includes(s.classroom || '')) return false;
+    // 種別フィルター（attrJuku/attrCa）
+    var matchType = false;
+    if (types.includes('塾') && s.attrJuku) matchType = true;
+    if (types.includes('CA') && s.attrCa) matchType = true;
+    if (!matchType) return false;
+    // 教室フィルター（komasから教室を取得）
+    var komas = s.komas || [];
+    var crSet = komas.map(function(k){ return k.classroom || ''; });
+    var matchCr = crs.some(function(cr){ return crSet.indexOf(cr) !== -1; });
+    if (komas.length > 0 && !matchCr) return false;
+    // 学年フィルター
     if (!grades.includes(s.grade || '')) return false;
     return true;
   });
@@ -4572,10 +4580,11 @@ function renderClStudentList() {
   }
 
   listEl.innerHTML = filtered.map(function(s) {
+    var crList = (s.komas||[]).map(function(k){return k.classroom||'';}).filter(function(c,i,a){return a.indexOf(c)===i;}).join('・');
     return '<label class="cl-student-item">' +
-      '<input type="checkbox" class="cl-s-check" data-uid="' + s.uid + '" data-name="' + esc(s.name) + '" data-grade="' + esc(s.grade||'') + '" data-cr="' + esc(s.classroom||'') + '" checked>' +
+      '<input type="checkbox" class="cl-s-check" data-uid="' + (s.uid||s.name) + '" data-name="' + esc(s.name) + '" data-grade="' + esc(s.grade||'') + '" data-cr="' + esc(crList) + '" checked>' +
       '<span>' + esc(s.name) + '</span>' +
-      '<span style="font-size:11px;color:#9ca3af;margin-left:4px">' + esc(s.grade||'') + ' ' + esc(s.classroom||'') + '</span>' +
+      '<span style="font-size:11px;color:#9ca3af;margin-left:4px">' + esc(s.grade||'') + ' ' + esc(crList) + '</span>' +
       '</label>';
   }).join('');
 
