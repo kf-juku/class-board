@@ -4590,8 +4590,8 @@ function checklistBarHtml() {
     // items に originalIdx を付けてソート
     var itemsWithIdx = items.map(function(it, i) { return { it: it, idx: i }; });
     itemsWithIdx.sort(function(a, b) {
-      var crA = CR_ORDER.indexOf(a.it.classroom || '');
-      var crB = CR_ORDER.indexOf(b.it.classroom || '');
+      var crA = CR_ORDER.indexOf((a.it.classroom || '').split(/[・,]/)[0].trim());
+      var crB = CR_ORDER.indexOf((b.it.classroom || '').split(/[・,]/)[0].trim());
       if (crA === -1) crA = 99; if (crB === -1) crB = 99;
       if (crA !== crB) return crA - crB;
       var gA = GRADE_ORDER.indexOf(a.it.grade || '');
@@ -4604,7 +4604,7 @@ function checklistBarHtml() {
     var crGroups = {};
     var crList = [];
     itemsWithIdx.forEach(function(obj) {
-      var cr = obj.it.classroom || '（未設定）';
+      var cr = (obj.it.classroom || '').split(/[・,]/)[0].trim() || '（未設定）';
       if (!crGroups[cr]) { crGroups[cr] = []; crList.push(cr); }
       crGroups[cr].push(obj);
     });
@@ -4796,7 +4796,7 @@ function renderClStudentList() {
   }
 
   listEl.innerHTML = filtered.map(function(s) {
-    var crList = (s.komas||[]).map(function(k){return k.classroom||'';}).filter(function(c,i,a){return a.indexOf(c)===i;}).join('・');
+    var crList = getMainClassroom(s) || '';
     var chk = renderClStudentList._noCheck ? '' : ' checked';
     return '<label class="cl-student-item">' +
       '<input type="checkbox" class="cl-s-check" data-uid="' + (s.uid||s.name) + '" data-name="' + esc(s.name) + '" data-grade="' + esc(s.grade||'') + '" data-cr="' + esc(crList) + '"' + chk + '>' +
@@ -4846,7 +4846,8 @@ function submitChecklist() {
 
   var items = [];
   document.getElementById('cl-student-list').querySelectorAll('.cl-s-check:checked').forEach(function(cb) {
-    items.push({ uid: cb.dataset.uid, name: cb.dataset.name, grade: cb.dataset.grade, classroom: cb.dataset.cr, done: false, doneAt: '' });
+    var firstCr = cb.dataset.cr || '';
+    items.push({ uid: cb.dataset.uid, name: cb.dataset.name, grade: cb.dataset.grade, classroom: firstCr, done: false, doneAt: '' });
   });
   if (items.length === 0) { miniToast('対象者を1名以上選択してください'); return; }
 
