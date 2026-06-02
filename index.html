@@ -4506,11 +4506,10 @@ function checklistBarHtml() {
   var active = _checklists.filter(function(cl) {
     return cl.status !== 'done' && cl.startDate <= todayIso;
   });
-  if (active.length === 0) return '';
-
   var ico_list = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
   var ico_plus = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 
+  var emptyMsg = active.length === 0 ? '<div style="padding:8px 14px;font-size:12px;color:#9ca3af">チェックリストはありません</div>' : '';
   var items = active.map(function(cl) {
     var done = (cl.items || []).filter(function(it) { return it.done; }).length;
     var total = (cl.items || []).length;
@@ -4524,7 +4523,7 @@ function checklistBarHtml() {
   return '<div class="cl-bar">' +
     '<div class="cl-bar-header">' + ico_list + ' チェックリスト' +
     '<button class="cl-add-btn" onclick="event.stopPropagation();openAddChecklist()">' + ico_plus + ' 追加</button>' +
-    '</div>' + items + '</div>';
+    '</div>' + emptyMsg + items + '</div>';
 }
 
 // ── 作成モーダルを開く ──
