@@ -667,13 +667,13 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   <div class="modal">
     <div class="modal-header">
       <span id="task-modal-title">タスク詳細</span>
-      <span class="modal-close" onclick="closeTaskModal()">✕</span>
+      <span class="modal-close" onclick="closeTaskModal()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
     </div>
     <div class="modal-body" id="task-modal-body"></div>
     <div class="modal-footer" id="task-modal-footer">
       <button class="btn-secondary" onclick="closeTaskModal()">閉じる</button>
-      <button class="btn-primary"   id="task-btn-save"   onclick="submitTaskEdit()"    style="display:none">💾 保存</button>
-      <button class="btn-primary"   id="task-btn-done"   onclick="completeTask()"      style="display:none">✓ 完了</button>
+      <button class="btn-secondary" id="task-btn-save"   onclick="submitTaskEdit()"    style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 保存</button>
+      <button class="btn-primary"   id="task-btn-done"   onclick="completeTask()"      style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><polyline points="20 6 9 12 4 10"/></svg> 完了</button>
     </div>
   </div>
 </div>
@@ -683,7 +683,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
       <span>欠席を記録</span>
-      <span class="modal-close" onclick="closeModal('modal-absence')">✕</span>
+      <span class="modal-close" onclick="closeModal('modal-absence')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
     </div>
     <div class="modal-body">
       <!-- 生徒名・コマ情報 -->
@@ -884,7 +884,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   <div class="school-detail-panel" id="school-detail-panel">
     <div class="sdp-header">
       <span class="sdp-title" id="sdp-title">学校詳細</span>
-      <button class="modal-close" onclick="closeSchoolDetail()">✕</button>
+      <button class="modal-close" onclick="closeSchoolDetail()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="sdp-body" id="sdp-body"></div>
   </div>
@@ -898,7 +898,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   <div class="modal" style="max-width:360px;width:90%">
     <div class="modal-header">
       <span>定期テスト日程を登録</span>
-      <button class="modal-close" onclick="closeModal('modal-exam-schedule')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-exam-schedule')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body" id="modal-exam-schedule-body"></div>
   </div>
@@ -908,7 +908,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   <div class="modal" style="max-width:420px">
     <div class="modal-header">
       <span id="modal-add-event-title">行事を追加</span>
-      <button class="modal-close" onclick="if(event.target===this)closeModal('modal-add-event')">✕</button>
+      <button class="modal-close" onclick="if(event.target===this)closeModal('modal-add-event')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="event-target-school" />
@@ -1584,7 +1584,7 @@ function renderToday() {
   function makeQuickAddBtn(cr, taskType, uid) {
     var today = getTodayStr();
     return '<div class="quick-add-wrap" id="qa-wrap-' + uid + '">' +
-      '<button class="quick-add-btn" onclick="toggleQuickAdd(\'' + uid + '\')" title="タスクを追加">＋</button>' +
+      '<button class="quick-add-btn" onclick="toggleQuickAdd(\'' + uid + '\')" title="タスクを追加"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
       '<div class="quick-add-form" id="qa-form-' + uid + '" style="display:none;clear:both;margin-top:6px">' +
         '<input type="text" id="qa-title-' + uid + '" placeholder="タスク内容を入力..." class="quick-add-input" />' +
         '<input type="text" id="qa-memo-' + uid  + '" placeholder="メモ（任意）" class="quick-add-input" style="font-size:11px;margin-top:4px" />' +
@@ -1594,7 +1594,7 @@ function renderToday() {
           '<input type="time" id="qa-time-' + uid + '" value="" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
           '<select id="qa-cat-' + uid + '" onchange="onCbQuickCatChange(\'' + uid + '\')" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option><option value="振替">振替</option></select>' +
           '<button class="btn-primary btn-sm" onclick="submitQuickAdd(\'' + uid + '\',\'' + esc(cr) + '\',\'' + taskType + '\')">追加</button>' +
-          '<button class="btn-secondary btn-sm" onclick="toggleQuickAdd(\'' + uid + '\')">✕</button>' +
+          '<button class="btn-secondary btn-sm" onclick="toggleQuickAdd(\'' + uid + '\')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1618,11 +1618,11 @@ function renderToday() {
     '<div class="print-header">本日の時間割　' + todayLabel + '　' + _currentClassroom + '</div>' +
     alerts +
     '<div class="task-bar">' +
-    '<div class="task-bar-header"><div class="task-bar-label">📝 今日のタスク' + taskBadge +
+    '<div class="task-bar-header"><div class="task-bar-label" style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> 今日のタスク' + taskBadge +
     '<span class="cb-help"><span class="cb-help-icon">?</span>' +
     '<span class="cb-help-body">【自動持越し】期日を過ぎた授業内外タスクは、毎日自動で今日の日付に持越されます。完了ボタンを押すか、期日を未来に変更するまで毎日繰り越されます。<br><br>【クイック追加】各エリアの「＋ タスクを追加」から追加したタスクはタスクマネージャーにも反映されます。<br><br>【操作方法】タスクをタップすると期日変更・完了ができます。</span>' +
     '</span></div>' +
-    '<button class="btn-primary btn-sm" onclick="openAddTestModal(\'\')" style="font-size:12px;margin-left:auto">＋ 小テスト追加</button>' +
+    '<button class="btn-primary btn-sm" onclick="openAddTestModal(\'\')" style="font-size:12px;margin-left:auto"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 小テスト追加</button>' +
     '</div>' +
     '<div class="task-bar-cols">' + kitaCol + kuriCol + '</div>' +
     '</div>' +
@@ -1703,7 +1703,7 @@ function examStrategySection(todayIso) {
     h += '<span style="font-size:12px;font-weight:700;color:' + (isPast?'#6b7280':'var(--text)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.unitName) + '</span>';
     h += '</div>';
     if (metaParts.length) h += '<div style="font-size:10px;color:' + textCol + ';margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(metaParts.join('　')) + '</div>';
-    if (r.materials) h += '<div style="font-size:10px;color:' + (isPast?'#9ca3af':'#059669') + ';margin-top:1px">📄 ' + esc(r.materials) + '</div>';
+    if (r.materials) h += '<div style="font-size:10px;color:' + (isPast?'#9ca3af':'#059669') + ';margin-top:1px;display:flex;align-items:center;gap:3px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> ' + esc(r.materials) + '</div>';
     h += '</div>';
     h += '<div class="rec-popup">' + popRows + '</div>';
     h += '</div>';
@@ -1731,7 +1731,7 @@ function examStrategySection(todayIso) {
                    : info.daysLeft === 0 ? '（本日テスト！）' : '（テスト中）';
 
     html += '<div style="border:1px solid;border-radius:8px;padding:12px 14px;margin-top:12px;' + urgency + '">';
-    html += '<div style="font-size:13px;font-weight:700;color:' + ttColor + ';margin-bottom:10px">📝 定期テスト対策：' + esc(info.testType) + ' <span style="font-size:12px;font-weight:400">' + countLabel + '</span></div>';
+    html += '<div style="font-size:13px;font-weight:700;color:' + ttColor + ';margin-bottom:10px;display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 定期テスト対策：' + esc(info.testType) + ' <span style="font-size:12px;font-weight:400">' + countLabel + '</span></div>';
 
     // ── 今年度データ ──
     if (curRecs.length) {
@@ -2068,7 +2068,7 @@ function buildWeekGrid(days, todayIso) {
     }).join('');
 
   // ===== タスク行（ヘッダー直下） =====
-  var taskRow = '<div class="wg-label wg-task-label">📝 タスク</div>' +
+  var taskRow = '<div class="wg-label wg-task-label" style="display:flex;align-items:center;justify-content:center;gap:3px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> タスク</div>' +
     days.map(function(d, i) {
       var iso = isoDate(d);
       var todayCls = iso === todayIso ? ' today-col' : '';
@@ -2161,7 +2161,7 @@ function renderModeTabs() {
       '<span class="del-btn" onclick="deleteMode(\'' + m.modeId + '\',\'' + esc(m.modeName) + '\')" title="削除">×</span>' +
       '</div>';
   });
-  html += '<button class="mode-add-btn" onclick="openModal(\'modal-add-mode\')">＋ 追加</button></div>';
+  html += '<button class="mode-add-btn" onclick="openModal(\'modal-add-mode\')">  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 追加</button></div>';
   return html;
 }
 
@@ -2212,7 +2212,7 @@ function renderSchool() {
 
   var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
     '<div style="font-weight:700;font-size:15px">学校一覧（' + schools.length + '校）</div>' +
-    '<button class="btn-primary btn-sm" onclick="openModal(\'modal-add-school\')">＋ 学校を追加</button></div>';
+    '<button class="btn-primary btn-sm" onclick="openModal(\'modal-add-school\')">  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 学校を追加</button></div>';
 
   if (!schools.length) {
     html += '<div class="card"><div class="card-body"><p style="color:var(--text-muted)">GAS URLを設定して生徒データを読み込むと学校が表示されます。</p></div></div>';
@@ -2302,13 +2302,13 @@ function renderSchool() {
       if (nextEvent) {
         var dateStr = isoDate(new Date(nextEvent.eventDate));
         if (nextEvent.eventEndDate) dateStr += '〜' + isoDate(new Date(nextEvent.eventEndDate)).slice(5);
-        g += '<div class="ssc-row ssc-event">📅 ' + dateStr + ' ' + esc(nextEvent.eventName) +
+        g += '<div class="ssc-row ssc-event" style="display:flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' + dateStr + ' ' + esc(nextEvent.eventName) +
           (nextEvent.grade ? ' <span class="badge badge-gray" style="font-size:9px">' + esc(nextEvent.grade) + '</span>' : '') + '</div>';
       }
 
       // 直近小テスト
       if (nextTest) {
-        g += '<div class="ssc-row ssc-test">📝 ' + esc(nextTest.dueDate || '') + ' ' +
+        g += '<div class="ssc-row ssc-test" style="display:flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> ' + esc(nextTest.dueDate || '') + ' ' +
           (nextTest.grade ? '<span class="badge badge-gray" style="font-size:9px">' + esc(nextTest.grade) + '</span> ' : '') +
           esc(nextTest.taskName || '') + '</div>';
       }
@@ -2489,7 +2489,7 @@ function openSchoolDetail(schoolName) {
   var events = _schoolEvents.filter(function(ev){ return ev.school===schoolName; })
     .sort(function(a,b){ return a.eventDate>b.eventDate?1:-1; });
   html += '<div class="sdp-section"><div class="sdp-section-label">🎌 行事' +
-    '<button class="btn-primary btn-sm" onclick="event.stopPropagation();openAddEventModal(this.dataset.school)" data-school="'+schoolName.replace(/"/g,'&quot;')+'">＋ 追加</button></div>';
+    '<button class="btn-primary btn-sm" onclick="event.stopPropagation();openAddEventModal(this.dataset.school)" data-school="'+schoolName.replace(/"/g,'&quot;')+'">  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 追加</button></div>';
   if (events.length) {
     events.forEach(function(ev) {
       var daysLeft = ev.eventDate ? Math.ceil((new Date(ev.eventDate)-new Date(today))/86400000) : null;
@@ -2511,7 +2511,7 @@ function openSchoolDetail(schoolName) {
   // ── 小テスト ──
   var tests = _schoolTasks.filter(function(t){ return t.school===schoolName; })
     .sort(function(a,b){ return (a.dueDate||'')>(b.dueDate||'')?1:-1; });
-  html += '<div class="sdp-section"><div class="sdp-section-label">📝 小テスト</div>';
+  html += '<div class="sdp-section"><div class="sdp-section-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 小テスト</div>';
   if (tests.length) {
     tests.forEach(function(t) {
       html += '<div class="test-item">' +
@@ -2526,7 +2526,7 @@ function openSchoolDetail(schoolName) {
   // ── メモ ──
   var info = _schoolInfo.find(function(si) { return si.school === schoolName; });
   var currentNote = info ? (info.note || '') : '';
-  html += '<div class="sdp-section"><div class="sdp-section-label">📝 メモ</div>' +
+  html += '<div class="sdp-section"><div class="sdp-section-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> メモ</div>' +
     '<textarea class="sc-memo" style="width:100%;min-height:80px;font-size:13px" ' +
     'placeholder="学校に関するメモ（テスト傾向・特記事項など）" ' +
     'data-school="' + esc(schoolName) + '" ' +
@@ -2600,7 +2600,7 @@ function openAddTestModal(school) {
   document.getElementById('test-start-date').value = '';
   document.querySelectorAll('.test-grade').forEach(function(cb) { cb.checked = false; });
   document.querySelectorAll('#test-subj-btns .subj-btn').forEach(function(b){ b.classList.remove('active'); });
-  document.getElementById('modal-add-test-title').textContent = school ? 'テスト予定を追加（' + school + '）' : '📅 小テスト追加';
+  document.getElementById('modal-add-test-title').textContent = school ? 'テスト予定を追加（' + school + '）' : '小テスト追加';
   openModal('modal-add-test');
 }
 
@@ -2701,8 +2701,8 @@ function renderExam() {
   // テスト日程セクション
   var schedHtml = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin-bottom:16px">';
   schedHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-  schedHtml += '<div style="font-size:13px;font-weight:700;color:#15803d">📅 定期テスト日程</div>';
-  schedHtml += '<button class="btn-sm" style="background:#15803d;color:#fff;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer" onclick="openExamScheduleModal()">＋ 定期テスト日程を追加</button>';
+  schedHtml += '<div style="font-size:13px;font-weight:700;color:#15803d;display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 定期テスト日程</div>';
+  schedHtml += '<button class="btn-sm" style="background:#15803d;color:#fff;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer" onclick="openExamScheduleModal()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 定期テスト日程を追加</button>';
   schedHtml += '</div>';
 
   // テスト日程は常に最新年度（現在年度）を表示
@@ -2734,7 +2734,7 @@ function renderExam() {
   var html = schedHtml;
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
     + '<div style="font-size:15px;font-weight:700">定期テスト対策DB</div>'
-    + '<button class="btn-primary btn-sm" onclick="addNewExamCard()">＋ 追加</button>'
+    + '<button class="btn-primary btn-sm" onclick="addNewExamCard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 追加</button>'
     + '</div>';
 
   // 学年フィルタ
@@ -2973,7 +2973,7 @@ function buildExamCardCompact(r) {
     + ' style="cursor:pointer;background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:3px 5px;margin-bottom:3px;font-size:11px">';
   h += '<div style="font-weight:700;color:var(--text);line-height:1.3;margin-bottom:1px">' + esc(r.unitName||'（未入力）') + '</div>';
   if (schools) h += '<div style="color:#6b7280;font-size:10px">' + esc(schools) + '</div>';
-  if (r.materials) h += '<div style="color:#059669;font-size:10px">📄 ' + esc(r.materials) + '</div>';
+  if (r.materials) h += '<div style="color:#059669;font-size:10px;display:flex;align-items:center;gap:3px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> ' + esc(r.materials) + '</div>';
   h += '</div>';
   return h;
 }
@@ -2994,7 +2994,7 @@ function buildExamCard(s) {
     + 'data-rid="' + s.recordId + '" onclick="event.stopPropagation();deleteExamStrategy(this.dataset.rid)">削除</button>'
     + '</div>'
     + '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(metaLine) + '</div>'
-    + (s.materials ? '<div style="font-size:10px;color:#059669;margin-top:1px">📄 ' + esc(s.materials) + '</div>' : '')
+    + (s.materials ? '<div style="font-size:10px;color:#059669;margin-top:1px;display:flex;align-items:center;gap:3px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> ' + esc(s.materials) + '</div>' : '')
     + '</div>';
 }
 
@@ -3783,7 +3783,7 @@ function renderSettings() {
 
   document.getElementById('main-content').innerHTML =
     '<div style="max-width:640px">' +
-    '<div class="card" style="margin-bottom:16px"><div class="card-header">👤 使用者設定</div><div class="card-body">' +
+    '<div class="card" style="margin-bottom:16px"><div class="card-header" style="display:flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 使用者設定</div><div class="card-body">' +
     '<div class="setting-section"><div class="setting-label">使用者名' +
     '<span class="gs-help"><span class="gs-help-icon">?</span>' +
     '<span class="gs-help-body">タスクの持越し・完了操作のログに使用します。<br>この端末に保存されます（他の端末には影響しません）。</span></span>' +
@@ -3804,9 +3804,9 @@ function renderSettings() {
     '<input class="setting-input" id="s-task-url" value="' + esc(tu) + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
     '<button class="btn-primary" onclick="saveSettings()">保存して再読み込み</button>' +
     '</div></div>' +
-    '<div class="card"><div class="card-header">📋 時間割モード管理</div><div class="card-body">' +
+    '<div class="card"><div class="card-header" style="display:flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> 時間割モード管理</div><div class="card-body">' +
     modeListHtml +
-    '<div style="margin-top:10px"><button class="btn-primary btn-sm" onclick="openModal(\'modal-add-mode\')">＋ モードを追加</button></div>' +
+    '<div style="margin-top:10px"><button class="btn-primary btn-sm" onclick="openModal(\'modal-add-mode\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> モードを追加</button></div>' +
     '</div></div></div>';
 }
 
