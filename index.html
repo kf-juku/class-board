@@ -4663,7 +4663,7 @@ function checklistBarHtml() {
     var done = (cl.items || []).filter(function(it) { return it.done; }).length;
     var total = (cl.items || []).length;
     var allDone = done === total && total > 0;
-    return '<div class="cl-item" onclick="openChecklistDetail('' + cl.id + '')">' +
+    return '<div class="cl-item" onclick="openChecklistDetail(\'' + cl.id + '\')">' +
       '<div class="cl-item-title">' + esc(cl.title) + '</div>' +
       '<div class="cl-item-progress' + (allDone ? ' done' : '') + '">' + done + '/' + total + '名</div>' +
       '</div>';
@@ -4810,7 +4810,7 @@ function renderClDetailBody(cl) {
     var btnLabel = it.done ? '✓ 完了済み' : '完了にする';
     return '<div class="cl-detail-row">' +
       '<div class="cl-detail-name">' + esc(it.name) + '<span class="cl-detail-meta"> ' + esc(it.grade||'') + ' ' + esc(it.classroom||'') + '</span></div>' +
-      '<button class="' + btnCls + '" onclick="toggleClItem('' + cl.id + '',' + idx + ')">' + btnLabel + '</button>' +
+      '<button class="' + btnCls + '" onclick="toggleClItem(\'' + cl.id + '\',' + idx + ')">' + btnLabel + '</button>' +
       '</div>';
   }).join('');
   document.getElementById('cl-detail-body').innerHTML = html;
