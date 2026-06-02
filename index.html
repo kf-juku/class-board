@@ -707,7 +707,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 </div>
 <!-- チェックリスト作成モーダル -->
 <div class="modal-overlay" id="modal-add-checklist">
-  <div class="modal" style="max-width:520px">
+  <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
     <div class="modal-header">
       <span>チェックリストを作成</span>
       <span class="modal-close" onclick="closeModal('modal-add-checklist')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
@@ -725,28 +725,28 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
         <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">対象者を絞り込む</label>
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">種別</div>
         <div class="cl-filter-row" id="cl-filter-type">
-          <span class="cl-filter-chip active" data-val="塾">塾</span>
-          <span class="cl-filter-chip active" data-val="CA">CA</span>
+          <span class="cl-filter-chip" data-val="塾">塾</span>
+          <span class="cl-filter-chip" data-val="CA">CA</span>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">教室</div>
         <div class="cl-filter-row" id="cl-filter-cr">
-          <span class="cl-filter-chip active" data-val="北久里浜">北久里浜</span>
-          <span class="cl-filter-chip active" data-val="久里浜">久里浜</span>
+          <span class="cl-filter-chip" data-val="北久里浜">北久里浜</span>
+          <span class="cl-filter-chip" data-val="久里浜">久里浜</span>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">学年</div>
         <div class="cl-filter-row" id="cl-filter-grade">
-          <span class="cl-filter-chip active" data-val="小1">小1</span>
-          <span class="cl-filter-chip active" data-val="小2">小2</span>
-          <span class="cl-filter-chip active" data-val="小3">小3</span>
-          <span class="cl-filter-chip active" data-val="小4">小4</span>
-          <span class="cl-filter-chip active" data-val="小5">小5</span>
-          <span class="cl-filter-chip active" data-val="小6">小6</span>
-          <span class="cl-filter-chip active" data-val="中1">中1</span>
-          <span class="cl-filter-chip active" data-val="中2">中2</span>
-          <span class="cl-filter-chip active" data-val="中3">中3</span>
-          <span class="cl-filter-chip active" data-val="高1">高1</span>
-          <span class="cl-filter-chip active" data-val="高2">高2</span>
-          <span class="cl-filter-chip active" data-val="高3">高3</span>
+          <span class="cl-filter-chip" data-val="小1">小1</span>
+          <span class="cl-filter-chip" data-val="小2">小2</span>
+          <span class="cl-filter-chip" data-val="小3">小3</span>
+          <span class="cl-filter-chip" data-val="小4">小4</span>
+          <span class="cl-filter-chip" data-val="小5">小5</span>
+          <span class="cl-filter-chip" data-val="小6">小6</span>
+          <span class="cl-filter-chip" data-val="中1">中1</span>
+          <span class="cl-filter-chip" data-val="中2">中2</span>
+          <span class="cl-filter-chip" data-val="中3">中3</span>
+          <span class="cl-filter-chip" data-val="高1">高1</span>
+          <span class="cl-filter-chip" data-val="高2">高2</span>
+          <span class="cl-filter-chip" data-val="高3">高3</span>
         </div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:6px">
@@ -4530,10 +4530,10 @@ function checklistBarHtml() {
 function openAddChecklist() {
   document.getElementById('cl-new-title').value = '';
   document.getElementById('cl-new-date').value = isoDate(new Date());
-  // フィルターチップをすべてactiveに戻す
+  // フィルターチップをすべてOFF（active なし）にリセット
   ['cl-filter-type','cl-filter-cr','cl-filter-grade'].forEach(function(id) {
     document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
-      c.classList.add('active');
+      c.classList.remove('active');
     });
   });
   // フィルターイベント設定
@@ -4557,18 +4557,24 @@ function renderClStudentList() {
 
   var filtered = _students.filter(function(s) {
     if (s.status !== '在籍') return false;
-    // 種別フィルター（attrJuku/attrCa）
-    var matchType = false;
-    if (types.includes('塾') && s.attrJuku) matchType = true;
-    if (types.includes('CA') && s.attrCa) matchType = true;
-    if (!matchType) return false;
-    // 教室フィルター（komasから教室を取得）
     var komas = s.komas || [];
     var crSet = komas.map(function(k){ return k.classroom || ''; });
-    var matchCr = crs.some(function(cr){ return crSet.indexOf(cr) !== -1; });
-    if (komas.length > 0 && !matchCr) return false;
-    // 学年フィルター
-    if (!grades.includes(s.grade || '')) return false;
+    // 種別フィルター：ONのものがあれば絞る（なければ全員通す）
+    if (types.length > 0) {
+      var matchType = false;
+      if (types.indexOf('塾') !== -1 && s.attrJuku) matchType = true;
+      if (types.indexOf('CA') !== -1 && s.attrCa) matchType = true;
+      if (!matchType) return false;
+    }
+    // 教室フィルター：ONのものがあれば絞る
+    if (crs.length > 0) {
+      var matchCr = crs.some(function(cr){ return crSet.indexOf(cr) !== -1; });
+      if (!matchCr) return false;
+    }
+    // 学年フィルター：ONのものがあれば絞る
+    if (grades.length > 0) {
+      if (grades.indexOf(s.grade || '') === -1) return false;
+    }
     return true;
   });
 
