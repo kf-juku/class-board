@@ -4578,12 +4578,14 @@ function checklistBarHtml() {
 
     var bodyId = 'cl-body-' + cl.id;
     var cardId = 'cl-card-' + cl.id;
-    return '<div class="cl-card" id="' + cardId + '">' +
-      '<div class="cl-card-header collapsed" onclick="clToggleCard(\'' + bodyId + '\',this)">' +
+    var ico_x = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    return '<div class="cl-card" id="' + cardId + '" data-cl-id="' + cl.id + '">' +
+      '<div class="cl-card-header collapsed" onclick="clToggleCard(\'' + cl.id + '\',this)">' +
       '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' +
       '<span class="cl-card-title">' + esc(cl.title) + '</span>' +
       '<span class="cl-card-progress' + progCls + '">' + doneCount + '/' + total + '</span>' +
       '<span class="cl-chevron">' + ico_chev + '</span>' +
+      '<button onclick="event.stopPropagation();clDeleteCard(\'' + cl.id + '\')" title="削除" style="margin-left:4px;flex-shrink:0;background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px;display:flex;align-items:center;border-radius:3px" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#9ca3af\'">' + ico_x + '</button>' +
       '</div>' +
       '<div class="cl-card-body" id="' + bodyId + '">' +
       memoHtml +
@@ -4595,13 +4597,51 @@ function checklistBarHtml() {
   return '<div class="cl-grid">' + cards + '</div>';
 }
 
-function clToggleCard(bodyId, hdrEl) {
+function clToggleCard(clId, hdrEl) {
+  var bodyId = 'cl-body-' + clId;
   var body = document.getElementById(bodyId);
   var isOpen = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  hdrEl.classList.toggle('collapsed', isOpen);
+  var toOpen = !isOpen;
+
+  // 自分を開閉
+  body.classList.toggle('open', toOpen);
+  hdrEl.classList.toggle('collapsed', !toOpen);
   var chev = hdrEl.querySelector('.cl-chevron');
-  if (chev) chev.classList.toggle('open', !isOpen);
+  if (chev) chev.classList.toggle('open', toOpen);
+
+  // 同じグリッド行の相手カードも連動
+  var myCard = document.getElementById('cl-card-' + clId);
+  if (!myCard) return;
+  var grid = myCard.parentElement;
+  if (!grid || !grid.classList.contains('cl-grid')) return;
+  var cards = Array.from(grid.querySelectorAll(':scope > .cl-card'));
+  var myIdx = cards.indexOf(myCard);
+  // 2列グリッドなので同行の相手 = myIdx ^ 1
+  var pairIdx = myIdx % 2 === 0 ? myIdx + 1 : myIdx - 1;
+  if (pairIdx < 0 || pairIdx >= cards.length) return;
+  var pairCard = cards[pairIdx];
+  var pairClId = pairCard.dataset.clId;
+  if (!pairClId) return;
+  var pairBody = document.getElementById('cl-body-' + pairClId);
+  var pairHdr = pairCard.querySelector('.cl-card-header');
+  if (!pairBody || !pairHdr) return;
+  pairBody.classList.toggle('open', toOpen);
+  pairHdr.classList.toggle('collapsed', !toOpen);
+  var pairChev = pairHdr.querySelector('.cl-chevron');
+  if (pairChev) pairChev.classList.toggle('open', toOpen);
+}
+
+function clDeleteCard(clId) {
+  var cl = _checklists.find(function(c) { return c.id === clId; });
+  if (!cl) return;
+  if (!confirm('「' + cl.title + '」を削除しますか？')) return;
+  _checklists = _checklists.filter(function(c) { return c.id !== clId; });
+  rerenderCurrentTab();
+  miniToast('チェックリストを削除しました ✓');
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (taskUrl) {
+    callGas(taskUrl, { action: 'deleteChecklist', id: clId }, null, 'POST');
+  }
 }
 
 function clChipClick(clId, idx, chipEl) {
