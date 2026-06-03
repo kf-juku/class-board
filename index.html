@@ -456,6 +456,8 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .task-chip-del { margin-left: 4px; opacity: 0.5; font-size: 11px; cursor: pointer; }
 .task-chip-del:hover { opacity: 1; color: var(--crimson); }
 .chip-out     { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+.chip-kita    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.chip-kuri    { background: #fff7ed; color: #92400e; border: 1px solid #fed7aa; }
 .chip-overdue { background: #fff1f1; color: var(--crimson); border: 1px solid #fecaca; }
 /* 欠席ボタン */
 .absence-btn { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:4px; border:1px solid #d1d5db; background:#f9fafb; color:#9ca3af; font-size:9px; font-weight:700; cursor:pointer; padding:0; line-height:1; flex-shrink:0; transition:all .15s; }
@@ -674,14 +676,14 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cl-card-body { display: none; padding: 8px 10px; }
 .cl-card-body.open { display: block; }
 .cl-card-memo { background: #f9fafb; border-radius: 5px; padding: 5px 8px; font-size: 11px; color: #6b7280; margin-bottom: 6px; white-space: pre-wrap; }
-.cl-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.cl-cr-group { margin-bottom: 6px; }
-.cl-cr-group:last-child { margin-bottom: 0; }
+.cl-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.cl-cr-group { flex: 1; min-width: 0; }
 .cl-cr-group-label { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-bottom: 4px; display: inline-block; }
 .cl-cr-group.kita .cl-cr-group-label { background: #bfdbfe; color: #1e40af; }
 .cl-cr-group.kuri .cl-cr-group-label { background: #fed7aa; color: #92400e; }
 .cl-cr-group.kita { background: #eff6ff; border-radius: 5px; padding: 5px 6px; }
 .cl-cr-group.kuri { background: #fff7ed; border-radius: 5px; padding: 5px 6px; }
+.cl-cr-columns { display: flex; gap: 8px; align-items: flex-start; }
 .cl-chip { position: relative; display: inline-flex; align-items: center; background: #eef2ff; color: #3730a3; border-radius: 20px; padding: 2px 9px; font-size: 11px; cursor: pointer; border: 1.5px solid transparent; transition: background .15s; user-select: none; }
 .cl-chip:hover { background: #e0e7ff; }
 .cl-chip.done { background: #dcfce7; color: #15803d; border-color: #86efac; text-decoration: line-through; opacity: .75; }
@@ -1087,6 +1089,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 // =====================================================
 var _students = [];
 var _tasks = [];
+var _pendingDeleteIds = {}; // 削除中のタスクID一時保持（競合状態対策）
 var _checklists = [];
 var _schoolInfo = [];
 var _schoolTasks = [];
@@ -1228,7 +1231,15 @@ function loadAll() {
     });
     callGas(taskUrl, { action: 'getTasksForClassBoard' }, function(res) {
       if (res && res.success && res.tasks) {
-        _tasks = res.tasks;
+        // ローカルで完了・削除済みのIDをGAS結果から除外（競合状態対策）
+        // GASへの書き込みが完了する前にloadAllが走ると復活するバグを防ぐ
+        var localIds = {};
+        (_tasks || []).forEach(function(t) { localIds[t.id] = t.status; });
+        _tasks = res.tasks.filter(function(t) {
+          var localStatus = localIds[t.id];
+          // ローカルで完了済み・削除中のタスクはGAS結果から除外
+          return localStatus !== 'done' && !_pendingDeleteIds[t.id];
+        });
         localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
         // A-5：自動持越し処理
         autoCarryOverTasks(taskUrl);
@@ -1665,8 +1676,9 @@ function renderToday() {
     });
   }
 
-  function makeChip(t, isOverdue, type) {
-    var cls = isOverdue ? 'chip-overdue' : (type === '授業内' ? 'chip-in' : 'chip-out');
+  function makeChip(t, isOverdue, type, cr) {
+    var crColorCls = !isOverdue && cr ? (cr === '北久里浜' ? ' chip-kita' : cr === '久里浜' ? ' chip-kuri' : '') : '';
+    var cls = (isOverdue ? 'chip-overdue' : (type === '授業内' ? 'chip-in' : 'chip-out')) + crColorCls;
     var overdueLabel = isOverdue ? '<span style="font-size:10px;opacity:.8"> (' + esc(t.dueDate) + ')</span>' : '';
     var popup = '<span class="t-popup">' +
       '<div class="t-popup-title">' + esc(t.title) + '</div>' +
@@ -1682,10 +1694,10 @@ function renderToday() {
       '</span>';
   }
 
-  function makeSection(label, normalTasks, overdueTasks, type) {
+  function makeSection(label, normalTasks, overdueTasks, type, cr) {
     if (!normalTasks.length && !overdueTasks.length) return '';
-    var chips = overdueTasks.map(function(t) { return makeChip(t, true, type); })
-      .concat(normalTasks.map(function(t) { return makeChip(t, false, type); }));
+    var chips = overdueTasks.map(function(t) { return makeChip(t, true, type, cr); })
+      .concat(normalTasks.map(function(t) { return makeChip(t, false, type, cr); }));
     return '<div class="task-bar-section">' +
       '<span class="task-bar-section-label">' + label + '</span>' +
       '<div class="task-bar-chips">' + chips.join('') + '</div>' +
@@ -1701,15 +1713,15 @@ function renderToday() {
     var inAdd  = makeQuickAddBtn(cr, '授業内',  crKey + '_in');
     var outAdd = makeQuickAddBtn(cr, '授業外', crKey + '_out');
     // 授業外セクション（タスクなしでも見出しを表示）
-    var outChips = outOver.map(function(t){ return makeChip(t, true, '授業外'); })
-      .concat(outNormal.map(function(t){ return makeChip(t, false, '授業外'); }));
+    var outChips = outOver.map(function(t){ return makeChip(t, true, '授業外', cr); })
+      .concat(outNormal.map(function(t){ return makeChip(t, false, '授業外', cr); }));
     var outSec = '<div class="task-bar-section">' +
       '<span class="task-bar-section-label task-bar-section-out"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#9ca3af;margin-right:5px;flex-shrink:0"></span>授業外</span>' + outAdd +
       (outChips.length ? '<div class="task-bar-chips">' + outChips.join('') + '</div>' : '') +
       '</div>';
     // 授業内セクション（タスクなしでも見出しを表示）
-    var inChips = inOver.map(function(t){ return makeChip(t, true, '授業内'); })
-      .concat(inNormal.map(function(t){ return makeChip(t, false, '授業内'); }));
+    var inChips = inOver.map(function(t){ return makeChip(t, true, '授業内', cr); })
+      .concat(inNormal.map(function(t){ return makeChip(t, false, '授業内', cr); }));
     var inSec = '<div class="task-bar-section">' +
       '<span class="task-bar-section-label task-bar-section-in"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3b82f6;margin-right:5px;flex-shrink:0"></span>授業内</span>' + inAdd +
       (inChips.length ? '<div class="task-bar-chips">' + inChips.join('') + '</div>' : '') +
@@ -4358,11 +4370,13 @@ function deleteTask(taskId, btn) {
   if (!url) { miniToast('タスクマネージャーGAS URLが未設定です'); return; }
   // 即反映
   _tasks = _tasks.filter(function(x) { return x.id !== taskId; });
+  _pendingDeleteIds[taskId] = true; // GAS削除完了まで復活を防ぐ
   localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
   miniToast('削除しました ✓');
   renderCurrent();
   // 裏でGAS送信
   callGas(url, { action: 'deleteTask', id: taskId }, function(res) {
+    delete _pendingDeleteIds[taskId]; // GAS完了後に解除
     if (!res || !res.success) {
       // 失敗時ロールバック
       _tasks.push(t);
@@ -4614,15 +4628,23 @@ function checklistBarHtml() {
       if (!crGroups[cr]) { crGroups[cr] = []; crList.push(cr); }
       crGroups[cr].push(obj);
     });
-    var chips = crList.map(function(cr) {
-      var crCls = cr === '北久里浜' ? ' kita' : cr === '久里浜' ? ' kuri' : '';
-      var chipsHtml = crGroups[cr].map(function(obj) { return makeChip(obj.it, obj.idx); }).join('');
+    // 北久里浜・久里浜を左右に固定配置
+    var CR_COLS = ['北久里浜', '久里浜'];
+    var chips = '<div class="cl-cr-columns">' + CR_COLS.map(function(cr) {
+      var crCls = cr === '北久里浜' ? ' kita' : ' kuri';
+      var group = crGroups[cr] || [];
+      if (group.length === 0) {
+        return '<div class="cl-cr-group' + crCls + '">' +
+          '<div class="cl-cr-group-label">' + esc(cr) + '</div>' +
+          '<div style="font-size:11px;color:#9ca3af;padding:2px 0">—</div>' +
+          '</div>';
+      }
+      var chipsHtml = group.map(function(obj) { return makeChip(obj.it, obj.idx); }).join('');
       return '<div class="cl-cr-group' + crCls + '">' +
         '<div class="cl-cr-group-label">' + esc(cr) + '</div>' +
         '<div class="cl-chips">' + chipsHtml + '</div>' +
         '</div>';
-    }).join('');
-    chips = '<div>' + chips + '</div>';
+    }).join('') + '</div>';
 
     var bodyId = 'cl-body-' + cl.id;
     var cardId = 'cl-card-' + cl.id;
