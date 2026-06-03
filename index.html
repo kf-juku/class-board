@@ -392,6 +392,8 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   padding-bottom: 5px;
   border-bottom: 2px solid;
 }
+.task-bar-col.col-kita { background: var(--kitakurihama-bg); border-radius: var(--radius); }
+.task-bar-col.col-kuri { background: var(--kurihama-bg); border-radius: var(--radius); }
 .task-bar-col.col-kita .task-bar-col-header { color: var(--kitakurihama-header); border-color: var(--kitakurihama-border); }
 .task-bar-col.col-kuri .task-bar-col-header { color: var(--kurihama-header);     border-color: var(--kurihama-border); }
 .task-bar-section { margin-bottom: 6px; }
@@ -456,8 +458,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .task-chip-del { margin-left: 4px; opacity: 0.5; font-size: 11px; cursor: pointer; }
 .task-chip-del:hover { opacity: 1; color: var(--crimson); }
 .chip-out     { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
-.chip-kita    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-.chip-kuri    { background: #fff7ed; color: #92400e; border: 1px solid #fed7aa; }
+
 .chip-overdue { background: #fff1f1; color: var(--crimson); border: 1px solid #fecaca; }
 /* 欠席ボタン */
 .absence-btn { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:4px; border:1px solid #d1d5db; background:#f9fafb; color:#9ca3af; font-size:9px; font-weight:700; cursor:pointer; padding:0; line-height:1; flex-shrink:0; transition:all .15s; }
@@ -676,14 +677,14 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cl-card-body { display: none; padding: 8px 10px; }
 .cl-card-body.open { display: block; }
 .cl-card-memo { background: #f9fafb; border-radius: 5px; padding: 5px 8px; font-size: 11px; color: #6b7280; margin-bottom: 6px; white-space: pre-wrap; }
-.cl-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.cl-cr-group { flex: 1; min-width: 0; }
+.cl-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.cl-cr-group { flex: 1; min-width: 120px; }
 .cl-cr-group-label { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; margin-bottom: 4px; display: inline-block; }
 .cl-cr-group.kita .cl-cr-group-label { background: #bfdbfe; color: #1e40af; }
 .cl-cr-group.kuri .cl-cr-group-label { background: #fed7aa; color: #92400e; }
 .cl-cr-group.kita { background: #eff6ff; border-radius: 5px; padding: 5px 6px; }
 .cl-cr-group.kuri { background: #fff7ed; border-radius: 5px; padding: 5px 6px; }
-.cl-cr-columns { display: flex; gap: 8px; align-items: flex-start; }
+.cl-cr-columns { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
 .cl-chip { position: relative; display: inline-flex; align-items: center; background: #eef2ff; color: #3730a3; border-radius: 20px; padding: 2px 9px; font-size: 11px; cursor: pointer; border: 1.5px solid transparent; transition: background .15s; user-select: none; }
 .cl-chip:hover { background: #e0e7ff; }
 .cl-chip.done { background: #dcfce7; color: #15803d; border-color: #86efac; text-decoration: line-through; opacity: .75; }
@@ -1677,8 +1678,7 @@ function renderToday() {
   }
 
   function makeChip(t, isOverdue, type, cr) {
-    var crColorCls = !isOverdue && cr ? (cr === '北久里浜' ? ' chip-kita' : cr === '久里浜' ? ' chip-kuri' : '') : '';
-    var cls = (isOverdue ? 'chip-overdue' : (type === '授業内' ? 'chip-in' : 'chip-out')) + crColorCls;
+    var cls = isOverdue ? 'chip-overdue' : (type === '授業内' ? 'chip-in' : 'chip-out');
     var overdueLabel = isOverdue ? '<span style="font-size:10px;opacity:.8"> (' + esc(t.dueDate) + ')</span>' : '';
     var popup = '<span class="t-popup">' +
       '<div class="t-popup-title">' + esc(t.title) + '</div>' +
