@@ -770,6 +770,8 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
           <span class="cl-filter-chip" data-val="北久里浜">北久里浜</span>
           <span class="cl-filter-chip" data-val="久里浜">久里浜</span>
         </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">中学校</div>
+        <div class="cl-filter-row" id="cl-filter-school"></div>
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">学年</div>
         <div class="cl-filter-row" id="cl-filter-grade">
           <span class="cl-filter-chip" data-val="小1">小1</span>
@@ -1866,6 +1868,8 @@ function examStrategySection(todayIso) {
     var btnStyle = isPast
       ? 'margin-top:4px;width:100%;background:#f3f4f6;border:none;color:#6b7280;border-radius:4px;padding:3px 0;font-size:11px;cursor:pointer'
       : 'margin-top:4px;width:100%;background:#eef2ff;border:none;color:#3730a3;border-radius:4px;padding:3px 0;font-size:11px;cursor:pointer';
+    var editBtnStyle = 'margin-top:4px;width:100%;background:#fff;border:1px solid #d1d5db;color:#374151;border-radius:4px;padding:3px 0;font-size:11px;cursor:pointer';
+    h += '<button onclick="event.stopPropagation();openEditExamFromCard(&quot;' + (r.recordId||'') + '&quot;)" style="' + editBtnStyle + '"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 編集</button>';
     h += '<button onclick="event.stopPropagation();openChecklistFromCard(' + rcDataStr + ')" style="' + btnStyle + '">+ チェックリスト化</button>';
     h += '<div class="rec-popup">' + popRows + '</div>';
     h += '</div>';
@@ -1978,17 +1982,21 @@ function alertBannersHtml(todayStudents, todayIso) {
       + '</span>';
   }
 
-  function makeBanner(type, svgIcon, label, diff, matchedCount, popup, namesAttr, clData) {
+  function makeBanner(type, svgIcon, label, diff, matchedCount, popup, namesAttr, clData, editData) {
     var style = getStyle(type, diff);
     var clBtn = clData
       ? '<button onclick="event.stopPropagation();openChecklistFromCard(' + JSON.stringify(clData).replace(/"/g,'\'') + ')" '
-        + 'style="margin-left:auto;flex-shrink:0;background:#fff;border:1px solid #c7d2fe;color:#3730a3;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;white-space:nowrap">+ チェックリスト化</button>'
+        + 'style="flex-shrink:0;background:#fff;border:1px solid #c7d2fe;color:#3730a3;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;white-space:nowrap">+ チェックリスト化</button>'
+      : '';
+    var editBtn = editData
+      ? '<button onclick="event.stopPropagation();openEditTestModal(' + JSON.stringify(editData).replace(/"/g,'\'') + ')" '
+        + 'style="flex-shrink:0;background:#fff;border:1px solid #d1d5db;color:#374151;border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;white-space:nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>'
       : '';
     return '<div class="alert-banner" style="' + style + ';position:relative;display:flex;align-items:center;gap:6px" data-target-names="' + namesAttr + '" '
       + 'onmouseenter="highlightStudents(this)" onmouseleave="clearHighlight()">'
       + svgIcon
       + '<span style="flex:1">' + label + ' <span style="font-size:11px;opacity:.7">（' + matchedCount + '名）</span></span>'
-      + clBtn + popup + '</div>';
+      + editBtn + clBtn + popup + '</div>';
   }
 
   // ① 小テスト予定タスク
@@ -2006,7 +2014,8 @@ function alertBannersHtml(todayStudents, todayIso) {
     var label = esc(task.school) + (task.grade ? ' ' + esc(task.grade) + '生' : '')
       + '：<strong>' + esc(task.taskName||'') + '</strong> まで残<strong>' + diff + '日</strong>';
     var clData = { title: (task.taskName||''), memo: (task.materials||''), school: (task.school||''), grade: (task.grade||''), dueDate: (task.dueDate||'') };
-    banners.push(makeBanner('task', SVG.task, label, diff, matched.length, popup, namesAttr, clData));
+    var editData = { taskId: (task.taskId||''), taskName: (task.taskName||''), school: (task.school||''), grade: (task.grade||''), dueDate: (task.dueDate||'') };
+    banners.push(makeBanner('task', SVG.task, label, diff, matched.length, popup, namesAttr, clData, editData));
   });
 
   // ② テスト記録DB
@@ -2770,6 +2779,31 @@ function openAddTestModal(school) {
   document.querySelectorAll('#test-subj-btns .subj-btn').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('modal-add-test-title').textContent = school ? 'テスト予定を追加（' + school + '）' : '小テスト追加';
   openModal('modal-add-test');
+}
+
+function openEditTestModal(task) {
+  // 既存タスクデータを流し込んで編集モードで開く
+  openAddTestModal(task.school || '');
+  document.getElementById('test-school-group').style.display = 'none';
+  document.getElementById('test-edit-task-id').value = task.taskId || '';
+  document.getElementById('modal-add-test-title').textContent = '小テスト編集（' + (task.school||'') + '）';
+  // taskName を教科と名前に分解して設定
+  var taskName = task.taskName || '';
+  // 教科ボタン: taskNameに含まれるものをアクティブに
+  document.querySelectorAll('#test-subj-btns .subj-btn').forEach(function(b) {
+    if (taskName.indexOf(b.getAttribute('data-subj')) !== -1) b.classList.add('active');
+  });
+  // 学年チェック
+  var gradeStr = task.grade || '';
+  document.querySelectorAll('.test-grade').forEach(function(cb) {
+    cb.checked = gradeStr.indexOf(cb.value) !== -1;
+  });
+  document.getElementById('test-start-date').value = task.dueDate || '';
+  // 名前フィールド：教科を除いた残りを設定
+  var subjParts = Array.from(document.querySelectorAll('#test-subj-btns .subj-btn.active')).map(function(b){ return b.getAttribute('data-subj'); });
+  var namePart = taskName;
+  subjParts.forEach(function(s){ namePart = namePart.replace(s, '').replace('　','').trim(); });
+  document.getElementById('test-name').value = namePart;
 }
 
 function submitAddTest() {
@@ -4777,7 +4811,17 @@ function openAddChecklist() {
     });
   });
   // フィルターイベント設定
-  ['cl-filter-type','cl-filter-cr','cl-filter-grade'].forEach(function(id) {
+  // 中学校フィルタを動的生成（在籍生徒の学校一覧）
+  var schoolSet = {};
+  (_students || []).forEach(function(s) {
+    if (s.status === '在籍' && s.school && /中/.test(s.school)) schoolSet[s.school] = true;
+  });
+  var schoolEl = document.getElementById('cl-filter-school');
+  schoolEl.innerHTML = Object.keys(schoolSet).sort().map(function(sc) {
+    return '<span class="cl-filter-chip" data-val="' + esc(sc) + '">' + esc(sc) + '</span>';
+  }).join('');
+
+  ['cl-filter-type','cl-filter-cr','cl-filter-grade','cl-filter-school'].forEach(function(id) {
     document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
       c.onclick = function() {
         c.classList.toggle('active');
@@ -4794,26 +4838,28 @@ function renderClStudentList() {
   var types   = getActiveChips('cl-filter-type');
   var crs     = getActiveChips('cl-filter-cr');
   var grades  = getActiveChips('cl-filter-grade');
+  var schools = getActiveChips('cl-filter-school');
 
   var filtered = _students.filter(function(s) {
     if (s.status !== '在籍') return false;
-    var komas = s.komas || [];
-    var crSet = komas.map(function(k){ return k.classroom || ''; });
-    // 種別フィルター：ONのものがあれば絞る（なければ全員通す）
+    // 種別フィルター
     if (types.length > 0) {
       var matchType = false;
       if (types.indexOf('塾') !== -1 && s.attrJuku) matchType = true;
       if (types.indexOf('CA') !== -1 && s.attrCa) matchType = true;
       if (!matchType) return false;
     }
-    // 教室フィルター：ONのものがあれば絞る
+    // 教室フィルター：s.classroom（所属教室）で判定
     if (crs.length > 0) {
-      var matchCr = crs.some(function(cr){ return crSet.indexOf(cr) !== -1; });
-      if (!matchCr) return false;
+      if (crs.indexOf(s.classroom || '') === -1) return false;
     }
-    // 学年フィルター：ONのものがあれば絞る
+    // 学年フィルター
     if (grades.length > 0) {
       if (grades.indexOf(s.grade || '') === -1) return false;
+    }
+    // 中学校フィルター
+    if (schools.length > 0) {
+      if (schools.indexOf(s.school || '') === -1) return false;
     }
     return true;
   });
@@ -4981,6 +5027,22 @@ function duplicateChecklist() {
     startDate: isoDate(new Date()),
     items: cl.items // 対象者（チェックはリセット）
   });
+}
+
+function openEditExamFromCard(recordId) {
+  if (!recordId) return;
+  // 定期テストタブに切り替え
+  switchTab('exam');
+  // DOMが描画されてから該当カードを編集モードに展開
+  setTimeout(function() {
+    var el = document.querySelector('.exam-card[data-rid="' + recordId + '"]');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      expandExamCard(el, recordId);
+    } else {
+      miniToast('該当レコードが見つかりません');
+    }
+  }, 200);
 }
 
 function openChecklistFromCard(clData) {
