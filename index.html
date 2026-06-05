@@ -1347,8 +1347,8 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     if (k.satType === 'juken') return false;
     // classroomが未設定（土曜コマ等）または一致する場合のみ通す
     if (k.classroom && k.classroom !== classroom) return false;
-    // 通常コマ・オンラインコマ（satTypeがある土曜系コマは除外）
-    if (!k.satType && k.youbi === youbi && k.time === komaTime) return true;
+    // 通常コマ・オンラインコマ（hiraコマは除外、sat/eiken等は youbi+time で判定）
+    if (k.satType !== 'hira' && k.youbi === youbi && k.time === komaTime) return true;
     // 平日演習回コマ: hiraKoma の判定
     // 新形式: "教室_youbi+time" (例: 北久里浜_月17:15〜18:35)
     // 旧形式: "youbi+time" (例: 月17:15〜18:35) ← 後方互換
@@ -1417,25 +1417,29 @@ function studentChipHtml(s, opts) {
   // opts = { classroom, komaTime, youbi } — 渡されたコマのみで判定
   var koma = null;
   if (opts && opts.classroom && opts.komaTime && opts.youbi) {
-    koma = (s.komas || []).filter(function(k) {
+    // hiraコマを優先：同じ平日コマに通常コマとhiraコマが両方ある場合、hiraを使う
+    var _hiraKoma = (s.komas || []).find(function(k) {
+      if (opts.isJuken) return false;
+      if (k.satType !== 'hira' || !k.hiraKoma) return false;
+      if (k.classroom !== opts.classroom) return false;
+      var hiraTarget2 = opts.youbi + opts.komaTime;
+      var hiraVal2 = k.hiraKoma;
+      if (hiraVal2.indexOf('_') !== -1) hiraVal2 = hiraVal2.split('_').slice(1).join('_');
+      return hiraVal2 === hiraTarget2;
+    });
+    koma = _hiraKoma || (s.komas || []).filter(function(k) {
       // 受験特訓ブロック専用の呼び出し（opts.isJuken=true）のときのみjukenコマをマッチ
       if (opts.isJuken) {
         return k.satType === 'juken' && k.youbi === opts.youbi;
       }
       // 受験特訓コマは通常コマのchip生成では無視する
       if (k.satType === 'juken') return false;
-      // classroomが一致する場合のみ通す（土曜コマは classroom が設定されている場合のみ）
+      // classroomが一致する場合のみ通す
       var crMatch = k.classroom === opts.classroom;
       if (!crMatch) return false;
-      // 平日演習回コマ（satType=hira）を先に判定（通常コマより優先）
-      // 新形式: "教室_youbi+time" / 旧形式: "youbi+time" ← 後方互換
-      if (k.satType === 'hira' && k.hiraKoma) {
-        var hiraTarget2 = opts.youbi + opts.komaTime;
-        var hiraVal2 = k.hiraKoma;
-        if (hiraVal2.indexOf('_') !== -1) hiraVal2 = hiraVal2.split('_').slice(1).join('_');
-        return hiraVal2 === hiraTarget2;
-      }
-      // 通常コマ・オンラインコマ（satTypeがある土曜系コマは除外）
+      // hiraコマは上で処理済みなのでスキップ
+      if (k.satType === 'hira') return false;
+      // 通常コマ・オンラインコマ
       if (!k.satType && k.youbi === opts.youbi && k.time === opts.komaTime) return true;
       return false;
     })[0] || null;
