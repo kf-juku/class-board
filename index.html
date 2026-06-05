@@ -735,7 +735,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 <div class="modal-overlay" id="modal-add-checklist">
   <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
     <div class="modal-header">
-      <span>チェックリストを作成</span>
+      <span id="cl-modal-title">チェックリストを作成</span>
       <span class="modal-close" onclick="closeModal('modal-add-checklist')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
     </div>
     <div class="modal-body">
@@ -797,7 +797,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('modal-add-checklist')">キャンセル</button>
-      <button class="btn-primary" onclick="submitChecklist()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 作成</button>
+      <button id="cl-modal-submit-btn" class="btn-primary" onclick="submitChecklist()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span id="cl-modal-submit-label">作成</span></button>
     </div>
   </div>
 </div>
@@ -1340,16 +1340,16 @@ function getActiveModeStudents() {
 
 function getStudentsForKoma(classroom, youbi, komaTime) {
   var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
-  // hiraKoma（平日振替）が指定された曜日・時間に一致するか判定
+  // hiraKoma（平日演習回）が指定された曜日・時間に一致するか判定
   // hiraKoma の値は "月17:30〜18:20" のような形式（youbi + time を結合した文字列）
   function matchesKoma(k) {
     // 受験特訓コマは相乗り専用ブロックで表示するためここでは除外
     if (k.satType === 'juken') return false;
     // classroomが未設定（土曜コマ等）または一致する場合のみ通す
     if (k.classroom && k.classroom !== classroom) return false;
-    // 通常コマ・オンラインコマ
-    if (k.youbi === youbi && k.time === komaTime) return true;
-    // 平日振替コマ: hiraKoma の判定
+    // 通常コマ・オンラインコマ（satTypeがある土曜系コマは除外）
+    if (!k.satType && k.youbi === youbi && k.time === komaTime) return true;
+    // 平日演習回コマ: hiraKoma の判定
     // 新形式: "教室_youbi+time" (例: 北久里浜_月17:15〜18:35)
     // 旧形式: "youbi+time" (例: 月17:15〜18:35) ← 後方互換
     if (k.satType === 'hira' && k.hiraKoma) {
@@ -1427,7 +1427,7 @@ function studentChipHtml(s, opts) {
       // classroomが一致する場合のみ通す（土曜コマは classroom が設定されている場合のみ）
       var crMatch = k.classroom === opts.classroom;
       if (!crMatch) return false;
-      // 平日振替コマ（satType=hira）を先に判定（通常コマより優先）
+      // 平日演習回コマ（satType=hira）を先に判定（通常コマより優先）
       // 新形式: "教室_youbi+time" / 旧形式: "youbi+time" ← 後方互換
       if (k.satType === 'hira' && k.hiraKoma) {
         var hiraTarget2 = opts.youbi + opts.komaTime;
@@ -1435,8 +1435,8 @@ function studentChipHtml(s, opts) {
         if (hiraVal2.indexOf('_') !== -1) hiraVal2 = hiraVal2.split('_').slice(1).join('_');
         return hiraVal2 === hiraTarget2;
       }
-      // 通常コマ・オンラインコマ
-      if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
+      // 通常コマ・オンラインコマ（satTypeがある土曜系コマは除外）
+      if (!k.satType && k.youbi === opts.youbi && k.time === opts.komaTime) return true;
       return false;
     })[0] || null;
   }
@@ -1457,7 +1457,7 @@ function studentChipHtml(s, opts) {
     } else if (koma.satType === 'juken') {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#ede9fe;color:#6d28d9">受験特訓</span>';
     } else if (koma.satType === 'hira') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#EAF3DE;color:#3B6D11">土曜演習</span>';
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#dbeafe;color:#1d4ed8">平日演習回</span>';
     } else {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     }
@@ -1479,7 +1479,8 @@ function studentChipHtml(s, opts) {
     else if (_komaIsCa)          _courseName = 'CA';
     else if (koma.satType === 'eiken')  _courseName = '英検';
     else if (koma.satType === 'juken')  _courseName = '受験特訓';
-    else if (koma.satType === 'sat' || koma.satType === 'hira') _courseName = '土曜演習';
+    else if (koma.satType === 'sat') _courseName = '土曜演習';
+    else if (koma.satType === 'hira') _courseName = '平日演習回';
     else                         _courseName = '塾';
   }
 
@@ -1524,7 +1525,7 @@ function studentChipHtml(s, opts) {
         else if (k.satType === 'eiken') typeLabel = '［英検対策］';
         else if (k.satType === 'sat')   typeLabel = '［土曜演習］';
         else if (k.satType === 'juken') typeLabel = '［受験特訓］';
-        else if (k.satType === 'hira')  typeLabel = '［土曜振替：' + (k.hiraKoma || '') + '］';
+        else if (k.satType === 'hira')  typeLabel = '［平日演習回：' + (k.hiraKoma || '') + '］';
         else typeLabel = '［塾］';
         var youbi = k.youbi || '';
         var time  = k.time  || (k.hiraKoma || '');
@@ -4683,6 +4684,7 @@ function checklistBarHtml() {
 
     var bodyId = 'cl-body-' + cl.id;
     var cardId = 'cl-card-' + cl.id;
+    var ico_pencil = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
     var ico_x = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     return '<div class="cl-card" id="' + cardId + '" data-cl-id="' + cl.id + '">' +
       '<div class="cl-card-header collapsed" onclick="clToggleCard(\'' + cl.id + '\',this)">' +
@@ -4690,7 +4692,8 @@ function checklistBarHtml() {
       '<span class="cl-card-title">' + esc(cl.title) + '</span>' +
       '<span class="cl-card-progress' + progCls + '">' + doneCount + '/' + total + '</span>' +
       '<span class="cl-chevron">' + ico_chev + '</span>' +
-      '<button onclick="event.stopPropagation();clDeleteCard(\'' + cl.id + '\')" title="削除" style="margin-left:4px;flex-shrink:0;background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px;display:flex;align-items:center;border-radius:3px" onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#9ca3af\'">' + ico_x + '</button>' +
+      '<button onclick="event.stopPropagation();openEditChecklistModal(&quot;' + cl.id + '&quot;)" title="編集" style="flex-shrink:0;background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px;display:flex;align-items:center;border-radius:3px;transition:color .15s">' + ico_pencil + '</button>' +
+      '<button onclick="event.stopPropagation();clDeleteCard(\'' + cl.id + '\')" title="削除" style="margin-left:2px;flex-shrink:0;background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px;display:flex;align-items:center;border-radius:3px;transition:color .15s">' + ico_x + '</button>' +
       '</div>' +
       '<div class="cl-card-body" id="' + bodyId + '">' +
       memoHtml +
@@ -4797,7 +4800,27 @@ function clAddTitleRow() {
   row.querySelector('input').focus();
 }
 
+function openEditChecklistModal(clId) {
+  var cl = _checklists.find(function(c) { return c.id === clId; });
+  if (!cl) return;
+  // モーダルを編集モードに設定
+  document.getElementById('modal-add-checklist').dataset.editId = clId;
+  document.getElementById('cl-modal-title').textContent = 'チェックリストを編集';
+  document.getElementById('cl-modal-submit-label').textContent = '保存';
+  // フォームにデータを流し込む（openAddChecklistWithData流用）
+  openAddChecklistWithData({
+    title: cl.title,
+    startDate: cl.startDate,
+    memo: cl.memo || '',
+    items: cl.items || []
+  });
+}
+
 function openAddChecklist() {
+  // 編集モードをリセット
+  delete document.getElementById('modal-add-checklist').dataset.editId;
+  document.getElementById('cl-modal-title').textContent = 'チェックリストを作成';
+  document.getElementById('cl-modal-submit-label').textContent = '作成';
   // タイトルリストをリセット（1行に戻す）
   var tl = document.getElementById('cl-title-list');
   tl.innerHTML = '<div class="cl-title-row" style="display:flex;gap:6px;margin-bottom:6px"><input type="text" class="cl-title-input" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box" placeholder="例：保護者連絡済み確認" /></div>';
@@ -4906,8 +4929,10 @@ function clSelectAll(flag) {
   updateClSelectedCount();
 }
 
-// ── チェックリスト保存 ──
+// ── チェックリスト保存（新規 / 編集兼用）──
 function submitChecklist() {
+  var editId = document.getElementById('modal-add-checklist').dataset.editId || '';
+
   // タイトルを全行取得
   var titles = [];
   document.getElementById('cl-title-list').querySelectorAll('.cl-title-input').forEach(function(inp) {
@@ -4919,17 +4944,61 @@ function submitChecklist() {
   var startDate = document.getElementById('cl-new-date').value || isoDate(new Date());
   var memo = document.getElementById('cl-new-memo').value.trim();
 
-  var items = [];
+  // 新規選択生徒リスト
+  var newItems = [];
   document.getElementById('cl-student-list').querySelectorAll('.cl-s-check:checked').forEach(function(cb) {
     var firstCr = cb.dataset.cr || '';
-    items.push({ uid: cb.dataset.uid, name: cb.dataset.name, grade: cb.dataset.grade, classroom: firstCr, done: false, doneAt: '' });
+    newItems.push({ uid: cb.dataset.uid, name: cb.dataset.name, grade: cb.dataset.grade, classroom: firstCr });
   });
-  if (items.length === 0) { miniToast('対象者を1名以上選択してください'); return; }
+  if (newItems.length === 0) { miniToast('対象者を1名以上選択してください'); return; }
 
   var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
-  closeModal('modal-add-checklist');
 
-  // タイトル分だけチェックリストを作成
+  // ── 編集モード ──
+  if (editId) {
+    var clOrig = _checklists.find(function(c) { return c.id === editId; });
+    if (!clOrig) { miniToast('編集対象が見つかりません'); return; }
+
+    var newUids = newItems.map(function(it) { return it.uid || it.name; });
+    var oldUids = (clOrig.items || []).map(function(it) { return it.uid || it.name; });
+    var removedItems = (clOrig.items || []).filter(function(it) {
+      return newUids.indexOf(it.uid || it.name) === -1;
+    });
+
+    function doSaveEdit() {
+      // 既存itemsのdone状態を引き継ぎつつ新しいitemsを構築
+      var mergedItems = newItems.map(function(ni) {
+        var existing = (clOrig.items || []).find(function(oi) {
+          return (oi.uid || oi.name) === (ni.uid || ni.name);
+        });
+        return existing
+          ? { uid: ni.uid, name: ni.name, grade: ni.grade, classroom: ni.classroom, done: existing.done, doneAt: existing.doneAt || '' }
+          : { uid: ni.uid, name: ni.name, grade: ni.grade, classroom: ni.classroom, done: false, doneAt: '' };
+      });
+      clOrig.title = titles[0]; // 編集時はタイトル1本
+      clOrig.startDate = startDate;
+      clOrig.memo = memo;
+      clOrig.items = mergedItems;
+      closeModal('modal-add-checklist');
+      rerenderCurrentTab();
+      miniToast('チェックリストを更新しました ✓');
+      if (taskUrl) {
+        callGas(taskUrl, { action: 'updateChecklist', checklist: JSON.stringify(clOrig) }, function(res) {
+          if (!res || !res.ok) miniToast('⚠️ GAS保存に失敗しました（ローカルには保存済み）');
+        }, 'POST');
+      }
+    }
+
+    if (removedItems.length > 0) {
+      var names = removedItems.map(function(it) { return it.name; }).join('、');
+      if (!confirm(names + ' を対象者から外しますがよいですか？')) return;
+    }
+    doSaveEdit();
+    return;
+  }
+
+  // ── 新規モード ──
+  closeModal('modal-add-checklist');
   var now = Date.now();
   titles.forEach(function(title, i) {
     var cl = {
@@ -4938,7 +5007,9 @@ function submitChecklist() {
       startDate: startDate,
       memo: memo,
       status: 'active',
-      items: JSON.parse(JSON.stringify(items)), // ディープコピー
+      items: newItems.map(function(ni) {
+        return { uid: ni.uid, name: ni.name, grade: ni.grade, classroom: ni.classroom, done: false, doneAt: '' };
+      }),
       createdAt: isoDate(new Date())
     };
     _checklists.push(cl);
@@ -4948,7 +5019,6 @@ function submitChecklist() {
       }, 'POST');
     }
   });
-
   rerenderCurrentTab();
   miniToast(titles.length + '件のチェックリストを作成しました ✓');
 }
