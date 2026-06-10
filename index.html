@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class Board – クロフネ</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%8F%AB%3C/text%3E%3C/svg%3E">
+    <title>Class Board – クロフネ</title>
 <style>
 :root {
   --crimson: #C6000B;
@@ -179,6 +180,26 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .student-chip .s-name { font-weight: 700; color: var(--text); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; max-width: 5.5em; }
 .student-chip .s-sub { font-size: 10px; color: var(--text-muted); flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .student-chip .s-badges { display: inline-flex; gap: 3px; flex-shrink: 0; margin-left: auto; }
+/* 講習モード専用チップ */
+.koushu-chip .chip-name { font-weight: 700; color: var(--text); }
+.koushu-chip .chip-grade { font-size: 10px; color: var(--text-muted); }
+.koushu-chip .chip-abs { font-size: 10px; background: #fee2e2; color: #991b1b; border-radius: 3px; padding: 0 3px; font-weight: 700; }
+.koushu-chip .chip-remain { font-size: 10px; border-radius: 3px; padding: 0 4px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
+.chip-taisaku { font-size: 10px; background: #fef3c7; color: #92400e; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
+.chip-jishu { font-size: 10px; background: #dcfce7; color: #166534; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
+.koushu-chip-del { position:absolute; top:1px; right:2px; font-size:11px; font-weight:700; color:#9ca3af; line-height:1; padding:1px 2px; cursor:pointer; border-radius:3px; }
+.koushu-chip-del:hover { background:#fee2e2; color:#dc2626; }
+.koushu-chip[draggable="true"] { cursor: grab; }
+.koushu-chip[draggable="true"]:active { cursor: grabbing; opacity: 0.5; }
+.koushu-chip-juku { background: #FAFAFF; border-color: #CECBF6; }
+.koushu-chip-elem { background: #FFF8FA; border-color: #F4C0D1; }
+.kse-cell-btn { width:28px;height:24px;border-radius:4px;border:0.5px solid var(--border);background:var(--bg,#fff);cursor:pointer;font-size:11px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;margin:0 auto; }
+.kse-cell-btn:hover:not(:disabled) { background:#f0f0ff; }
+.kse-cell-btn:disabled { opacity:0.5;cursor:default; }
+.kse-cell-on { background:#CECBF6 !important;border-color:#7F77DD !important;color:#3C3489 !important;font-weight:700; }
+.kse-cell-on:hover:not(:disabled) { background:#AFA9EC !important; }
+.kse-cell-btn.kse-cell-jishu { background:#dcfce7 !important; border-color:#16a34a !important; color:#166534 !important; }
+.koushu-drop-target { outline: 2px dashed var(--crimson); outline-offset: -2px; background: rgba(220,38,38,0.05); }
 
 /* ホバーポップアップ */
 /* .student-chip .s-popup はデータ保持用。表示はglobal-s-popupが担当 */
@@ -624,6 +645,32 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   .print-header { display: block !important; }
 }
 
+/* ── 講習期間印刷（kp-） ── */
+#kp-print-root { display: none; }
+.kp-page { width: 1330px; height: 920px; overflow: hidden; background: #fff; color: #111; box-sizing: border-box; display: flex; flex-direction: column; font-size: 13px; }
+.kp-page + .kp-page { margin-top: 24px; }
+.kp-header { flex: none; display: flex; justify-content: space-between; align-items: baseline; font-size: 1.25em; font-weight: 700; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #333; }
+.kp-pageno { font-size: 0.75em; font-weight: 400; color: #666; }
+.kp-table { flex: 1 1 auto; width: 100%; border-collapse: collapse; table-layout: fixed; }
+.kp-table th, .kp-table td { border: 1px solid #94a3b8; padding: 3px 5px; vertical-align: top; text-align: left; }
+.kp-table th { background: #f1f5f9; font-size: 0.95em; text-align: center; }
+.kp-koma-col { width: 92px; background: #f1f5f9 !important; font-size: 0.9em; white-space: nowrap; vertical-align: middle !important; }
+.kp-closed { background: #f3f4f6; color: #9ca3af; text-align: center !important; vertical-align: middle !important; }
+.kp-count { font-size: 0.85em; color: #475569; font-weight: 700; margin-bottom: 2px; }
+.kp-stu { display: inline-block; margin: 0 8px 2px 0; white-space: nowrap; }
+.kp-grade { color: #64748b; font-size: 0.85em; }
+.kp-min { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: 1px; padding: 4px 2px !important; white-space: nowrap; }
+.kp-badge { font-size: 0.78em; border-radius: 3px; padding: 0 3px; font-weight: 700; margin-left: 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.kp-b-taisaku { background: #fef3c7; color: #92400e; }
+.kp-b-jishu { background: #dcfce7; color: #166534; }
+.kp-b-koushu { background: #ede9fe; color: #5b21b6; }
+@media print {
+  body.kp-printing > :not(#kp-print-root) { display: none !important; }
+  body.kp-printing #kp-print-root { display: block !important; position: static !important; left: 0 !important; top: 0 !important; }
+  body.kp-printing .kp-page { page-break-after: always; break-inside: avoid; margin-top: 0 !important; }
+  body.kp-printing .kp-page:last-child { page-break-after: auto; }
+}
+
 /* 印刷ヘッダー（通常時は非表示） */
 .print-header {
   display: none;
@@ -712,6 +759,23 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cl-student-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; font-size: 13px; cursor: pointer; }
 .cl-student-item:hover { background: #f5f3ff; }
 .cl-student-item input[type=checkbox] { accent-color: #4f46e5; width: 15px; height: 15px; cursor: pointer; }
+/* ── カスタムツールチップ ── */
+#cb-tooltip {
+  position: fixed;
+  z-index: 99999;
+  background: #1f2937;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border-radius: 6px;
+  max-width: 280px;
+  pointer-events: none;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  display: none;
+}
+[data-tooltip] { cursor: default; }
 </style>
 </head>
 <body>
@@ -947,25 +1011,6 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 <!-- トースト -->
 <div id="mini-toast"></div>
 
-<!-- モーダル：モード追加 -->
-<div class="modal-overlay" id="modal-add-mode">
-  <div class="modal">
-    <div class="modal-header"><span>時間割モードを追加</span><span class="modal-close" onclick="closeModal('modal-add-mode')">×</span></div>
-    <div class="modal-body">
-      <div class="form-group"><label class="form-label">モード名</label><input class="form-input" id="new-mode-name" placeholder="例：夏期講習2026" /></div>
-      <div class="form-group"><label class="form-label">作成方法</label>
-        <div class="radio-group">
-          <label><input type="radio" name="mode-type" value="copy" checked> 通常時間割をコピー</label>
-          <label><input type="radio" name="mode-type" value="blank"> 白紙から作成</label>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('modal-add-mode')">キャンセル</button>
-      <button class="btn-primary" onclick="submitAddMode()">作成</button>
-    </div>
-  </div>
-</div>
 
 <!-- モーダル：学校追加 -->
 <div class="modal-overlay" id="modal-add-school">
@@ -1094,6 +1139,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 // =====================================================
 var _students = [];
 var _tasks = [];
+var _taskAssignees = []; // タスクマネージャーGASから取得した担当者マスター
 var _pendingDeleteIds = {}; // 削除中のタスクID一時保持（競合状態対策）
 var _checklists = [];
 var _schoolInfo = [];
@@ -1106,18 +1152,185 @@ var _examSchedules  = [];
 var _examGradeFilter = 'all';
 var _examSubjectFilter = 'all';
 var _examYearFilter = null; // null=初回未設定、''=全年度選択済み
-var _modes = [];
 var _absenceRecords = [];
+
+// ── 講習モード ──
+var _koushuPeriods = [];      // 全期間リスト
+var _koushuCalendar = [];     // 現在の期間の開閉校カレンダー
+var _koushuAssignments = [];  // 現在の期間の生徒割付
+var _activeKoushuPeriodId = null; // 設定タブで選択中の期間ID
+var _koushuMode = false;      // 講習モード表示中かどうか（今日・今週タブ）
+var _koushuModeUserOverride = null; // null=自動, true=手動ON, false=手動OFF
+var _selectedViewPeriodId = '__auto__'; // 期間選択プルダウン：'__auto__'=自動（進行中）, ''=通常表示固定, その他=期間ID（2026-06-10）
+
+// 現在日が含まれる講習期間を返す（なければ null）
+function getActiveKoushuPeriod() {
+  var todayIso = isoDate(new Date());
+  // 期間選択プルダウンの選択を優先（2026-06-10：期間前の準備アクセス対応）
+  if (_selectedViewPeriodId === '') return null; // 「通常表示」を明示選択
+  if (_selectedViewPeriodId && _selectedViewPeriodId !== '__auto__') {
+    var sel = _koushuPeriods.find(function(p) { return p.id === _selectedViewPeriodId; });
+    if (sel) return sel;
+  }
+  return _koushuPeriods.find(function(p) {
+    return p.startDate <= todayIso && todayIso <= p.endDate;
+  }) || null;
+}
+
+// 表示対象期間が指定日を含むか（日付単位判定 2026-06-10）
+function isDateInViewPeriod_(iso) {
+  var p = getActiveKoushuPeriod();
+  return !!(p && p.startDate <= iso && iso <= p.endDate);
+}
+
+// 期間プルダウンの候補（進行中＋終了日が今日以降の準備中）
+function viewPeriodOptions_() {
+  var todayIso = isoDate(new Date());
+  return _koushuPeriods.filter(function(p) { return p.endDate >= todayIso; })
+    .sort(function(a, b) { return a.startDate < b.startDate ? -1 : 1; });
+}
+
+// 期間プルダウン変更：選択期間のカレンダー・割付をロードして再描画
+function selectViewPeriod(val) {
+  _selectedViewPeriodId = val;
+  _koushuModeUserOverride = null;
+  var tab = _currentTab || 'today';
+  function rerender() {
+    updateTopTitle(tab);
+    if (tab === 'today') renderToday();
+    else if (tab === 'week') renderWeek();
+  }
+  if (!val) { _koushuCalendar = []; _koushuAssignments = []; rerender(); return; }
+  var p = getActiveKoushuPeriod();
+  if (!p) { rerender(); return; }
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { rerender(); return; }
+  miniToast('期間データ読み込み中...');
+  var loaded = 0;
+  function done2() { loaded++; if (loaded >= 2) rerender(); }
+  callGas(url, { action: 'getKoushuCalendar', periodId: p.id }, function(rc) {
+    if (rc && rc.success) _koushuCalendar = rc.entries || [];
+    done2();
+  }, 'POST');
+  callGas(url, { action: 'getKoushuAssignments', periodId: p.id }, function(r) {
+    if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = p.id; }
+    done2();
+  });
+}
+
+// 講習モードが有効かどうかを返す（手動オーバーライド優先）
+function isKoushuModeActive() {
+  if (_koushuModeUserOverride !== null) return _koushuModeUserOverride;
+  return !!getActiveKoushuPeriod();
+}
+
+// テスト対策期間（type=test）がアクティブなら期間を返す（2026-06-10）
+function getActiveTestPeriod_() {
+  if (!isKoushuModeActive()) return null;
+  var p = getActiveKoushuPeriod();
+  return (p && p.type === 'test') ? p : null;
+}
+
+// テスト対策：指定セルの割付チップHTML（通常表示への上乗せ用）
+// 期間モード中：生徒の割付予定バッジ（チップポップアップ用・期間中すべて、過去分はグレー 2026-06-10、講習にも拡張 2026-06-11）
+function testAssignPopupBadges_(s, forcePeriod) {
+  var tp = forcePeriod || getActiveKoushuPeriod();
+  if (!tp) return '';
+  var list = (_koushuAssignments || []).filter(function(a) {
+    return a.periodId === tp.id && (a.studentId === s.id || a.studentName === s.name);
+  });
+  if (!list.length) return '';
+  list.sort(function(a, b) { return (a.date + a.komaTime) < (b.date + b.komaTime) ? -1 : 1; });
+  var todayIso = isoDate(new Date());
+  var YB = ['日','月','火','水','木','金','土'];
+  var badges = list.map(function(a) {
+    var d = new Date(a.date + 'T00:00:00');
+    var label = (d.getMonth() + 1) + '/' + d.getDate() + '(' + YB[d.getDay()] + ') ' + (a.komaTime || '') + ' ' + (a.classroom || '');
+    var isPast = a.date < todayIso;
+    var isJi = a.type === 'jishu';
+    var isTa = a.type === 'taisaku';
+    var bg  = isPast ? '#f3f4f6' : (isJi ? '#dcfce7' : isTa ? '#fef9c3' : '#ffedd5');
+    var col = isPast ? '#9ca3af' : (isJi ? '#166534' : isTa ? '#854d0e' : '#9a3412');
+    var tag = isJi ? '自習' : isTa ? '対策' : '講習';
+    return '<span style="display:inline-block;font-size:10px;background:' + bg + ';color:' + col + ';border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb;white-space:nowrap">' + esc(label.trim()) + '【' + tag + '】</span>';
+  }).join('');
+  var listTitle = tp.type === 'test' ? 'テスト対策の予定' : '講習の予定';
+  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="display:flex;flex-wrap:wrap;max-width:280px">' + badges + '</div></div>';
+}
+
+function testAssignChips_(cr, kt, dateIso, youbi) {
+  if (!getActiveTestPeriod_()) return '';
+  return _koushuAssignments.filter(function(a) {
+    return a.date === dateIso && a.classroom === cr && a.komaTime === kt;
+  }).map(function(a) {
+    var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
+    // カード統一（2026-06-10）：通常カードと同じ作り＋対策/自習バッジのみ。×・残◯回バッジは廃止（削除はコマ登録画面から）
+    return studentChipHtml(s, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: dateIso, testBadge: a.type || 'taisaku' });
+  }).join('');
+}
+
+// テスト対策：指定セルの割付人数
+function testAssignCount_(cr, kt, dateIso) {
+  if (!getActiveTestPeriod_()) return 0;
+  return _koushuAssignments.filter(function(a) {
+    return a.date === dateIso && a.classroom === cr && a.komaTime === kt;
+  }).length;
+}
+
+// トップバーのタイトルエリアを更新（モードバッジ付き）
+function updateTopTitle(tab) {
+  var baseTitles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・テスト予定', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
+  var baseTitle = baseTitles[tab] || 'Class Board';
+  var el = document.getElementById('top-title');
+  if (!el) return;
+
+  if (tab !== 'today' && tab !== 'week') {
+    el.textContent = baseTitle;
+    return;
+  }
+
+  var opts = viewPeriodOptions_();
+  if (!opts.length) {
+    el.textContent = baseTitle;
+    return;
+  }
+
+  // 期間選択プルダウン（2026-06-10：進行中＋準備中の期間を切替可能。期間前から登録・確認・印刷できる）
+  var todayIso2 = isoDate(new Date());
+  var current = getActiveKoushuPeriod();
+  var TYPE_ICON = { test: '📝', summer: '🎓', winter: '🎓', spring: '🎓' };
+  var optHtml = opts.map(function(p) {
+    var running = p.startDate <= todayIso2 && todayIso2 <= p.endDate;
+    var label = (TYPE_ICON[p.type] || '🎓') + ' ' + p.name + '（' + p.startDate.slice(5).replace('-','/') + '〜' + p.endDate.slice(5).replace('-','/') + '）' + (running ? '●進行中' : '○準備中');
+    var selected = current && current.id === p.id ? ' selected' : '';
+    return '<option value="' + esc(p.id) + '"' + selected + '>' + esc(label) + '</option>';
+  }).join('');
+  optHtml += '<option value=""' + (current ? '' : ' selected') + '>通常表示</option>';
+  var prepHint = (current && !(current.startDate <= todayIso2 && todayIso2 <= current.endDate))
+    ? '<span style="font-size:11px;font-weight:700;color:#92400e;background:#fde68a;border:1px solid #f59e0b;border-radius:12px;padding:2px 10px;margin-left:6px;white-space:nowrap">準備中の期間を表示しています</span>'
+    : '';
+  el.innerHTML = '<span style="white-space:nowrap">' + baseTitle + '</span>' +
+    '<select onchange="selectViewPeriod(this.value)" style="font-size:12px;font-weight:700;margin-left:10px;padding:3px 8px;border-radius:8px;border:2px solid ' + (current ? '#f59e0b' : 'var(--border)') + ';background:' + (current ? '#fffbeb' : '#fff') + ';color:' + (current ? '#92400e' : 'var(--text)') + ';cursor:pointer;max-width:340px">' + optHtml + '</select>' + prepHint;
+}
+
+// 手動切替トグル（今日・今週タブを再描画）
+function toggleKoushuMode() {
+  _koushuModeUserOverride = !isKoushuModeActive();
+  var activeTab = _currentTab || 'today';
+  updateTopTitle(activeTab);
+  if (activeTab === 'today') renderToday();
+  else if (activeTab === 'week') renderWeek();
+}
 
 // テストのデフォルト種別（自由追加可）
 var DEFAULT_TEST_NAMES = ['前期中間', '前期期末', '後期中間', '学年末'];
 var SUBJECTS = ['国語', '数学', '英語', '理科', '社会', '実技'];
 var _currentTab = 'today';
 var _currentClassroom = '北久里浜';
-var _currentMode = 'normal';
 var _weekOffset = 0;
 
-var GAS_STUDENT_URL_KEY = 'cb_gas_student_url';
+var GAS_STUDENT_URL_KEY   = 'cb_gas_student_url';
+var CB_CACHE_KOUSHU_KEY   = 'cb_cache_koushu_periods'; // 講習期間キャッシュ
 var GAS_TASK_URL_KEY    = 'cb_gas_task_url';
 var CB_USER_NAME_KEY    = 'cb_user_name';
 
@@ -1127,6 +1340,27 @@ var CB_USER_NAME_KEY    = 'cb_user_name';
 window.addEventListener('DOMContentLoaded', function() {
   updateTopSub();
   loadAll();
+  // カスタムツールチップ初期化
+  var _tt = document.createElement('div');
+  _tt.id = 'cb-tooltip';
+  document.body.appendChild(_tt);
+  document.addEventListener('mouseover', function(e) {
+    var el = e.target.closest('[data-tooltip]');
+    if (!el) { _tt.style.display = 'none'; return; }
+    _tt.textContent = el.getAttribute('data-tooltip');
+    _tt.style.display = 'block';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (_tt.style.display === 'none') return;
+    var x = e.clientX + 12, y = e.clientY + 12;
+    if (x + 290 > window.innerWidth) x = e.clientX - 290;
+    if (y + 80 > window.innerHeight) y = e.clientY - 50;
+    _tt.style.left = x + 'px';
+    _tt.style.top  = y + 'px';
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (!e.target.closest('[data-tooltip]')) _tt.style.display = 'none';
+  });
 });
 
 function loadAll() {
@@ -1137,7 +1371,7 @@ function loadAll() {
 
   function done() {
     pending--;
-    if (pending <= 0) { showLoading(false); renderCurrent(); updateLastLoaded(); }
+    if (pending <= 0) { showLoading(false); renderCurrent(); updateTopTitle(_currentTab || 'today'); updateLastLoaded(); }
   }
 
   function loadCache(key, target) {
@@ -1157,11 +1391,11 @@ function loadAll() {
   _testRecords   = loadCache('test_records',   _testRecords);
   _schoolEvents  = loadCache('school_events',  _schoolEvents);
   _schoolWorks   = loadCache('school_works',   _schoolWorks);
-  _modes         = loadCache('modes',          _modes);
   _tasks         = loadCache('tasks',          _tasks);
   _examStrategies = loadCache('exam_strategies', _examStrategies);
   _examSchedules  = loadCache('exam_schedules',  _examSchedules);
   _absenceRecords  = (loadCache('absence_records', []) || []).map(normalizeAbsenceRecord_);
+  _koushuPeriods   = loadCache('koushu_periods', []);
 
   if (!studentUrl && !taskUrl) {
     showLoading(false); renderCurrent(); updateLastLoaded();
@@ -1188,10 +1422,6 @@ function loadAll() {
     });
     callGas(studentUrl, { action: 'getSchoolTasks' }, function(res) {
       if (res && res.success && res.tasks) { _schoolTasks = res.tasks; localStorage.setItem('cb_cache_school_tasks', JSON.stringify(_schoolTasks)); }
-      done();
-    });
-    callGas(studentUrl, { action: 'getTimetableModes' }, function(res) {
-      if (res && res.success && res.modes) { _modes = res.modes; localStorage.setItem('cb_cache_modes', JSON.stringify(_modes)); }
       done();
     });
     pending++;
@@ -1227,6 +1457,32 @@ function loadAll() {
       }
       done();
     });
+    // 講習期間データを読み込む → アクティブ期間があれば割付も読み込む
+    pending++;
+    callGas(studentUrl, { action: 'getKoushuPeriods' }, function(res) {
+      if (res && res.success && res.periods) {
+        _koushuPeriods = res.periods;
+        localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
+      }
+      // アクティブな講習期間があれば割付データも読み込む
+      var todayIso_ = isoDate(new Date());
+      var activePeriod = _koushuPeriods.find(function(p) {
+        return p.startDate <= todayIso_ && todayIso_ <= p.endDate;
+      });
+      if (activePeriod) {
+        pending++;
+        callGas(studentUrl, { action: 'getKoushuCalendar', periodId: activePeriod.id }, function(rc) {
+          if (rc && rc.success) _koushuCalendar = rc.entries || [];
+          done();
+        }, 'POST');
+        pending++;
+        callGas(studentUrl, { action: 'getKoushuAssignments', periodId: activePeriod.id }, function(r) {
+          if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = activePeriod.id; }
+          done();
+        });
+      }
+      done();
+    });
   }
 
   if (taskUrl) {
@@ -1248,6 +1504,14 @@ function loadAll() {
         localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
         // A-5：自動持越し処理
         autoCarryOverTasks(taskUrl);
+      }
+      done();
+    });
+    // 担当者マスターを取得（タスクモーダルのドロップダウン用）
+    pending++;
+    callGas(taskUrl, { action: 'getMaster' }, function(res) {
+      if (res && res.assignees && res.assignees.length > 0) {
+        _taskAssignees = res.assignees;
       }
       done();
     });
@@ -1280,7 +1544,7 @@ function switchTab(tab) {
   var ni = document.getElementById('nav-' + tab);
   if (ni) ni.classList.add('active');
   var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・テスト予定', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
-  document.getElementById('top-title').textContent = titles[tab] || 'Class Board';
+  updateTopTitle(tab);
   renderCurrent();
 }
 
@@ -1333,9 +1597,7 @@ function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate() + n); return
 // 時間割ロジック
 // =====================================================
 function getActiveModeStudents() {
-  if (_currentMode === 'normal') return _students;
-  var m = _modes.find(function(m) { return m.modeId === _currentMode; });
-  return (m && m.data && m.data.students) ? m.data.students : _students;
+  return _students;
 }
 
 function getStudentsForKoma(classroom, youbi, komaTime) {
@@ -1411,6 +1673,108 @@ function getKomasForClassroom(classroom) {
     var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
     return ta - tb;
   });
+}
+
+/**
+ * 講習モード時に通常コマ表示すべき生徒か判定
+ * 小学生 or CA専業生 → true（通常コマ維持）
+ * 塾の中高生 → false（通常コマ非表示、講習割付で表示）
+ */
+function isNormalKomaInKoushu_(s, kt) {
+  var grade = s.grade || '';
+  var isElem = grade.indexOf('小') === 0;
+  var isCaOnly = s.attrCa && !s.attrJuku;
+  // 英検コマは学年問わず通常表示（kt省略時はfalse）
+  var isEiken = kt ? (s.komas || []).some(function(k){ return k.satType === 'eiken' && k.time === kt; }) : false;
+  return isElem || isCaOnly || isEiken;
+}
+
+/**
+ * 講習モード専用の生徒チップ（通常コマ設定を参照しないシンプル版）
+ * 学年・名前・欠席バッジだけ表示。土曜演習等のコマ種別バッジは出さない。
+ */
+function koushuChipHtml(s, opts) {
+  // CAの生徒はコマ種別バッジをそのまま表示（通常チップに委譲）
+  if (s.attrCa && !s.attrJuku) {
+    return studentChipHtml(s, opts);
+  }
+  var name = s.name || '';
+  var grade = s.grade || '';
+  var todayIso = opts.dateStr || '';
+  // 欠席チェック
+  var isAbsent = (_absenceRecords || []).some(function(r) {
+    return r.studentName === name && r.absenceDate === todayIso && r.status !== 'cancelled';
+  });
+  var absBadge = isAbsent ? '<span class="chip-abs">欠</span>' : '';
+  var gradeLabel = grade ? '<span class="chip-grade">' + esc(grade) + '</span>' : '';
+  // 残◯回バッジ
+  var remainBadge = '';
+  var activePeriod = getActiveKoushuPeriod();
+  var isTestP = !!(activePeriod && activePeriod.type === 'test');
+  if (activePeriod && opts.assignType !== 'jishu') {
+    var goal = (activePeriod.gradeGoals || {})[grade] || 0;
+    var registered = _koushuAssignments.filter(function(a) {
+      if (a.periodId !== activePeriod.id || !(a.studentId === s.id || a.studentName === name)) return false;
+      if (isTestP) return a.type === 'taisaku'; // テスト対策：対策コマのみカウント（自習は別）
+      return true;
+    }).length;
+    var remain = goal - registered;
+    if (goal > 0) {
+      var remainCls = remain <= 0 ? ' style="background:#dcfce7;color:#166534"'
+                    : remain <= 3 ? ' style="background:#fef9c3;color:#854d0e"'
+                    : ' style="background:#fee2e2;color:#991b1b"';
+      remainBadge = '<span class="chip-remain"' + remainCls + '>' + (remain <= 0 ? '✓' : '残' + remain + '回') + '</span>';
+    }
+  }
+  // ポップアップ：受講登録コマカウント（通塾コマの代わりに表示）
+  var popHtml = '';
+  if (activePeriod) {
+    var goal = (activePeriod.gradeGoals || {})[grade] || 0;
+    var registered2 = _koushuAssignments.filter(function(a) {
+      if (a.periodId !== activePeriod.id || !(a.studentId === s.id || a.studentName === name)) return false;
+      if (isTestP) return a.type === 'taisaku';
+      return true;
+    }).length;
+    var remain2 = goal > 0 ? (goal - registered2) : null;
+    // 1行で「登録X / 目標Y / 残りZ」
+    var remainColor = remain2 <= 0 ? '#059669' : remain2 <= 3 ? '#854d0e' : '#dc2626';
+    var remainText  = remain2 <= 0 ? '達成 ✓' : '残り' + remain2;
+    if (goal > 0) {
+      popHtml += '<div style="font-size:12px;white-space:nowrap">登録 <b>' + registered2 + '</b> / 目標 <b>' + goal + '</b> / <span style="font-weight:700;color:' + remainColor + '">' + remainText + '</span></div>';
+    } else {
+      popHtml += '<div style="font-size:12px">登録 <b>' + registered2 + '</b> コマ</div>';
+    }
+    if (isTestP) {
+      var jishuCnt2 = _koushuAssignments.filter(function(a) {
+        return a.periodId === activePeriod.id && (a.studentId === s.id || a.studentName === name) && a.type === 'jishu';
+      }).length;
+      if (jishuCnt2 > 0) popHtml += '<div style="font-size:11px;color:#166534">自習 <b>' + jishuCnt2 + '</b> 回</div>';
+    }
+    // 期間モード中：割付予定の一覧（テスト対策・講習共通 2026-06-11）
+    popHtml += testAssignPopupBadges_(s);
+  }
+  // よみがな・部活・指導方針を追加
+  if (s.kana)   popHtml += '<div style="font-size:11px;color:#888;margin-top:4px">' + esc(s.kana) + '</div>';
+  if (s.club)   popHtml += '<div style="font-size:11px;margin-top:3px"><span style="font-size:10px;color:#888;font-weight:700">部活・習い事</span><br>' + esc(s.club) + '</div>';
+  if (s.policy) popHtml += '<div style="font-size:11px;margin-top:3px"><span style="font-size:10px;color:#888;font-weight:700">指導方針</span><br>' + esc(s.policy) + '</div>';
+  var dataPopup = popHtml ? ' data-popup="' + popHtml.replace(/"/g, '&quot;') + '"' : '';
+  // カードIDを特定（削除・編集用）
+  var assignId = opts.assignId || '';
+  var periodId = activePeriod ? activePeriod.id : '';
+  var deleteBtn = assignId
+    ? '<span class="koushu-chip-del" onclick="event.stopPropagation();deleteKoushuAssignmentOne(\'' + assignId + '\',\'' + esc(name) + '\',\'' + esc(opts.dateStr||'') + '\',\'' + esc(opts.komaTime||'') + '\')" title="このコマの登録を外す">×</span>'
+    : '';
+  var clickAttr = s.id || name
+    ? ' onclick="openKoushuStudentEdit(\'' + esc(s.id || name) + '\',\'' + esc(name) + '\',\'' + periodId + '\')"'
+    : '';
+  var typeBadge = opts.assignType === 'taisaku' ? '<span class="chip-taisaku">対策</span>'
+                : opts.assignType === 'jishu'   ? '<span class="chip-jishu">自習</span>' : '';
+  var assignIdAttr = assignId ? ' data-assign-id="' + assignId + '"' : '';
+  var draggableAttr = assignId ? ' draggable="true"' : '';
+  var isElem = grade && grade.indexOf('小') === 0;
+  var colorCls = isElem ? ' koushu-chip-elem' : ' koushu-chip-juku';
+  return '<div class="student-chip koushu-chip' + colorCls + '"' + assignIdAttr + draggableAttr + dataPopup + clickAttr + ' style="cursor:pointer;position:relative;padding-right:' + (assignId ? '18px' : '5px') + '">' +
+    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + remainBadge + deleteBtn + '</div>';
 }
 
 function studentChipHtml(s, opts) {
@@ -1508,41 +1872,48 @@ function studentChipHtml(s, opts) {
   var popup = '';
   var hasDetail = s.kana || s.course || s.club || s.policy || (s.komas && s.komas.length > 0);
   if (hasDetail) {
-    popup = '<div class="s-popup">';
+    popup = '<div class="s-popup" style="min-width:200px;max-width:280px">';
+    // 名前＋よみがな（1行）
     if (s.kana) {
-      popup += '<div class="sp-row"><div class="sp-val" style="color:#888;font-size:11px">' + esc(s.kana) + '</div></div>';
+      popup += '<div style="font-weight:700;font-size:13px;margin-bottom:6px">' + esc(s.name || '') + ' <span style="font-weight:400;font-size:11px;color:#888">' + esc(s.kana) + '</span></div>';
     }
+    // コースバッジ
     if (s.course) {
       var _courses = s.course.split(/[,、・]/).map(function(c){ return c.trim(); }).filter(Boolean);
       var _courseBadges = _courses.map(function(c) {
         var col = courseColor_(c);
         return '<span style="display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:6px;margin:1px 2px;background:' + col.bg + ';color:' + col.color + '">' + esc(c) + '</span>';
       }).join('');
-      popup += '<div class="sp-row"><div class="sp-label">コース</div><div class="sp-val">' + _courseBadges + '</div></div>';
+      popup += '<div style="margin-bottom:6px">' + _courseBadges + '</div>';
     }
-    // 全通塾コマ一覧
+    // 通塾コマ：バッジ形式
     if (s.komas && s.komas.length > 0) {
-      var komaLines = s.komas.map(function(k) {
+      var komaBadges = s.komas.map(function(k) {
         var typeLabel;
-        if (k.online) typeLabel = '［online］';
-        else if ((k.id || '').indexOf('ca_') === 0) typeLabel = '［CA］';
-        else if (k.satType === 'eiken') typeLabel = '［英検対策］';
-        else if (k.satType === 'sat')   typeLabel = '［土曜演習］';
-        else if (k.satType === 'juken') typeLabel = '［受験特訓］';
-        else if (k.satType === 'hira')  typeLabel = '［平日演習回：' + (k.hiraKoma || '') + '］';
-        else typeLabel = '［塾］';
+        if (k.online) typeLabel = 'online';
+        else if ((k.id || '').indexOf('ca_') === 0) typeLabel = 'CA';
+        else if (k.satType === 'eiken') typeLabel = '英検';
+        else if (k.satType === 'sat')   typeLabel = '土曜';
+        else if (k.satType === 'juken') typeLabel = '受験';
+        else if (k.satType === 'hira')  typeLabel = '平日';
+        else typeLabel = '';
         var youbi = k.youbi || '';
-        var time  = k.time  || (k.hiraKoma || '');
-        var cr    = k.classroom ? ' ' + k.classroom : '';
-        return youbi + ' ' + time + cr + typeLabel;
-      }).join('<br>');
-      popup += '<div class="sp-row"><div class="sp-label">通塾コマ</div><div class="sp-val" style="line-height:1.6">' + komaLines + '</div></div>';
+        var time  = k.time || (k.hiraKoma || '');
+        var cr    = k.classroom || '';
+        var label = youbi + ' ' + time + (cr ? ' ' + cr : '') + (typeLabel ? '［' + typeLabel + '］' : '');
+        return '<span style="display:inline-block;font-size:10px;background:#f3f4f6;color:#374151;border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb">' + esc(label.trim()) + '</span>';
+      }).join('');
+      popup += '<div style="margin-bottom:6px;display:flex;flex-wrap:wrap">' + komaBadges + '</div>';
     }
+    // 期間モード中：対策・自習・講習の予定も表示（2026-06-10、講習拡張 2026-06-11）
+    popup += testAssignPopupBadges_(s, opts && opts.forcePeriod);
+    // 部活（あれば）横並び
     if (s.club) {
-      popup += '<div class="sp-row"><div class="sp-label">部活・習い事</div><div class="sp-val">' + esc(s.club) + '</div></div>';
+      popup += '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:2px;font-size:11px;color:#6b7280">部活：<span style="color:#111">' + esc(s.club) + '</span></div>';
     }
+    // 指導方針（あれば）縦
     if (s.policy) {
-      popup += '<div class="sp-row"><div class="sp-label">指導方針</div><div class="sp-val">' + esc(s.policy) + '</div></div>';
+      popup += '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">指導方針</div><div style="font-size:11px;color:#111;line-height:1.6">' + esc(s.policy) + '</div></div>';
     }
     popup += '</div>';
   }
@@ -1584,10 +1955,24 @@ function studentChipHtml(s, opts) {
   }
 
   var chipAbsentCls = (aRec && aRec.status !== 'cancelled') ? ' student-chip-absent' : '';
-  return '<div class="student-chip' + chipAbsentCls + '">' +
+  // テスト対策モード（2026-06-10 カード統一）：対策/自習バッジ＋中高塾生はクリックでコマ登録
+  var testBadgeHtml = (opts && opts.testBadge)
+    ? (opts.testBadge === 'jishu' ? '<span class="chip-jishu">自習</span>' : '<span class="chip-taisaku">対策</span>')
+    : '';
+  var tpClickAttr = '';
+  var tpc = (opts && opts.forcePeriod) || (isKoushuModeActive() ? getActiveKoushuPeriod() : null);
+  if (tpc) {
+    var tpcEligible = (tpc.type === 'test')
+      ? (s.attrJuku && ((s.grade || '').indexOf('中') === 0 || (s.grade || '').indexOf('高') === 0))
+      : true; // 講習（夏期等）は全生徒OK（小学生・CAの追加受講もkseで登録可 2026-06-11）
+    if (tpcEligible) {
+      tpClickAttr = ' onclick="openKoushuStudentEdit(\'' + esc(s.id || s.name) + '\',\'' + esc(s.name) + '\',\'' + tpc.id + '\')" style="cursor:pointer"';
+    }
+  }
+  return '<div class="student-chip' + chipAbsentCls + '"' + tpClickAttr + '>' +
     '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">' +
     absBtn +
-    '<span class="s-name">' + esc(s.name) + '</span>' +
+    '<span class="s-name">' + esc(s.name) + '</span>' + testBadgeHtml +
     absenceBadge +
     (badges ? '<span class="s-badges" style="margin-left:auto">' + badges + '</span>' : '') +
     '</div>' +
@@ -1623,54 +2008,115 @@ function renderToday() {
   // アラートは在籍生徒全員を対象（授業がない日でも表示）
   var alerts = alertBannersHtml(_students, todayIso);
 
-  var crHtml = ['北久里浜','久里浜'].map(function(cr) {
-    var komas = getKomasForClassroom(cr).filter(function(kt) {
-      return getStudentsForKoma(cr, todayYoubi, kt).length > 0;
-    });
-    var komaHtml = komas.length
-      ? komas.map(function(kt) {
-          var ss = getStudentsForKoma(cr, todayYoubi, kt);
-          var _cnt = komaCountLabel_(ss, todayIso, kt, cr);
-          // 最終コマなら受験特訓人数も加算
-          var _allKomasT = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
-          var _isLastT = _allKomasT.length > 0 && _allKomasT[_allKomasT.length-1] === kt;
-          var _jukenCountT = 0;
-          if (_isLastT) {
-            _jukenCountT = getActiveModeStudents().filter(function(s) {
-              return (s.komas||[]).some(function(k2){ return k2.satType==='juken' && k2.youbi===todayYoubi; }) && getMainClassroom(s)===cr;
-            }).length;
-          }
-          var _cntTotal = ((_cnt && typeof _cnt === 'object') ? _cnt.total : 0) + _jukenCountT;
-          var _cntLabel = (_cnt && typeof _cnt === 'object') ? _cnt.label.replace('（計' + (_cntTotal - _jukenCountT) + '人）', '（計' + _cntTotal + '人）') : '';
-          var _cntCls = _cntTotal >= 15 ? ' count-danger' : _cntTotal >= 12 ? ' count-warn' : '';
-          var _cntTitle = ' title="12人以上：黄色 / 15人以上：赤"';
-          var countHtml = _cntTotal > 0 ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cntLabel + '</span>' : '';
-          // 最終コマの場合、受験特訓（classroom未設定・土曜）の生徒を相乗り表示
-          var allKomas = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
-          var isLastKoma = allKomas.length > 0 && allKomas[allKomas.length - 1] === kt;
-          var jukenBlock = '';
-          if (isLastKoma) {
-            var jukenStudents = getActiveModeStudents().filter(function(s) {
-              return (s.komas || []).some(function(k2) {
-                return k2.satType === 'juken' && k2.youbi === todayYoubi;
-              }) && getMainClassroom(s) === cr;
-            });
-            if (jukenStudents.length) {
-              jukenBlock = '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">' +
-                '<div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:3px">受験特訓 19:00〜21:30</div>' +
-                jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:todayYoubi,dateStr:todayIso,isJuken:true}); }).join('') +
-                '</div>';
-            }
-          }
-          return '<div class="koma-block">' +
-            '<div class="koma-time">⏰ ' + esc(kt) + countHtml + '</div>' +
-            '<div class="koma-students">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + jukenBlock + '</div>' +
+  // ── 講習モード時は割付データベースで表示 ──
+  var crHtml;
+  if (isKoushuModeActive() && getActiveKoushuPeriod() && !getActiveTestPeriod_() && isDateInViewPeriod_(todayIso)) {
+    // 講習モード（夏期等）：通常コマ（小学生・CA）＋講習割付コマ を両方表示（今日が期間内のときだけ。期間外は通常表示 2026-06-10）
+    // ※テスト対策（type=test）は通常モード表示＋上乗せのため通常分岐に流す
+    var todayAssign = _koushuAssignments.filter(function(a) { return a.date === todayIso; });
+    crHtml = ['北久里浜','久里浜'].map(function(cr) {
+      var komaBlocksHtml = '';
+
+      // ── 1. 通常コマ（小学生・CAの授業）をそのまま表示（塾の中高生は除外）──
+      var normalKomas = getKomasForClassroom(cr).filter(function(kt) {
+        return getStudentsForKoma(cr, todayYoubi, kt).some(function(s){ return isNormalKomaInKoushu_(s, kt); });
+      });
+      normalKomas.forEach(function(kt) {
+        var ss = getStudentsForKoma(cr, todayYoubi, kt).filter(function(s){ return isNormalKomaInKoushu_(s, kt); });
+        var chips = ss.map(function(s) { return studentChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso}); }).join('');
+        komaBlocksHtml += '<div class="koma-block">' +
+          '<div class="koma-time">' + esc(kt) + ' <span style="font-size:10px;color:#6b7280">（通常）</span></div>' +
+          '<div class="koma-students">' + chips + '</div>' +
+          '</div>';
+      });
+
+      // ── 2. 講習割付コマを表示 ──
+      var crAssign = todayAssign.filter(function(a) { return a.classroom === cr; });
+      var komaMap = {};
+      crAssign.forEach(function(a) {
+        if (!komaMap[a.komaTime]) komaMap[a.komaTime] = [];
+        komaMap[a.komaTime].push(a);
+      });
+      var komaTimes = Object.keys(komaMap).sort();
+      if (komaTimes.length) {
+        komaTimes.forEach(function(kt) {
+          var assigns = komaMap[kt];
+          var cntCls = assigns.length >= 15 ? ' count-danger' : assigns.length >= 12 ? ' count-warn' : '';
+          var countHtml = ' <span class="koma-count' + cntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + assigns.length + '人）</span>';
+          var chips = assigns.map(function(a) {
+            var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
+            return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: a.id });
+          }).join('');
+          komaBlocksHtml += '<div class="koma-block">' +
+            '<div class="koma-time">🎓 ' + esc(kt) + countHtml + '</div>' +
+            '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + chips + '</div>' +
             '</div>';
-        }).join('')
-      : '<div class="koma-empty">本日の授業はありません</div>';
-    var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
-    return '<div class="classroom-block' + crCls + '"><div class="classroom-block-header">🏫 ' + cr + '</div>' + komaHtml + '</div>';
-  }).join('');
+        });
+      } else if (!normalKomas.length) {
+        komaBlocksHtml = '<div class="koma-empty">本日の講習登録はありません</div>';
+      }
+
+      var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
+      return '<div class="classroom-block' + crCls + '"><div class="classroom-block-header">🏫 ' + cr + '</div>' + komaBlocksHtml + '</div>';
+    }).join('');
+  } else {
+    // 通常モード表示
+    crHtml = ['北久里浜','久里浜'].map(function(cr) {
+      var komas = getKomasForClassroom(cr).filter(function(kt) {
+        return getStudentsForKoma(cr, todayYoubi, kt).length > 0;
+      });
+      // テスト対策：割付があるコマ枠を行に追加（通常と同時間帯なら同セルに混在）
+      if (getActiveTestPeriod_()) {
+        _koushuAssignments.forEach(function(a) {
+          if (a.date === todayIso && a.classroom === cr && komas.indexOf(a.komaTime) === -1) komas.push(a.komaTime);
+        });
+        komas.sort(function(k1, k2) {
+          return (parseInt((k1||'').replace(':','').substring(0,4))||0) - (parseInt((k2||'').replace(':','').substring(0,4))||0);
+        });
+      }
+      var komaHtml = komas.length
+        ? komas.map(function(kt) {
+            var ss = getStudentsForKoma(cr, todayYoubi, kt);
+            var _cnt = komaCountLabel_(ss, todayIso, kt, cr);
+            var _allKomasT = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
+            var _isLastT = _allKomasT.length > 0 && _allKomasT[_allKomasT.length-1] === kt;
+            var _jukenCountT = 0;
+            if (_isLastT) {
+              _jukenCountT = getActiveModeStudents().filter(function(s) {
+                return (s.komas||[]).some(function(k2){ return k2.satType==='juken' && k2.youbi===todayYoubi; }) && getMainClassroom(s)===cr;
+              }).length;
+            }
+            var _cntTotal = ((_cnt && typeof _cnt === 'object') ? _cnt.total : 0) + _jukenCountT + testAssignCount_(cr, kt, todayIso);
+            var _cntLabel = (_cnt && typeof _cnt === 'object') ? _cnt.label.replace('（計' + (_cntTotal - _jukenCountT) + '人）', '（計' + _cntTotal + '人）') : '';
+            var _cntCls = _cntTotal >= 15 ? ' count-danger' : _cntTotal >= 12 ? ' count-warn' : '';
+            var _cntTitle = ' title="12人以上：黄色 / 15人以上：赤"';
+            var countHtml = _cntTotal > 0 ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cntLabel + '</span>' : '';
+            var allKomas = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
+            var isLastKoma = allKomas.length > 0 && allKomas[allKomas.length - 1] === kt;
+            var jukenBlock = '';
+            if (isLastKoma) {
+              var jukenStudents = getActiveModeStudents().filter(function(s) {
+                return (s.komas || []).some(function(k2) {
+                  return k2.satType === 'juken' && k2.youbi === todayYoubi;
+                }) && getMainClassroom(s) === cr;
+              });
+              if (jukenStudents.length) {
+                jukenBlock = '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb">' +
+                  '<div style="font-size:10px;color:#6d28d9;font-weight:700;margin-bottom:3px">受験特訓 19:00〜21:30</div>' +
+                  jukenStudents.map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:'19:00〜21:30',youbi:todayYoubi,dateStr:todayIso,isJuken:true}); }).join('') +
+                  '</div>';
+              }
+            }
+            return '<div class="koma-block">' +
+              '<div class="koma-time">⏰ ' + esc(kt) + countHtml + '</div>' +
+              '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + testAssignChips_(cr, kt, todayIso, todayYoubi) + jukenBlock + '</div>' +
+              '</div>';
+          }).join('')
+        : '<div class="koma-empty">本日の授業はありません</div>';
+      var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
+      return '<div class="classroom-block' + crCls + '"><div class="classroom-block-header">🏫 ' + cr + '</div>' + komaHtml + '</div>';
+    }).join('');
+  }
 
   // 授業内・授業外・期限切れでフィルタ（taskType設定済みのみ）
   // classroom が一致するもの／空欄は両教室に表示
@@ -1791,6 +2237,7 @@ function renderToday() {
     '</div>' +
     '<div class="today-grid">' + crHtml + '</div>' +
     examStrategySection(todayIso);
+  updateTopTitle('today'); // 描画とタイトル（期間プルダウン）を常に同期（2026-06-10）
 }
 
 // =====================================================
@@ -2120,8 +2567,16 @@ function clearHighlight() {
 function renderWeek() {
   var mon = weekStartDate(_weekOffset);
   var days = [0,1,2,3,4,5].map(function(i) { return addDays(mon, i); });
+  // 講習モード：日曜開校の週は日曜列を追加（2026-06-10・期間印刷と同仕様）
+  if (isKoushuModeActive() && getActiveKoushuPeriod()) {
+    var pW = getActiveKoushuPeriod();
+    var sunW = addDays(mon, 6);
+    var sunIsoW = isoDate(sunW);
+    var sunOpenW = _koushuCalendar.some(function(e) { return e.date === sunIsoW && e.isOpen; });
+    if (sunOpenW && sunIsoW >= pW.startDate && sunIsoW <= pW.endDate) days.push(sunW);
+  }
   var todayIso = isoDate(new Date());
-  var weekLabel = fmtDate(mon) + '〜' + fmtDate(days[5]);
+  var weekLabel = fmtDate(mon) + '〜' + fmtDate(days[days.length - 1]);
 
   // 今週に授業がある生徒を全員集めてアラートバナー生成
   var weekStudentSet = {};
@@ -2129,7 +2584,7 @@ function renderWeek() {
   days.forEach(function(d, di) {
     ['北久里浜','久里浜'].forEach(function(crA) {
       getKomasForClassroom(crA).forEach(function(kt) {
-        getStudentsForKoma(crA, YOUBIS_ALL[di], kt).forEach(function(s) {
+        getStudentsForKoma(crA, YOUBI_MAP[d.getDay()], kt).forEach(function(s) {
           weekStudentSet[s.name] = s;
         });
       });
@@ -2138,7 +2593,7 @@ function renderWeek() {
   var weekStudents = Object.values(weekStudentSet);
   var weekAlerts = alertBannersHtml(weekStudents, todayIso);
 
-  var html = renderModeTabs() +
+  var html = 
     (weekAlerts ? '<div style="margin-bottom:8px">' + weekAlerts + '</div>' : '') +
     '<div class="week-nav">' +
     '<button class="btn-secondary btn-sm" onclick="_weekOffset--;renderWeek()">← 先週</button>' +
@@ -2146,6 +2601,7 @@ function renderWeek() {
     '<button class="btn-secondary btn-sm" onclick="_weekOffset++;renderWeek()">来週 →</button>' +
     '<button class="btn-secondary btn-sm" onclick="_weekOffset=0;renderWeek()">今週</button>' +
     '<button class="btn-secondary btn-sm" onclick="window.print()">🖨️ 印刷</button>' +
+    (isKoushuModeActive() && getActiveKoushuPeriod() ? '<button class="btn-secondary btn-sm" onclick="printKoushuPeriod()">📄 期間印刷</button>' : '') +
     '</div>' +
     '<div class="classroom-tabs">' +
     ['北久里浜','久里浜'].map(function(cr2) {
@@ -2163,10 +2619,10 @@ function renderWeek() {
     checklistBarHtml();
 
   document.getElementById('main-content').innerHTML = html;
-
+  updateTopTitle('week'); // 描画とタイトル（期間プルダウン）を常に同期（2026-06-10）
 }
 function buildWeekGrid(days, todayIso) {
-  var YOUBIS = ['月','火','水','木','金','土'];
+  var YOUBIS = days.map(function(d) { return YOUBI_MAP[d.getDay()]; }); // 日曜列対応（2026-06-10）
   var cr = _currentClassroom;
   var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
   // 全教室のコマを統合して行を揃える（ないコマはグレーセルで表示）
@@ -2186,8 +2642,45 @@ function buildWeekGrid(days, todayIso) {
   var weekStartIso = isoDate(days[0]);
   var weekEndIso   = isoDate(days[5]);
 
+  // 講習モード時はコマ枠を講習期間設定から取得
+  var activePeriodForGrid = isKoushuModeActive() ? getActiveKoushuPeriod() : null;
+  if (activePeriodForGrid && activePeriodForGrid.komaFrames && activePeriodForGrid.komaFrames.length) {
+    if (activePeriodForGrid.type === 'test') {
+      // テスト対策：通常コマ＋対策コマ枠の和集合（通常表示は維持）
+      activePeriodForGrid.komaFrames.forEach(function(kf) {
+        if (komas.indexOf(kf) === -1) komas.push(kf);
+      });
+    } else if (activePeriodForGrid.startDate <= weekStartIso && weekEndIso <= activePeriodForGrid.endDate) {
+      // 夏期等：週全体が期間内なら講習コマのみに置換
+      komas = activePeriodForGrid.komaFrames.slice();
+    } else {
+      // 夏期等の混在週（期間の前後をまたぐ）：通常コマ＋講習コマの和集合（日付ごとに表示を分けるため 2026-06-10）
+      activePeriodForGrid.komaFrames.forEach(function(kf) {
+        if (komas.indexOf(kf) === -1) komas.push(kf);
+      });
+    }
+    komas.sort(function(a, b) {
+      var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
+      var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
+      return ta - tb;
+    });
+  }
+
   // 各日に生徒がいるか判定
   var dayHasStudent = days.map(function(d, i) {
+    var iso = isoDate(d);
+    if (getActiveTestPeriod_()) {
+      // テスト対策：通常授業 OR 割付があればtrue
+      var hasAssignT = _koushuAssignments.some(function(a) { return a.date === iso && a.classroom === cr; });
+      var hasNormalT = komas.some(function(kt) { return getStudentsForKoma(cr, YOUBIS[i], kt).length > 0; });
+      return hasAssignT || hasNormalT;
+    }
+    if (isKoushuModeActive() && isDateInViewPeriod_(iso)) {
+      // 講習割付 OR 通常コマ（小学生・CA）があればtrue（その日が期間内のときだけ 2026-06-10）
+      var hasAssign = _koushuAssignments.some(function(a) { return a.date === iso && a.classroom === cr; });
+      var hasNormal = komasAll.some(function(kt) { return getStudentsForKoma(cr, YOUBIS[i], kt).some(function(s){ return isNormalKomaInKoushu_(s, kt); }); });
+      return hasAssign || hasNormal;
+    }
     return komas.some(function(kt) {
       return getStudentsForKoma(cr, YOUBIS[i], kt).length > 0;
     });
@@ -2265,6 +2758,11 @@ function buildWeekGrid(days, todayIso) {
       var todayCls = iso === todayIso ? ' today-col' : '';
       var emptyCls = dayHasStudent[i] ? '' : ' day-empty';
       var crHasKoma = getKomasForClassroom(cr).indexOf(kt) >= 0;
+      // テスト対策：対策コマ枠 or 割付があるセルはグレーアウトしない（2026-06-10）
+      if (!crHasKoma && getActiveTestPeriod_()) {
+        var tpG = getActiveTestPeriod_();
+        if ((tpG.komaFrames || []).indexOf(kt) >= 0 || testAssignCount_(cr, kt, iso) > 0) crHasKoma = true;
+      }
       if (!crHasKoma) {
         // この教室にこのコマ設定がない → グレーアウトセル
         return '<div class="wg-cell wg-cell-no-koma' + todayCls + emptyCls + '"></div>';
@@ -2282,6 +2780,29 @@ function buildWeekGrid(days, todayIso) {
         var stu = (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
         return studentChipHtml(stu, {classroom:cr, komaTime:kt, youbi:YOUBIS[i], dateStr:iso, absenceCourse: r.absenceCourse || ''});
       });
+      // ── 講習モード（夏期等）：通常コマ（小学生・CA）＋講習割付コマ を両方表示（その日が期間内のセルだけ 2026-06-10） ──
+      if (isKoushuModeActive() && !getActiveTestPeriod_() && isDateInViewPeriod_(iso)) {
+        // 通常コマの生徒（小学生・CAのみ、塾の中高生は除外）
+        var normalChipsK = ss.filter(function(s){ return isNormalKomaInKoushu_(s, kt); })
+          .map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso}); });
+        // 講習割付の生徒
+        var kAssigns = _koushuAssignments.filter(function(a) {
+          return a.date === iso && a.classroom === cr && a.komaTime === kt;
+        });
+        var kChips = kAssigns.map(function(a) {
+          var s = _students.find(function(st){ return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
+          return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: a.id });
+        });
+        var allKChips = normalChipsK.concat(kChips);
+        var kCntCls = allKChips.length >= 15 ? ' count-danger' : allKChips.length >= 12 ? ' count-warn' : '';
+        var kCountDiv = allKChips.length > 0
+          ? '<div class="wg-count' + kCntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + allKChips.length + '人）</div>'
+          : '';
+        return '<div class="wg-cell' + todayCls + emptyCls + '" data-date="' + iso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' +
+          (allKChips.length ? kCountDiv + allKChips.join('') : (dayHasStudent[i] ? '<span style="color:#ccc;font-size:11px">—</span>' : '')) +
+          '</div>';
+      }
+      // ── 通常モード ──
       var normalChips = ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso});});
       var allChips = normalChips.concat(subChips);
       var _wCnt = komaCountLabel_(ss, iso, kt, cr);
@@ -2295,20 +2816,18 @@ function buildWeekGrid(days, todayIso) {
         }).length;
       }
       var _wBase = (_wCnt && typeof _wCnt === 'object') ? _wCnt.total : 0;
-      var _wTotal = _wBase + _jukenCountW;
+      var _wTotal = _wBase + _jukenCountW + testAssignCount_(cr, kt, iso);
       var _wLabel = (_wCnt && typeof _wCnt === 'object') ? _wCnt.label.replace('（計' + _wBase + '人）', '（計' + _wTotal + '人）') : '';
       var _wCls = _wTotal >= 15 ? ' count-danger' : _wTotal >= 12 ? ' count-warn' : '';
       var _wTitle = ' title="12人以上：黄色 / 15人以上：赤"';
       var wgCountDiv = _wTotal > 0 ? '<div class="wg-count' + _wCls + '"' + _wTitle + '>' + _wLabel + '</div>' : '';
       // 最終コマに受験特訓を相乗り
-      // 両教室統合後の最終コマでなく、その日その教室で生徒がいる最後のコマを使う
       var jukenBlockW = '';
       var jukenStu = getActiveModeStudents().filter(function(s) {
         return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; })
           && getMainClassroom(s) === cr;
       });
       if (jukenStu.length > 0) {
-        // その日その教室で生徒がいるコマのうち最後のコマを判定
         var dayKomasWithStudents = komas.filter(function(k2) {
           return getStudentsForKoma(cr, YOUBIS[i], k2).length > 0;
         });
@@ -2321,9 +2840,10 @@ function buildWeekGrid(days, todayIso) {
             '</div>';
         }
       }
-      return '<div class="wg-cell' + todayCls + emptyCls + '">' +
-        (allChips.length || jukenBlockW
-          ? wgCountDiv + allChips.join('') + jukenBlockW
+      var testChipsW = testAssignChips_(cr, kt, iso, YOUBIS[i]);
+      return '<div class="wg-cell' + todayCls + emptyCls + '" data-date="' + iso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' +
+        (allChips.length || jukenBlockW || testChipsW
+          ? wgCountDiv + allChips.join('') + testChipsW + jukenBlockW
           : (dayHasStudent[i] ? '<span style="color:#ccc;font-size:11px">—</span>' : ''))
         + '</div>';
     }).join('');
@@ -2333,27 +2853,161 @@ function buildWeekGrid(days, todayIso) {
   return '<div class="week-grid' + crCls + '" style="' + gridStyle + '" id="week-grid-main">' +
     header + taskRow + komaRows + '</div>';
 }
-function renderModeTabs() {
-  var html = '<div class="mode-tabs">' +
-    '<div class="mode-tab' + (_currentMode === 'normal' ? ' active' : '') + '" onclick="switchMode(\'normal\')">通常</div>';
-  _modes.forEach(function(m) {
-    html += '<div class="mode-tab' + (m.modeId === _currentMode ? ' active' : '') + '">' +
-      '<span onclick="switchMode(\'' + m.modeId + '\')">' + esc(m.modeName) + '</span>' +
-      '<span class="del-btn" onclick="deleteMode(\'' + m.modeId + '\',\'' + esc(m.modeName) + '\')" title="削除">×</span>' +
-      '</div>';
-  });
-  html += '<button class="mode-add-btn" onclick="openModal(\'modal-add-mode\')">  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 追加</button></div>';
-  return html;
-}
 
-function switchMode(modeId) { _currentMode = modeId; renderCurrent(); }
+
+// =====================================================
+// 講習期間 一括印刷（表示中教室・1週=1ページ・B4横）
+// =====================================================
+function printKoushuPeriod() {
+  var period = getActiveKoushuPeriod();
+  if (!period) { alert('講習期間がありません'); return; }
+  var cr = _currentClassroom;
+  var komas = (period.komaFrames || []).slice();
+  if (!komas.length) { alert('講習コマ枠が設定されていません（設定タブの講習管理で登録してください）'); return; }
+  // テスト対策：通常コマも行に含める（画面と同じ和集合・2026-06-10）
+  if (period.type === 'test') {
+    getKomasForClassroom(cr).forEach(function(kt) { if (komas.indexOf(kt) === -1) komas.push(kt); });
+  }
+  komas.sort(function(a, b) {
+    var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
+    var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
+    return ta - tb;
+  });
+  var startIso = period.startDate, endIso = period.endDate;
+  var start = new Date(startIso), end = new Date(endIso);
+  if (isNaN(start) || isNaN(end)) { alert('期間の日付が不正です'); return; }
+
+  // 開閉校マップ（デフォルト：日曜のみ閉校）
+  var calMap = {};
+  _koushuCalendar.forEach(function(e) { calMap[e.date + '_' + e.classroom] = e.isOpen; });
+  function isOpenDay(iso, d) {
+    var key = iso + '_' + cr;
+    if (calMap.hasOwnProperty(key)) return calMap[key];
+    return d.getDay() !== 0;
+  }
+
+  // 期間を週（月曜始まり）に分解
+  var mon = new Date(start);
+  var dow = mon.getDay();
+  mon.setDate(mon.getDate() + (dow === 0 ? 1 : 1 - dow));
+  mon.setHours(0,0,0,0);
+  var weeks = [];
+  var w = new Date(mon);
+  while (w <= end) { weeks.push(new Date(w)); w = addDays(w, 7); }
+  if (!weeks.length) { alert('期間内に印刷対象の週がありません'); return; }
+
+  function fmtMD(d) { return (d.getMonth()+1) + '/' + d.getDate() + '(' + YOUBI_MAP[d.getDay()] + ')'; }
+
+  var pages = weeks.map(function(wm, wi) {
+    var days = [0,1,2,3,4,5].map(function(i) { return addDays(wm, i); });
+    // 日曜が期間内かつ開校なら7列目として追加（A案 2026-06-10）
+    var sun = addDays(wm, 6);
+    var sunIso = isoDate(sun);
+    if (sunIso >= startIso && sunIso <= endIso && isOpenDay(sunIso, sun)) days.push(sun);
+
+    // 各列の状態を判定（期間外・閉校は最小幅の縦書き列にする）
+    var dayInfo = days.map(function(d) {
+      var iso = isoDate(d);
+      var out = (iso < startIso || iso > endIso);
+      var closed = !out && !isOpenDay(iso, d);
+      return { d: d, iso: iso, out: out, closed: closed, min: out || closed };
+    });
+
+    var colgroup = '<colgroup><col style="width:92px">' +
+      dayInfo.map(function(ci) { return ci.min ? '<col style="width:30px">' : '<col>'; }).join('') +
+      '</colgroup>';
+
+    var headCells = dayInfo.map(function(ci) {
+      if (ci.min) return '<th class="kp-min" style="color:#9ca3af">' + fmtMD(ci.d) + '</th>';
+      return '<th>' + fmtMD(ci.d) + '</th>';
+    }).join('');
+
+    var bodyRows = komas.map(function(kt) {
+      var cells = dayInfo.map(function(ci) {
+        if (ci.out) return '<td class="kp-closed">—</td>';
+        if (ci.closed) return '<td class="kp-closed kp-min">閉校</td>';
+        var iso = ci.iso;
+        var youbi = YOUBI_MAP[ci.d.getDay()];
+        var isTestPr = period.type === 'test';
+        var items = [];
+        getStudentsForKoma(cr, youbi, kt).forEach(function(s) {
+          // テスト対策：通常コマ全員 ／ 夏期等：小学生・CAのみ（中高は講習割付に置換）
+          if (isTestPr || isNormalKomaInKoushu_(s, kt)) items.push({ name: s.name, grade: s.grade || '', badge: '' });
+        });
+        _koushuAssignments.forEach(function(a) {
+          if (a.date !== iso || a.classroom !== cr || a.komaTime !== kt) return;
+          var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || {};
+          var badge = '';
+          if (isTestPr) badge = (a.type === 'jishu') ? 'jishu' : 'taisaku';
+          else if (isNormalKomaInKoushu_(s, '')) badge = 'koushu'; // 通常コマ勢（小学生・CA）の追加受講
+          items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge });
+        });
+        if (!items.length) return '<td><span style="color:#ccc">—</span></td>';
+        var chips = items.map(function(it) {
+          var bdg = it.badge === 'taisaku' ? '<span class="kp-badge kp-b-taisaku">対策</span>'
+                  : it.badge === 'jishu'   ? '<span class="kp-badge kp-b-jishu">自習</span>'
+                  : it.badge === 'koushu'  ? '<span class="kp-badge kp-b-koushu">講習</span>' : '';
+          return '<span class="kp-stu">' + esc(it.name) + (it.grade ? '<span class="kp-grade">(' + esc(it.grade) + ')</span>' : '') + bdg + '</span>';
+        }).join('');
+        return '<td><div class="kp-count">計' + items.length + '人</div>' + chips + '</td>';
+      }).join('');
+      return '<tr><td class="kp-koma-col">' + esc(kt) + '</td>' + cells + '</tr>';
+    }).join('');
+    return '<div class="kp-page">' +
+      '<div class="kp-header"><span>' + esc(period.name) + ' 時間割　' + fmtMD(days[0]) + '〜' + fmtMD(days[days.length - 1]) + '　' + esc(cr) + '</span>' +
+      '<span class="kp-pageno">' + (wi + 1) + ' / ' + weeks.length + 'ページ</span></div>' +
+      '<table class="kp-table">' + colgroup + '<tr><th class="kp-koma-col">コマ</th>' + headCells + '</tr>' + bodyRows + '</table>' +
+      '</div>';
+  }).join('');
+
+  var root = document.getElementById('kp-print-root');
+  if (!root) { alert('印刷エリアが見つかりません'); return; }
+  root.innerHTML = pages;
+  // 画面外に表示して実寸計測 → 1ページに収まるまでフォントを自動縮小
+  root.style.display = 'block';
+  root.style.position = 'absolute';
+  root.style.left = '-99999px';
+  root.style.top = '0';
+  Array.prototype.forEach.call(root.querySelectorAll('.kp-page'), function(pg) {
+    // 【性能 2026-06-10】0.5px刻みのwhileループは1ページごとに最大13回の
+    // 強制リフローが走り、10ページ超で数十秒固まる。比率計算で一発縮小に変更。
+    var fs = 13;
+    pg.style.fontSize = fs + 'px';
+    var sh = pg.scrollHeight, ch = pg.clientHeight;
+    if (sh > ch + 1) {
+      fs = Math.max(7, Math.floor((fs * ch / sh) * 2) / 2);
+      pg.style.fontSize = fs + 'px';
+      var guard = 0;
+      while (fs > 7 && guard < 4 && pg.scrollHeight > pg.clientHeight + 1) {
+        fs -= 0.5; guard++;
+        pg.style.fontSize = fs + 'px';
+      }
+    }
+  });
+  // B4横の@pageを一時注入
+  var st = document.createElement('style');
+  st.id = 'kp-page-style';
+  st.textContent = '@page { size: 364mm 257mm; margin: 6mm; }';
+  document.head.appendChild(st);
+  document.body.classList.add('kp-printing');
+  function kpCleanup() {
+    document.body.classList.remove('kp-printing');
+    root.style.display = 'none';
+    root.innerHTML = '';
+    var s2 = document.getElementById('kp-page-style');
+    if (s2 && s2.parentNode) s2.parentNode.removeChild(s2);
+    window.removeEventListener('afterprint', kpCleanup);
+  }
+  window.addEventListener('afterprint', kpCleanup);
+  setTimeout(function() { window.print(); }, 50);
+}
 
 // =====================================================
 // 今月タブ
 // =====================================================
 function renderMonth() {
   var todayIso = isoDate(new Date());
-  var html = renderModeTabs() +
+  var html = 
     '<div class="classroom-tabs">' +
     ['北久里浜','久里浜'].map(function(cr) {
       return '<div class="classroom-tab' + (cr === _currentClassroom ? ' active' : '') + '" onclick="_currentClassroom=\'' + cr + '\';renderMonth()">' + cr + '</div>';
@@ -3977,44 +4631,1840 @@ function renderSettings() {
   var su = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var tu = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
 
-  var modeListHtml = _modes.length
-    ? _modes.map(function(m) {
-        return '<div class="mode-list-item">' +
-          '<div><div style="font-weight:600;font-size:13px">' + esc(m.modeName) + '</div>' +
-          '<div style="font-size:11px;color:var(--text-muted)">作成：' + esc(m.createdAt) + '</div></div>' +
-          '<button class="btn-danger btn-sm" onclick="deleteMode(\'' + m.modeId + '\',\'' + esc(m.modeName) + '\')">削除</button>' +
-          '</div>';
-      }).join('')
-    : '<p style="font-size:13px;color:var(--text-muted)">カスタムモードはありません</p>';
-
   document.getElementById('main-content').innerHTML =
-    '<div style="max-width:640px">' +
-    '<div class="card" style="margin-bottom:16px"><div class="card-header" style="display:flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 使用者設定</div><div class="card-body">' +
-    '<div class="setting-section"><div class="setting-label">使用者名' +
+    '<div style="max-width:760px">' +
+    // 使用者設定＋GAS接続を1カードにコンパクト化（2026-06-11：100%ズームで設定タブが1画面に収まるように）
+    '<div class="card" style="margin-bottom:12px"><div class="card-body" style="padding:12px 16px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+    '<span style="font-weight:700;font-size:13px;white-space:nowrap">👤 使用者名' +
     '<span class="gs-help"><span class="gs-help-icon">?</span>' +
-    '<span class="gs-help-body">タスクの持越し・完了操作のログに使用します。<br>この端末に保存されます（他の端末には影響しません）。</span></span>' +
+    '<span class="gs-help-body">タスクの持越し・完了操作のログに使用します。<br>この端末に保存されます（他の端末には影響しません）。</span></span></span>' +
+    '<input class="setting-input" id="s-user-name" value="' + esc(localStorage.getItem(CB_USER_NAME_KEY) || '') + '" placeholder="例：川上" style="max-width:160px;margin:0" />' +
+    '<button class="btn-primary btn-sm" onclick="saveUserName()">保存</button>' +
     '</div>' +
-    '<input class="setting-input" id="s-user-name" value="' + esc(localStorage.getItem(CB_USER_NAME_KEY) || '') + '" placeholder="例：川上" style="max-width:200px" /></div>' +
-    '<button class="btn-primary" onclick="saveUserName()">保存</button>' +
+    '<div style="border-top:1px solid var(--border);padding-top:10px">' +
+    '<div style="font-weight:700;font-size:13px;margin-bottom:6px">🔗 GAS接続設定</div>' +
+    '<div style="display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center">' +
+    '<span style="font-size:12px;white-space:nowrap">生徒マスタ' +
+    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
+    '<span class="gs-help-body">【会員管理GAS】が担当するデータ：<br>・生徒マスタ（時間割・コマ情報）<br>・学校マスタ（テスト記録・行事・学校ワーク）<br>・時間割モード（講習用スナップショット）<br><br>「生徒マスタ GAS URL」にセットしてください。</span></span></span>' +
+    '<input class="setting-input" id="s-student-url" value="' + esc(su) + '" placeholder="https://script.google.com/macros/s/.../exec" style="margin:0;font-size:12px" />' +
+    '<span style="font-size:12px;white-space:nowrap">タスクマネージャー' +
+    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
+    '<span class="gs-help-body">【タスクマネージャーGAS】が担当するデータ：<br>・本日・今週タブに表示するタスク一覧<br><br>【表示条件】タスクマネージャー側で以下をすべて設定したタスクのみ表示されます：<br>・タスク種別：「授業内」または「授業外」<br>・期日：設定済み<br>・教室：設定済み（北久里浜 / 久里浜）</span></span></span>' +
+    '<input class="setting-input" id="s-task-url" value="' + esc(tu) + '" placeholder="https://script.google.com/macros/s/.../exec" style="margin:0;font-size:12px" />' +
+    '</div>' +
+    '<button class="btn-primary btn-sm" style="margin-top:8px" onclick="saveSettings()">保存して再読み込み</button>' +
+    '</div>' +
     '</div></div>' +
-    '<div class="card" style="margin-bottom:16px"><div class="card-header">🔗 GAS接続設定</div><div class="card-body">' +
-    '<div class="setting-section"><div class="setting-label">生徒マスタ GAS URL（会員管理GAS）' +
-    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
-    '<span class="gs-help-body">【会員管理GAS】が担当するデータ：<br>・生徒マスタ（時間割・コマ情報）<br>・学校マスタ（テスト記録・行事・学校ワーク）<br>・時間割モード（講習用スナップショット）<br><br>設定タブの「生徒マスタ GAS URL」にセットしてください。</span></span>' +
+    renderKoushuSettingCard_() +
+    '</div>';
+}
+
+
+// =====================================================
+// 講習管理 UI（設定タブ）
+// 2026-06-07 追加
+// =====================================================
+
+var KOUSHU_TYPE_LABELS = { summer: '夏期講習', winter: '冬期講習', spring: '春期講習', test: 'テスト対策' };
+
+// 仮デフォルト値（設定タブで変更可能）
+var KOUSHU_DEFAULT_KOMA_FRAMES = [
+  '10:00〜11:30',
+  '13:00〜14:30',
+  '16:20〜17:10',
+  '17:15〜18:35',
+  '18:40〜20:00'
+];
+var KOUSHU_DEFAULT_GRADE_GOALS = { '中1': 10, '中2': 12, '中3': 15, '高校生': 10 };
+
+/**
+ * 設定タブに表示する講習管理カード全体を返す
+ */
+function renderKoushuSettingCard_() {
+  var html = '<div class="card" style="margin-top:16px">' +
+    '<div class="card-header" style="display:flex;align-items:center;justify-content:space-between">' +
+    '<span>🎓 講習・テスト対策 期間管理</span>' +
+    '<button class="btn-primary btn-sm" onclick="openKoushuPage(\'new\')">＋ 新規作成</button>' +
     '</div>' +
-    '<input class="setting-input" id="s-student-url" value="' + esc(su) + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
-    '<div class="setting-section"><div class="setting-label">タスクマネージャー GAS URL' +
-    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
-    '<span class="gs-help-body">【タスクマネージャーGAS】が担当するデータ：<br>・本日・今週タブに表示するタスク一覧<br><br>【表示条件】タスクマネージャー側で以下をすべて設定したタスクのみ表示されます：<br>・タスク種別：「授業内」または「授業外」<br>・期日：設定済み<br>・教室：設定済み（北久里浜 / 久里浜）<br><br>タスクマネージャーツールのGAS URLをセットしてください。</span></span>' +
+    '<div class="card-body">';
+
+  if (_koushuPeriods.length === 0) {
+    html += '<p style="font-size:13px;color:var(--text-muted)">講習期間が登録されていません。「＋ 新規作成」から追加してください。</p>';
+  } else {
+    // 種別ごとにグループ化して表示
+    var grouped = {};
+    _koushuPeriods.forEach(function(p) {
+      if (!grouped[p.type]) grouped[p.type] = [];
+      grouped[p.type].push(p);
+    });
+    ['summer', 'winter', 'spring', 'test'].forEach(function(type) {
+      if (!grouped[type]) return;
+      html += '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px">' + (KOUSHU_TYPE_LABELS[type] || type) + '</div>';
+      grouped[type].forEach(function(p) {
+        var isActive = p.id === _activeKoushuPeriodId;
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid ' + (isActive ? 'var(--crimson)' : 'var(--border)') + ';border-radius:6px;margin-bottom:6px;background:' + (isActive ? 'var(--crimson-light)' : '#fff') + '">' +
+          '<div style="flex:1">' +
+          '<div style="font-weight:600;font-size:13px">' + esc(p.name) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted)">' + p.startDate + ' 〜 ' + p.endDate + '</div>' +
+          '</div>' +
+          '<button class="btn-sm" style="background:#f0f4ff;color:#2563eb;border:1px solid #bfdbfe" onclick="openKoushuPage(\'' + p.id + '\')">設定</button>' +
+          '<button class="btn-danger btn-sm" onclick="deleteKoushuPeriod(\'' + p.id + '\',\'' + esc(p.name) + '\')">削除</button>' +
+          '</div>';
+      });
+      html += '</div>';
+    });
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+/**
+ * 講習期間の新規作成モーダルを開く
+ */
+function deleteKoushuPeriod(periodId, periodName) {
+  if (!confirm('「' + periodName + '」を削除しますか？\n関連する開閉校カレンダーと生徒割付データも削除されます。')) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  miniToast('削除中...');
+  callGas(url, { action: 'deleteKoushuPeriod', periodId: periodId }, function(res) {
+    if (res && res.success) {
+      _koushuPeriods = _koushuPeriods.filter(function(p) { return p.id !== periodId; });
+      localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
+      if (_activeKoushuPeriodId === periodId) _activeKoushuPeriodId = null;
+      miniToast('削除しました ✓');
+      renderCurrent();
+    } else {
+      miniToast('削除エラー: ' + (res && res.error ? res.error : '不明'));
+    }
+  }, 'POST');
+}
+
+/**
+ * 講習期間の詳細設定画面を開く（コマ枠・学年別目標回数・開閉校カレンダー・コマ割り登録（一括））
+ */
+function openKoushuEditModal(periodId) {
+  var p = _koushuPeriods.find(function(x) { return x.id === periodId; });
+  if (!p) return;
+
+  var modal = document.getElementById('modal-koushu-edit');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-koushu-edit';
+    modal.className = 'modal-overlay';
+    modal.innerHTML =
+      '<div class="modal" style="max-width:440px">' +
+      '<div class="modal-header"><span id="koushu-edit-title">講習期間を編集</span>' +
+      '<span class="modal-close" onclick="closeModal(\'modal-koushu-edit\')">×</span></div>' +
+      '<div class="modal-body" id="koushu-edit-body"></div>' +
+      '</div>';
+    document.body.appendChild(modal);
+  }
+
+  document.getElementById('koushu-edit-body').innerHTML =
+    '<input type="hidden" id="ke-id" value="' + esc(p.id) + '" />' +
+    '<div class="form-group"><label class="form-label">期間名</label>' +
+    '<input id="ke-name" class="form-input" value="' + esc(p.name) + '" /></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    '<div class="form-group"><label class="form-label">開始日</label><input id="ke-start" type="date" class="form-input" value="' + esc(p.startDate) + '" /></div>' +
+    '<div class="form-group"><label class="form-label">終了日</label><input id="ke-end" type="date" class="form-input" value="' + esc(p.endDate) + '" /></div>' +
     '</div>' +
-    '<input class="setting-input" id="s-task-url" value="' + esc(tu) + '" placeholder="https://script.google.com/macros/s/.../exec" /></div>' +
-    '<button class="btn-primary" onclick="saveSettings()">保存して再読み込み</button>' +
-    '</div></div>' +
-    '<div class="card"><div class="card-header" style="display:flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg> 時間割モード管理</div><div class="card-body">' +
-    modeListHtml +
-    '<div style="margin-top:10px"><button class="btn-primary btn-sm" onclick="openModal(\'modal-add-mode\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> モードを追加</button></div>' +
+    '<div style="display:flex;gap:8px;margin-top:16px">' +
+    '<button class="btn-primary" style="flex:1" onclick="submitKoushuEditPeriod()">保存</button>' +
+    '<button class="btn-secondary" style="flex:0 0 auto" onclick="closeModal(\'modal-koushu-edit\')">キャンセル</button>' +
+    '</div>';
+
+  openModal('modal-koushu-edit');
+}
+
+function submitKoushuEditPeriod() {
+  var id    = document.getElementById('ke-id').value;
+  var name  = (document.getElementById('ke-name').value || '').trim();
+  var start = document.getElementById('ke-start').value;
+  var end   = document.getElementById('ke-end').value;
+
+  if (!name || !start || !end) { alert('期間名・開始日・終了日をすべて入力してください'); return; }
+  if (start > end) { alert('開始日は終了日より前にしてください'); return; }
+
+  var p = _koushuPeriods.find(function(x) { return x.id === id; });
+  if (!p) return;
+
+  var updated = Object.assign({}, p, { name: name, startDate: start, endDate: end });
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+
+  miniToast('保存中...');
+  callGas(url, { action: 'saveKoushuPeriod', period: JSON.stringify(updated) }, function(res) {
+    if (!res || !res.success) { alert('保存エラー：' + (res && res.error || '不明')); return; }
+    var idx = _koushuPeriods.findIndex(function(x) { return x.id === id; });
+    if (idx !== -1) _koushuPeriods[idx] = updated;
+    localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
+    closeModal('modal-koushu-edit');
+    renderSettings();
+    miniToast('講習期間を更新しました');
+  });
+}
+
+/**
+ * 講習設定フルページを開く（新規：periodId='new'、既存：periodId指定）
+ */
+// ── 前年データからのコピー（2026-06-10 新規作成ページに統合・毎年新規作成方式） ──
+function koushuCopyBlockHtml_() {
+  if (!_koushuPeriods.length) return '';
+  return '<div id="kp-copy-block" style="margin-top:10px">' +
+    '<label class="form-label">前年データからコピー（任意）</label>' +
+    '<select id="kp-copy-from" class="form-input">' +
+    '<option value="">コピーしない（ゼロから作成）</option>' +
+    _koushuPeriods.filter(function(p){ return p.type !== 'test'; }).map(function(p) {
+      return '<option value="' + p.id + '">' + esc(p.name) + '（' + p.startDate + '〜' + p.endDate + '）</option>';
+    }).join('') +
+    '</select>' +
+    '<div id="kp-copy-items" style="display:none;margin-top:8px;padding:10px;background:#f8fafc;border-radius:6px;font-size:12px">' +
+    '<label style="display:block;margin:4px 0"><input type="checkbox" id="kp-copy-period" checked> 期間の長さ（前年の日数を維持して、開始日から終了日を自動計算）</label>' +
+    '<label style="display:block;margin:4px 0"><input type="checkbox" id="kp-copy-calendar" checked> 開閉校パターン（前年の曜日ごとの開閉を今年の日付で再現）</label>' +
+    '<div style="margin-top:8px;padding:8px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;font-size:11px;color:#78350f;line-height:1.7">' +
+    '📌 <b>コピーされるもの：</b>期間の長さ・開閉校の曜日パターン<br>' +
+    '<b>コピーされないもの：</b>生徒の割付（新年度はゼロから）・コマ枠・目標回数<br>' +
+    'お盆休みなどの個別の閉校日はコピーされません。作成後に開閉校カレンダーで調整してください。前年の期間データはそのまま残ります。' +
     '</div></div></div>';
 }
+
+// 前年カレンダーから曜日×教室の開閉パターンを抽出して今年の日付範囲に適用
+function buildCalendarFromPattern_(srcEntries, newStart, newEnd) {
+  var pat = {}; // '曜日|教室' → {open:n, total:n}
+  srcEntries.forEach(function(e) {
+    var key = new Date(e.date + 'T00:00:00').getDay() + '|' + e.classroom;
+    if (!pat[key]) pat[key] = { open: 0, total: 0 };
+    pat[key].total++;
+    if (e.isOpen) pat[key].open++;
+  });
+  var out = [];
+  var d = new Date(newStart + 'T00:00:00'), e2 = new Date(newEnd + 'T00:00:00');
+  while (d <= e2) {
+    var ds = isoDate(d);
+    ['北久里浜','久里浜'].forEach(function(cr) {
+      var p = pat[d.getDay() + '|' + cr];
+      var isOpen = p ? (p.open / p.total >= 0.5) : (d.getDay() !== 0);
+      out.push({ classroom: cr, date: ds, isOpen: isOpen });
+    });
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+// ── テスト対策の新規作成UI（2026-06-10 仕様：種別testで項目簡略化） ──
+function koushuTestSundayListHtml_() {
+  var start = (document.getElementById('kp-start') || {}).value || '';
+  var end   = (document.getElementById('kp-end')   || {}).value || '';
+  if (!start || !end || start > end) {
+    return '<div style="font-size:11px;color:var(--text-muted)">開始日・終了日を入れると、期間中の日曜日がここに表示されます（開校したい日曜だけチェック）</div>';
+  }
+  var keep = {};
+  document.querySelectorAll('.kp-test-sun:checked').forEach(function(el) { keep[el.value] = true; });
+  var html = '';
+  var d = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+  while (d <= e) {
+    if (d.getDay() === 0) {
+      var ds = isoDate(d);
+      html += '<label style="margin-right:14px;cursor:pointer;font-size:13px"><input type="checkbox" class="kp-test-sun" value="' + ds + '"' + (keep[ds] ? ' checked' : '') + '> ' + (d.getMonth() + 1) + '/' + d.getDate() + '（日）</label>';
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  if (!html) return '<div style="font-size:11px;color:var(--text-muted)">期間中に日曜日はありません</div>';
+  return '<div style="font-size:12px;font-weight:600;margin-bottom:4px">日曜開校（デフォルト閉校。開ける日曜だけチェック）</div>' + html;
+}
+
+function updateKoushuNewTypeUI_() {
+  var typeSel = document.getElementById('kp-type');
+  if (!typeSel) return;
+  var isTest = (typeSel.value === 'test');
+  var koma = document.getElementById('kp-koma-card');
+  var goal = document.getElementById('kp-goal-card');
+  var sun  = document.getElementById('kp-test-sundays');
+  if (koma) koma.style.display = isTest ? 'none' : '';
+  if (goal) goal.style.display = isTest ? 'none' : '';
+  var copyBlock = document.getElementById('kp-copy-block');
+  if (copyBlock) copyBlock.style.display = isTest ? 'none' : '';
+  if (sun) {
+    sun.style.display = isTest ? 'block' : 'none';
+    if (isTest) sun.innerHTML = koushuTestSundayListHtml_();
+  }
+  var nameEl = document.getElementById('kp-name');
+  var yr = new Date().getFullYear();
+  if (nameEl) {
+    if (isTest) {
+      if (!nameEl.dataset.userEdited) nameEl.value = '';
+      nameEl.placeholder = '例：' + yr + '前期期末テスト対策';
+    } else {
+      nameEl.placeholder = '';
+      if (!nameEl.dataset.userEdited) nameEl.value = yr + '年' + ({ summer: '夏期講習', winter: '冬期講習', spring: '春期講習' }[typeSel.value] || '');
+    }
+  }
+}
+
+function setupKoushuNewTypeUI_() {
+  var typeSel = document.getElementById('kp-type');
+  if (!typeSel) return;
+  typeSel.addEventListener('change', updateKoushuNewTypeUI_);
+  // 前年コピー：選択でチェック項目を表示・「期間の長さ」ONなら終了日を自動計算
+  var copySel = document.getElementById('kp-copy-from');
+  function applyCopyLength_() {
+    if (!copySel || !copySel.value) return;
+    var chk = document.getElementById('kp-copy-period');
+    if (!chk || !chk.checked) return;
+    var src = _koushuPeriods.find(function(p) { return p.id === copySel.value; });
+    var startV = (document.getElementById('kp-start') || {}).value || '';
+    if (!src || !startV) return;
+    var srcDays = Math.round((new Date(src.endDate) - new Date(src.startDate)) / 86400000);
+    var newEnd = new Date(startV + 'T00:00:00');
+    newEnd.setDate(newEnd.getDate() + srcDays);
+    var endEl = document.getElementById('kp-end');
+    if (endEl) endEl.value = isoDate(newEnd);
+  }
+  if (copySel) {
+    copySel.addEventListener('change', function() {
+      var items = document.getElementById('kp-copy-items');
+      if (items) items.style.display = this.value ? 'block' : 'none';
+      applyCopyLength_();
+    });
+    var lenChk = document.getElementById('kp-copy-period');
+    if (lenChk) lenChk.addEventListener('change', applyCopyLength_);
+    var stEl = document.getElementById('kp-start');
+    if (stEl) stEl.addEventListener('change', applyCopyLength_);
+  }
+  var nameEl = document.getElementById('kp-name');
+  if (nameEl) nameEl.addEventListener('input', function() { this.dataset.userEdited = '1'; });
+  ['kp-start', 'kp-end'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('change', function() {
+      if (typeSel.value === 'test') {
+        var sun = document.getElementById('kp-test-sundays');
+        if (sun) sun.innerHTML = koushuTestSundayListHtml_();
+      }
+    });
+  });
+  updateKoushuNewTypeUI_();
+}
+
+function openKoushuPage(periodId) {
+  var isNew = (periodId === 'new');
+  var period = isNew ? null : _koushuPeriods.find(function(p) { return p.id === periodId; });
+  if (!isNew && !period) { miniToast('期間が見つかりません'); return; }
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+
+  function renderPage() {
+    var komaFrames = (period && period.komaFrames && period.komaFrames.length) ? period.komaFrames : KOUSHU_DEFAULT_KOMA_FRAMES;
+    var gradeGoals = (period && period.gradeGoals) ? period.gradeGoals : KOUSHU_DEFAULT_GRADE_GOALS;
+
+    // ── 基本情報（期間名・日付） ──
+    var yr = new Date().getFullYear();
+    var basicHtml =
+      '<div class="card" style="margin-bottom:16px"><div class="card-body">' +
+      '<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end">' +
+      '<div class="form-group" style="margin:0"><label class="form-label">期間名</label>' +
+      '<input id="kp-name" class="form-input" value="' + esc(isNew ? yr + '年夏期講習' : period.name) + '" /></div>' +
+      '<div class="form-group" style="margin:0"><label class="form-label">開始日</label>' +
+      '<input id="kp-start" type="date" class="form-input" value="' + (isNew ? yr + '-07-22' : period.startDate) + '" /></div>' +
+      '<div class="form-group" style="margin:0"><label class="form-label">終了日</label>' +
+      '<input id="kp-end" type="date" class="form-input" value="' + (isNew ? yr + '-08-29' : period.endDate) + '" /></div>' +
+      '</div>' +
+      (isNew ? '<div style="margin-top:10px"><label class="form-label">種別</label>' +
+      '<select id="kp-type" class="form-input">' +
+      ['summer:夏期講習','winter:冬期講習','spring:春期講習','test:テスト対策'].map(function(s){ var p=s.split(':'); return '<option value="'+p[0]+'">'+p[1]+'</option>'; }).join('') +
+      '</select></div>' +
+      '<div id="kp-test-sundays" style="display:none;margin-top:10px;padding:10px;background:#f8fafc;border-radius:6px"></div>' +
+      koushuCopyBlockHtml_() : '') +
+      '</div></div>';
+
+    // ── コマ枠 ──
+    var komaHtml =
+      '<div class="card" id="kp-koma-card" style="margin-bottom:16px"><div class="card-body">' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:10px">⏰ コマ枠</div>' +
+      '<div id="kd-koma-list">' +
+      komaFrames.map(function(kf, i) {
+        return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+          '<input class="form-input" style="max-width:180px" value="' + esc(kf) + '" id="kd-koma-' + i + '" />' +
+          '<button class="btn-danger btn-sm" onclick="this.parentElement.remove()">×</button></div>';
+      }).join('') +
+      '</div>' +
+      '<button class="btn-sm" onclick="addKoushuKoma()">＋ コマを追加</button>' +
+      '</div></div>';
+
+    // ── 学年別目標回数 ──
+    var goalHtml =
+      '<div class="card" id="kp-goal-card" style="margin-bottom:16px"><div class="card-body">' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:10px">🎯 学年別目標回数</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
+      ['中1','中2','中3','高校生'].map(function(g) {
+        return '<div><label class="form-label">' + g + '</label>' +
+          '<div style="display:flex;align-items:center;gap:4px">' +
+          '<input type="number" class="form-input" id="kd-goal-' + g + '" value="' + (gradeGoals[g] || 0) + '" min="0" max="50" style="max-width:70px" />' +
+          '<span style="font-size:12px;color:var(--text-muted)">回</span></div></div>';
+      }).join('') +
+      '</div></div></div>';
+
+    // ── テスト対策（既存）：コマ枠は折りたたみ・目標はデフォルト1回の注記・開閉校は日曜リストのみ（2026-06-10 仕様） ──
+    var isTestPage = !isNew && period.type === 'test';
+    var sundayCardHtml = '';
+    if (isTestPage) {
+      komaHtml = '<details style="margin-bottom:16px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted);padding:4px 0">⏰ コマ枠（特設枠を追加する場合のみ開く）</summary>' + komaHtml + '</details>';
+      goalHtml = goalHtml.replace('🎯 学年別目標回数', '🎯 学年別目標回数（対策コマの目標・デフォルト3回）');
+      var sunItems = '';
+      var dT = new Date(period.startDate + 'T00:00:00'), eT = new Date(period.endDate + 'T00:00:00');
+      while (dT <= eT) {
+        if (dT.getDay() === 0) {
+          var dsT = isoDate(dT);
+          var isOpenT = _koushuCalendar.some(function(e) { return e.date === dsT && e.isOpen; });
+          sunItems += '<label style="margin-right:14px;cursor:pointer;font-size:13px"><input type="checkbox" class="kp-test-sun" value="' + dsT + '"' + (isOpenT ? ' checked' : '') + '> ' + (dT.getMonth() + 1) + '/' + dT.getDate() + '（日）</label>';
+        }
+        dT.setDate(dT.getDate() + 1);
+      }
+      sundayCardHtml = '<div class="card" style="margin-bottom:16px"><div class="card-body">' +
+        '<div style="font-weight:700;font-size:14px;margin-bottom:10px">📅 日曜開校</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">デフォルト閉校。開校する日曜だけチェック（平日は自動で全日開校）</div>' +
+        (sunItems || '<div style="font-size:12px;color:var(--text-muted)">期間中に日曜日はありません</div>') +
+        '</div></div>';
+    }
+
+    // ── ページ描画 ──
+    var pageId = isNew ? 'new' : period.id;
+    document.getElementById('main-content').innerHTML =
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">' +
+      '<button class="btn-secondary btn-sm" onclick="renderSettings()">← 設定に戻る</button>' +
+      '<span style="font-weight:700;font-size:16px">' + (isNew ? '➕ 新規講習期間' : '🎓 ' + esc(period.name)) + '</span>' +
+      (!isNew ? '<button class="btn-primary btn-sm" style="margin-left:auto;background:#059669;border-color:#059669" onclick="openKoushuBulkAssign(\'' + period.id + '\')">👥 コマ割り登録（一括）</button>' : '') +
+      '</div>' +
+      basicHtml + komaHtml + goalHtml +
+      sundayCardHtml +
+      (!isNew && !isTestPage ? '<div class="card" style="margin-bottom:16px"><div class="card-body">' +
+        '<div style="font-weight:700;font-size:14px;margin-bottom:10px">📅 開閉校カレンダー</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">チェック＝開校・外す＝閉校。日曜はデフォルト閉校。</div>' +
+        renderKoushuCalendarUI_(period) +
+        '</div></div>' : '') +
+      (!isNew ? '<div class="card" style="margin-bottom:16px"><div class="card-body">' +
+        '<div style="font-weight:700;font-size:14px;margin-bottom:10px">📊 受講状況</div>' +
+        renderKoushuSummaryUI_(period) +
+        '</div></div>' : '') +
+      '<div style="display:flex;gap:8px;padding:12px 0">' +
+      '<button class="btn-primary" style="min-width:120px" onclick="saveKoushuPage(\'' + pageId + '\')">' + (isNew ? '作成' : '保存') + '</button>' +
+      '<button class="btn-secondary" onclick="renderSettings()">キャンセル</button>' +
+      '</div>';
+  }
+
+  if (isNew) {
+    renderPage();
+    setupKoushuNewTypeUI_();
+  } else {
+    _activeKoushuPeriodId = periodId;
+    miniToast('読み込み中...');
+    var loaded = 0;
+    function tryRender() { loaded++; if (loaded >= 2) renderPage(); }
+    callGas(url, { action: 'getKoushuCalendar', periodId: periodId }, function(res) {
+      _koushuCalendar = (res && res.success) ? res.entries : [];
+      tryRender();
+    }, 'POST');
+    callGas(url, { action: 'getKoushuAssignments', periodId: periodId }, function(res) {
+      _koushuAssignments = (res && res.success) ? res.assignments : [];
+      if (res && res.success) window.__koushuDataPid = periodId;
+      tryRender();
+    }, 'POST');
+  }
+}
+
+/**
+ * 講習設定フルページの保存
+ */
+function saveKoushuPage(pageId) {
+  var isNew = (pageId === 'new');
+  var period = isNew ? null : _koushuPeriods.find(function(p) { return p.id === pageId; });
+
+  var name  = (document.getElementById('kp-name')  || {}).value || '';
+  var start = (document.getElementById('kp-start') || {}).value || '';
+  var end   = (document.getElementById('kp-end')   || {}).value || '';
+  var type  = isNew ? ((document.getElementById('kp-type') || {}).value || 'summer') : (period ? period.type : 'summer');
+
+  if (!name.trim() || !start || !end) { miniToast('期間名・開始日・終了日を入力してください'); return; }
+  if (start > end) { miniToast('開始日は終了日より前にしてください'); return; }
+
+  // コマ枠収集
+  var komaFrames = [];
+  document.querySelectorAll('#kd-koma-list input').forEach(function(el) {
+    var v = (el.value || '').trim();
+    if (v) komaFrames.push(v);
+  });
+
+  // 学年別目標
+  var gradeGoals = {};
+  ['中1','中2','中3','高校生'].forEach(function(g) {
+    var el = document.getElementById('kd-goal-' + g);
+    if (el) gradeGoals[g] = parseInt(el.value) || 0;
+  });
+
+  // テスト対策（新規）：コマ枠=通常コマ時間帯を自動採用・目標=中高一律1回（2026-06-10 仕様）
+  if (isNew && type === 'test') {
+    var autoKoma = {};
+    ['北久里浜','久里浜'].forEach(function(cr) {
+      getKomasForClassroom(cr).forEach(function(kt) { autoKoma[kt] = true; });
+    });
+    komaFrames = Object.keys(autoKoma);
+    komaFrames.sort(function(a, b) {
+      return (parseInt((a || '').replace(':','').substring(0,4)) || 0) - (parseInt((b || '').replace(':','').substring(0,4)) || 0);
+    });
+    gradeGoals = { '中1': 3, '中2': 3, '中3': 3, '高校生': 3 };
+  }
+
+  // 開閉校カレンダー収集（既存のみ）
+  var calEntries = [];
+  if (!isNew && period && period.type === 'test') {
+    // テスト対策：平日全開校・日曜はチェックした日のみ開校で再生成（2026-06-10 仕様）
+    var sunOpenS = {};
+    document.querySelectorAll('.kp-test-sun:checked').forEach(function(el) { sunOpenS[el.value] = true; });
+    var dS = new Date(start + 'T00:00:00'), eS = new Date(end + 'T00:00:00');
+    while (dS <= eS) {
+      var dsS = isoDate(dS);
+      var openS = (dS.getDay() === 0) ? !!sunOpenS[dsS] : true;
+      ['北久里浜','久里浜'].forEach(function(cr) { calEntries.push({ classroom: cr, date: dsS, isOpen: openS }); });
+      dS.setDate(dS.getDate() + 1);
+    }
+  } else if (!isNew && period) {
+    var d = new Date(period.startDate + 'T00:00:00');
+    var endD = new Date(period.endDate + 'T00:00:00');
+    while (d <= endD) {
+      var ds = isoDate(d);
+      ['北久里浜','久里浜'].forEach(function(cr) {
+        var el = document.getElementById('cal-' + ds + '-' + (cr === '北久里浜' ? 'kita' : 'kuri'));
+        if (el) calEntries.push({ classroom: cr, date: ds, isOpen: el.checked });
+      });
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+
+  miniToast('保存中...');
+
+  var updatedPeriod = Object.assign({}, period || {}, {
+    name: name.trim(), type: type, startDate: start, endDate: end,
+    komaFrames: komaFrames, gradeGoals: gradeGoals
+  });
+
+  function finishSave() {
+    miniToast('保存しました ✓（' + start + '〜' + end + '）');
+    // ローカルを即時更新（楽観的更新）
+    if (!isNew) {
+      var idx = _koushuPeriods.findIndex(function(p) { return p.id === pageId; });
+      if (idx !== -1) _koushuPeriods[idx] = updatedPeriod;
+      localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
+    }
+    // GASから再取得してシートの実態と画面を同期
+    callGas(url, { action: 'getKoushuPeriods' }, function(r) {
+      if (r && r.success) { _koushuPeriods = r.periods || []; localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods)); }
+      renderSettings();
+    });
+  }
+
+  // 【重要】期間→カレンダーの順に直列送信する。
+  // 同時に2本送るとGASのスクリプトロックを取り合い、片方が10秒待ちタイムアウトで
+  // 「他のスタッフが同時に保存中です」エラーになる（2026-06-10のバグの真因）
+  callGas(url, { action: 'saveKoushuPeriod', period: JSON.stringify(updatedPeriod) }, function(res) {
+    if (!res || !res.success) { miniToast('保存エラー: ' + (res && res.error || '不明')); return; }
+    // 講習（新規）：前年の開閉校パターンをコピー（2026-06-10。コピー指定があれば自動生成より優先）
+    if (isNew && type !== 'test' && res.id) {
+      var copySelS0 = document.getElementById('kp-copy-from');
+      var calChkS0 = document.getElementById('kp-copy-calendar');
+      if (copySelS0 && copySelS0.value && calChkS0 && calChkS0.checked) {
+        var newIdS0 = res.id;
+        callGas(url, { action: 'getKoushuCalendar', periodId: copySelS0.value }, function(resC0) {
+          var srcEntries0 = (resC0 && resC0.success) ? (resC0.entries || []) : [];
+          if (!srcEntries0.length) { finishSave(); return; }
+          var newCal0 = buildCalendarFromPattern_(srcEntries0, start, end);
+          callGas(url, { action: 'saveKoushuCalendar', periodId: newIdS0, entries: newCal0 }, function(resS0) {
+            if (!resS0 || !resS0.success) { miniToast('カレンダー保存エラー: ' + (resS0 && resS0.error || '不明') + '（期間自体は保存済み）'); return; }
+            finishSave();
+          }, 'POST');
+        }, 'POST');
+        return;
+      }
+    }
+    // 新規期間（全種別）：開閉校カレンダーを自動生成（全日開校・日曜は選択した日のみ開校）して直列保存
+    // 2026-06-11：夏期等も自動生成。未保存カレンダーが原因で一括登録がブロックされる問題を解消
+    if (isNew && res.id) {
+      var sunOpen = {};
+      document.querySelectorAll('.kp-test-sun:checked').forEach(function(el) { sunOpen[el.value] = true; });
+      var autoCal = [];
+      var dA = new Date(start + 'T00:00:00'), eA = new Date(end + 'T00:00:00');
+      while (dA <= eA) {
+        var dsA = isoDate(dA);
+        var openA = (dA.getDay() === 0) ? !!sunOpen[dsA] : true;
+        ['北久里浜','久里浜'].forEach(function(cr) { autoCal.push({ classroom: cr, date: dsA, isOpen: openA }); });
+        dA.setDate(dA.getDate() + 1);
+      }
+      callGas(url, { action: 'saveKoushuCalendar', periodId: res.id, entries: autoCal }, function(res2) {
+        if (!res2 || !res2.success) { miniToast('カレンダー保存エラー: ' + (res2 && res2.error || '不明') + '（期間自体は保存済み）'); return; }
+        finishSave();
+      }, 'POST');
+      return;
+    }
+    if (isNew || calEntries.length === 0) { finishSave(); return; }
+    callGas(url, { action: 'saveKoushuCalendar', periodId: pageId, entries: calEntries }, function(res2) {
+      if (!res2 || !res2.success) { miniToast('カレンダー保存エラー: ' + (res2 && res2.error || '不明') + '（期間自体は保存済み）'); return; }
+      _koushuCalendar = calEntries;
+      finishSave();
+    }, 'POST');
+  });
+}
+
+function openKoushuDetail(periodId) {
+  var period = _koushuPeriods.find(function(p) { return p.id === periodId; });
+  if (!period) { miniToast('期間が見つかりません'); return; }
+  _activeKoushuPeriodId = periodId;
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+
+  // カレンダー・割付データを取得してから詳細UIを描画
+  miniToast('読み込み中...');
+  var loaded = 0;
+  function tryRender() {
+    loaded++;
+    if (loaded >= 2) renderKoushuDetailModal_(period);
+  }
+
+  callGas(url, { action: 'getKoushuCalendar', periodId: periodId }, function(res) {
+    _koushuCalendar = (res && res.success) ? res.entries : [];
+    tryRender();
+  }, 'POST');
+  callGas(url, { action: 'getKoushuAssignments', periodId: periodId }, function(res) {
+    _koushuAssignments = (res && res.success) ? res.assignments : [];
+    tryRender();
+  }, 'POST');
+}
+
+/**
+ * 講習期間詳細モーダルを描画
+ */
+function renderKoushuDetailModal_(period) {
+  var modal = document.getElementById('modal-koushu-detail');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-koushu-detail';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  // コマ枠UI
+  var komaFramesHtml = '<div style="margin-bottom:16px">' +
+    '<div style="font-weight:600;font-size:13px;margin-bottom:6px">⏰ コマ枠（使用する時間帯）</div>' +
+    '<div id="kd-koma-list">' +
+    (period.komaFrames || KOUSHU_DEFAULT_KOMA_FRAMES).map(function(kf, i) {
+      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' +
+        '<input class="form-input" style="max-width:160px;font-size:13px" value="' + esc(kf) + '" id="kd-koma-' + i + '" />' +
+        '<button class="btn-danger btn-sm" onclick="removeKoushuKoma(' + i + ')">×</button>' +
+        '</div>';
+    }).join('') +
+    '</div>' +
+    '<button class="btn-sm" style="margin-top:4px" onclick="addKoushuKoma()">＋ コマを追加</button>' +
+    '</div>';
+
+  // 学年別目標回数UI
+  var gradeGoals = period.gradeGoals || KOUSHU_DEFAULT_GRADE_GOALS;
+  var goalRows = ['中1','中2','中3','高校生'].map(function(g) {
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+      '<span style="font-size:13px;min-width:60px">' + g + '</span>' +
+      '<input type="number" class="form-input" style="max-width:80px;font-size:13px" id="kd-goal-' + g + '" value="' + (gradeGoals[g] || 0) + '" min="0" max="50" />' +
+      '<span style="font-size:12px;color:var(--text-muted)">回</span>' +
+      '</div>';
+  }).join('');
+  var goalsHtml = '<div style="margin-bottom:16px">' +
+    '<div style="font-weight:600;font-size:13px;margin-bottom:6px">🎯 学年別目標回数</div>' +
+    goalRows + '</div>';
+
+  // 開閉校カレンダーUI
+  var calHtml = renderKoushuCalendarUI_(period);
+
+  // 受講状況サマリー（割付済み生徒の回数カウント）
+  var summaryHtml = renderKoushuSummaryUI_(period);
+
+  modal.innerHTML =
+    '<div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto">' +
+    '<div class="modal-header" style="position:sticky;top:0;background:#fff;z-index:1">' +
+    '<span>' + esc(period.name) + ' 設定</span>' +
+    '<span class="modal-close" onclick="closeModal(\'modal-koushu-detail\')">×</span>' +
+    '</div>' +
+    '<div class="modal-body">' +
+    komaFramesHtml +
+    goalsHtml +
+    calHtml +
+    summaryHtml +
+    '<div style="display:flex;gap:8px;margin-top:16px;position:sticky;bottom:0;background:#fff;padding-top:8px;border-top:1px solid var(--border)">' +
+    '<button class="btn-primary" style="flex:1" onclick="saveKoushuDetail(\'' + period.id + '\')">保存</button>' +
+    '<button class="btn-primary btn-sm" style="background:#059669;border-color:#059669" onclick="openKoushuBulkAssign(\'' + period.id + '\')">👥 コマ割り登録（一括）</button>' +
+    '<button class="btn-secondary" onclick="closeModal(\'modal-koushu-detail\')">閉じる</button>' +
+    '</div>' +
+    '</div></div>';
+
+  openModal('modal-koushu-detail');
+}
+
+/**
+ * 開閉校カレンダーUI を生成
+ */
+function renderKoushuCalendarUI_(period) {
+  var start = new Date(period.startDate);
+  var end   = new Date(period.endDate);
+  if (isNaN(start) || isNaN(end)) return '';
+
+  var classrooms = ['北久里浜', '久里浜'];
+  // カレンダーデータをMapに変換 {date_classroom: isOpen}
+  var calMap = {};
+  _koushuCalendar.forEach(function(e) {
+    calMap[e.date + '_' + e.classroom] = e.isOpen;
+  });
+
+  var rows = '';
+  var d = new Date(start);
+  var youbiNames = ['日','月','火','水','木','金','土'];
+  while (d <= end) {
+    var dateStr = d.toISOString().slice(0,10);
+    var youbi = youbiNames[d.getDay()];
+    var isHoliday = (d.getDay() === 0); // 日曜はデフォルト閉校
+    var cells = classrooms.map(function(cr) {
+      var key = dateStr + '_' + cr;
+      // デフォルト：日曜は閉校、それ以外は開校
+      var isOpen = calMap.hasOwnProperty(key) ? calMap[key] : !isHoliday;
+      return '<td style="text-align:center;padding:2px">' +
+        '<input type="checkbox" ' + (isOpen ? 'checked' : '') + ' id="cal-' + dateStr + '-' + (cr === '北久里浜' ? 'kita' : 'kuri') + '" />' +
+        '</td>';
+    }).join('');
+    rows += '<tr style="' + (isHoliday ? 'background:#fff5f5' : '') + '">' +
+      '<td style="padding:2px 6px;font-size:12px;white-space:nowrap">' + dateStr.slice(5) + '（' + youbi + '）</td>' +
+      cells + '</tr>';
+    d.setDate(d.getDate() + 1);
+  }
+
+  return '<div style="margin-bottom:16px">' +
+    '<div style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
+    '<table style="width:100%;border-collapse:collapse">' +
+    '<thead><tr style="background:#f8fafc;position:sticky;top:0">' +
+    '<th style="padding:4px 6px;font-size:11px;text-align:left">日付</th>' +
+    classrooms.map(function(cr) { return '<th style="padding:4px;font-size:11px">' + cr + '</th>'; }).join('') +
+    '</tr></thead><tbody>' + rows + '</tbody></table>' +
+    '</div></div>';
+}
+
+/**
+ * 受講状況サマリーUI（割付済み生徒の回数カウント）
+ */
+function renderKoushuSummaryUI_(period) {
+  if (_koushuAssignments.length === 0) {
+    return '<div style="margin-bottom:16px">' +
+      '<p style="font-size:13px;color:var(--text-muted)">まだ登録データがありません。「👥 コマ割り登録（一括）」から生徒を登録してください。</p></div>';
+  }
+
+  // 生徒ごとにカウント集計（この期間のみ）。テスト対策は対策/自習を分離
+  var isTestS = period.type === 'test';
+  var countMap = {};
+  var jishuMap = {};
+  var nameMap  = {};
+  _koushuAssignments.filter(function(a){ return a.periodId === period.id; }).forEach(function(a) {
+    if (!(a.studentId in countMap)) { countMap[a.studentId] = 0; jishuMap[a.studentId] = 0; nameMap[a.studentId] = a.studentName; }
+    if (isTestS && a.type === 'jishu') jishuMap[a.studentId]++;
+    else countMap[a.studentId]++;
+  });
+
+  var gradeGoals = period.gradeGoals || {};
+  var rows = Object.keys(countMap).map(function(sid) {
+    var s = _students.find(function(st) { return st.id === sid || st.name === nameMap[sid]; });
+    var grade = s ? s.grade : '';
+    var goal  = gradeGoals[grade] || 0;
+    var count = countMap[sid];
+    var lack  = goal > 0 && count < goal;
+    return '<tr style="' + (lack ? 'background:#fff5f5' : '') + '">' +
+      '<td style="padding:4px 8px;font-size:13px">' + (s ? '<div style="display:inline-block">' + studentChipHtml(s, { forcePeriod: period }) + '</div>' : esc(nameMap[sid])) + '</td>' +
+      '<td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">' + (grade || '—') + '</td>' +
+      '<td style="padding:4px 8px;font-size:13px;text-align:center">' + count + ' / ' + (goal || '—') + '</td>' +
+      (isTestS ? '<td style="padding:4px 8px;font-size:13px;text-align:center;color:#166534">' + (jishuMap[sid] || 0) + '</td>' : '') +
+      '<td style="padding:4px 8px;font-size:12px;text-align:center">' + (lack ? '<span style="color:#dc2626;font-weight:600">あと' + (goal - count) + '回</span>' : '<span style="color:#059669">✓</span>') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  return '<div style="margin-bottom:16px">' +
+    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">生徒名クリックでコマ登録、ホバーで予定を確認できます</div>' +
+    '<div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
+    '<table style="width:100%;border-collapse:collapse">' +
+    '<thead><tr style="background:#f8fafc"><th style="padding:4px 8px;font-size:11px;text-align:left">生徒</th>' +
+    '<th style="padding:4px 8px;font-size:11px;text-align:left">学年</th>' +
+    '<th style="padding:4px 8px;font-size:11px">' + (isTestS ? '対策/目標' : '受講/目標') + '</th>' +
+    (isTestS ? '<th style="padding:4px 8px;font-size:11px">自習</th>' : '') +
+    '<th style="padding:4px 8px;font-size:11px">状況</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div></div>';
+}
+
+function addKoushuKoma() {
+  var list = document.getElementById('kd-koma-list');
+  if (!list) return;
+  var idx = list.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px';
+  div.innerHTML = '<input class="form-input" style="max-width:160px;font-size:13px" value="" id="kd-koma-' + idx + '" placeholder="HH:MM〜HH:MM" />' +
+    '<button class="btn-danger btn-sm" onclick="this.parentElement.remove()">×</button>';
+  list.appendChild(div);
+}
+
+function removeKoushuKoma(idx) {
+  var el = document.getElementById('kd-koma-' + idx);
+  if (el) el.parentElement.remove();
+}
+
+/**
+ * 講習期間の詳細設定（コマ枠・目標回数・開閉校）を保存
+ */
+function saveKoushuDetail(periodId) {
+  var period = _koushuPeriods.find(function(p) { return p.id === periodId; });
+  if (!period) return;
+
+  // コマ枠収集
+  var komaFrames = [];
+  var komaList = document.getElementById('kd-koma-list');
+  if (komaList) {
+    Array.from(komaList.querySelectorAll('input[type=text], input:not([type])'))
+      .forEach(function(el) {
+        var v = (el.value || '').trim();
+        if (v) komaFrames.push(v);
+      });
+  }
+  // input[id^=kd-koma-] からも収集
+  if (komaFrames.length === 0) {
+    document.querySelectorAll('[id^="kd-koma-"]').forEach(function(el) {
+      var v = (el.value || '').trim();
+      if (v) komaFrames.push(v);
+    });
+  }
+
+  // 学年別目標回数収集
+  var gradeGoals = {};
+  ['中1','中2','中3','高校生'].forEach(function(g) {
+    var el = document.getElementById('kd-goal-' + g);
+    if (el) gradeGoals[g] = parseInt(el.value) || 0;
+  });
+
+  // 開閉校カレンダー収集
+  var calEntries = [];
+  var start = new Date(period.startDate);
+  var end   = new Date(period.endDate);
+  var d = new Date(start);
+  var classrooms = ['北久里浜', '久里浜'];
+  while (d <= end) {
+    var dateStr = d.toISOString().slice(0,10);
+    classrooms.forEach(function(cr) {
+      var elId = 'cal-' + dateStr + '-' + (cr === '北久里浜' ? 'kita' : 'kuri');
+      var el = document.getElementById(elId);
+      if (el) {
+        calEntries.push({ classroom: cr, date: dateStr, isOpen: el.checked });
+      }
+    });
+    d.setDate(d.getDate() + 1);
+  }
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+
+  miniToast('保存中...');
+  var saved = 0;
+  var total = 2; // period + calendar
+  function onSaved() {
+    saved++;
+    if (saved >= total) {
+      // ローカルの期間データを更新
+      period.komaFrames = komaFrames;
+      period.gradeGoals = gradeGoals;
+      localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
+      miniToast('保存しました ✓');
+      renderCurrent();
+    }
+  }
+
+  // 期間→カレンダーの順に直列送信（同時送信はGASロック競合でタイムアウトするため禁止）
+  callGas(url, { action: 'saveKoushuPeriod', period: Object.assign({}, period, { komaFrames: komaFrames, gradeGoals: gradeGoals }) }, function(res) {
+    if (!res || !res.success) { miniToast('期間保存エラー'); return; }
+    onSaved();
+    callGas(url, { action: 'saveKoushuCalendar', periodId: periodId, entries: calEntries }, function(res2) {
+      if (!res2 || !res2.success) { miniToast('カレンダー保存エラー'); return; }
+      _koushuCalendar = calEntries;
+      onSaved();
+    }, 'POST');
+  }, 'POST');
+}
+
+/**
+ * コマ割り登録（一括）（フルページ型）
+ */
+function openKoushuBulkAssign(periodId) {
+  var period = _koushuPeriods.find(function(p) { return p.id === periodId; });
+  if (!period) return;
+
+  // 開閉校カレンダー未設定チェック
+  var calForPeriod = _koushuCalendar.filter(function(e) {
+    var d = new Date(period.startDate + 'T00:00:00');
+    var end = new Date(period.endDate + 'T00:00:00');
+    var ed = new Date(e.date + 'T00:00:00');
+    return ed >= d && ed <= end;
+  });
+  if (calForPeriod.length === 0) {
+    miniToast('⚠️ 開閉校カレンダーが未設定です。先に設定タブで開閉校カレンダーを保存してください。');
+    return;
+  }
+
+  // 開校日リストを生成
+  var openDays = [];
+  var start = new Date(period.startDate + 'T00:00:00');
+  var end   = new Date(period.endDate   + 'T00:00:00');
+  var d = new Date(start);
+  var youbiNames = ['日','月','火','水','木','金','土'];
+  while (d <= end) {
+    var ds = isoDate(d);
+    var isOpen = _koushuCalendar.some(function(e) { return e.date === ds && e.isOpen; }) ||
+                 (_koushuCalendar.length === 0 && d.getDay() !== 0);
+    if (isOpen) openDays.push(ds);
+    d.setDate(d.getDate() + 1);
+  }
+
+  var komaFrames = period.komaFrames && period.komaFrames.length ? period.komaFrames : KOUSHU_DEFAULT_KOMA_FRAMES;
+
+  // 曜日グループ
+  var youbiGroups = { 月:[], 火:[], 水:[], 木:[], 金:[], 土:[] };
+  openDays.forEach(function(ds) {
+    var yn = youbiNames[new Date(ds + 'T00:00:00').getDay()];
+    if (youbiGroups[yn] !== undefined) youbiGroups[yn].push(ds);
+  });
+
+  var content =
+    '<div style="display:flex;gap:0;height:calc(100vh - 120px);min-height:500px">' +
+
+    // ── 左ペイン：生徒選択 ──
+    '<div style="width:360px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">' +
+    '<div style="padding:12px 16px;border-bottom:1px solid var(--border);background:#f8fafc">' +
+    '<div style="font-weight:700;font-size:14px;margin-bottom:10px">👤 生徒を選ぶ</div>' +
+
+    // 在籍・種別・教室フィルタ（1行に圧縮 2026-06-10）
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px;font-size:12px">' +
+    ['在籍','休塾'].map(function(s) {
+      return '<label style="cursor:pointer;white-space:nowrap"><input type="checkbox" class="bulk-status-cb" value="' + s + '" ' + (s==='在籍'?'checked':'') + ' onchange="renderBulkStudentList()"> <span style="font-size:12px">' + s + '</span></label>';
+    }).join('') +
+    '<span style="color:var(--border)">|</span>' +
+    '<label style="cursor:pointer;white-space:nowrap"><input type="checkbox" id="bulk-type-juku" checked onchange="renderBulkStudentList()"> <span style="font-size:12px">塾</span></label>' +
+    '<label style="cursor:pointer;white-space:nowrap"><input type="checkbox" id="bulk-type-ca" onchange="renderBulkStudentList()"> <span style="font-size:12px">CA</span></label>' +
+    '<span style="color:var(--border)">|</span>' +
+    ['北久里浜','久里浜'].map(function(c) {
+      return '<label style="cursor:pointer;white-space:nowrap"><input type="checkbox" class="bulk-cr-cb" value="' + c + '" onchange="renderBulkStudentList()"> <span style="font-size:12px">' + c + '</span></label>';
+    }).join('') +
+    '</div>' +
+
+    // 学年フィルタ（チップ）
+    '<div style="margin-bottom:6px">' +
+    '<div id="bulk-grade-chips" style="display:flex;gap:4px;flex-wrap:wrap">' +
+    ['すべて','小2','小3','小4','小5','小6','中1','中2','中3','高校生'].map(function(g,i) {
+      return '<span class="bulk-grade-chip" data-grade="' + (i===0?'':g) + '" onclick="selectBulkGrade(this)" style="cursor:pointer;font-size:11px;padding:2px 8px;border-radius:12px;border:1px solid var(--border);background:' + (i===0?'var(--crimson)':'#f3f4f6') + ';color:' + (i===0?'#fff':'var(--text)') + '">' + g + '</span>';
+    }).join('') +
+    '</div></div>' +
+
+    // 検索＋全選択・全解除＋人数（1行に圧縮 2026-06-10）
+    '<div style="display:flex;gap:6px;align-items:center">' +
+    '<input id="bulk-search" type="text" placeholder="🔍 名前で検索..." class="form-input" style="font-size:12px;flex:1;min-width:90px" oninput="renderBulkStudentList()">' +
+    '<button class="btn-sm" onclick="bulkCheckStudents(true)">全選択</button>' +
+    '<button class="btn-sm" onclick="bulkCheckStudents(false)">全解除</button>' +
+    '<span id="bulk-selected-count" style="font-size:11px;color:var(--text-muted);white-space:nowrap">0人選択中</span>' +
+    '</div>' +
+    '</div>' +
+
+    // 生徒リスト
+    '<div id="bulk-student-list" style="flex:1;overflow-y:auto;padding:8px 12px"></div>' +
+    '</div>' +
+
+    // ── 右ペイン：カレンダーグリッド ──
+    '<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">' +
+    '<div style="padding:10px 14px;border-bottom:1px solid var(--border);background:#f8fafc;display:flex;align-items:center;gap:8px">' +
+    '<span style="font-weight:700;font-size:14px">&#128197; 日付・コマを選択</span>' +
+    '<span style="font-size:12px;color:var(--text-muted)">選択した生徒 × チェックしたセルを一括追加</span>' +
+    '</div>' +
+    (period.type === 'test'
+      ? '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--border);background:#fffbeb">' +
+        '<span style="font-size:12px;font-weight:700">区分：</span>' +
+        '<label style="font-size:12px;cursor:pointer"><input type="radio" name="bulk-type" value="taisaku" checked> 📝 対策</label>' +
+        '<label style="font-size:12px;cursor:pointer"><input type="radio" name="bulk-type" value="jishu"> 📖 自習</label>' +
+        '<span style="font-size:12px;font-weight:700;margin-left:8px">登録先教室：</span>' +
+        '<select id="bulk-cr-target" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:4px">' +
+        '<option value="">各生徒の所属教室</option>' +
+        '<option value="北久里浜">北久里浜に固定</option>' +
+        '<option value="久里浜">久里浜に固定</option>' +
+        '</select>' +
+        '<span style="font-size:11px;color:var(--text-muted)">通常は変更不要</span>' +
+        '</div>'
+      : '') +
+    '<div id="bulk-cal-wrap" style="flex:1;overflow:auto;padding:12px 14px">' + buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) + '</div>' +
+    '<div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--bg,#fff);display:flex;gap:8px;align-items:center">' +
+    '<span id="bulk-cal-count" style="font-size:12px;color:var(--text-muted);flex:1">0セル選択中</span>' +
+    '<button class="btn-primary" style="font-size:14px;padding:7px 24px" onclick="submitKoushuBulkAssign(\'' + periodId + '\')\">' +
+    '&#10003; 登録</button>' +
+    '<button class="btn-secondary" onclick="closeKoushuBulkAssign()">閉じる</button>' +
+    '</div>' +
+    '</div>' +
+    '</div>';
+
+  // メインコンテンツをコマ割り登録（一括）ページで置き換え
+  document.getElementById('main-content').innerHTML =
+    '<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">' +
+    '<button class="btn-secondary btn-sm" onclick="renderSettings()">← 設定に戻る</button>' +
+    '<span style="font-weight:700;font-size:15px">👥 コマ割り登録（一括） — ' + esc(period.name) + '</span>' +
+    '</div>' +
+    content;
+
+  // ストアにperiodIdを保持（renderBulkStudentListより先に設定する。
+  // 後に設定すると初回描画でテスト対策フィルタ（中高塾生のみ）が効かないバグになる 2026-06-10）
+  document.getElementById('main-content').dataset.bulkPeriodId = periodId;
+
+  renderBulkStudentList();
+}
+
+/**
+ * 講習コマ登録を1件削除
+ */
+function deleteKoushuAssignmentOne(assignId, studentName, dateStr, komaTime) {
+  if (!confirm(studentName + ' の ' + dateStr + ' ' + komaTime + ' の登録を外しますか？')) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  // 楽観的UI: 対象カードをすぐにfade-out
+  var chip = document.querySelector('[data-assign-id="' + assignId + '"]');
+  if (chip) { chip.style.opacity = '0.3'; chip.style.pointerEvents = 'none'; }
+  callGas(url, { action: 'deleteKoushuAssignment', assignmentId: assignId }, function(res) {
+    if (res && res.success) {
+      _koushuAssignments = _koushuAssignments.filter(function(a){ return a.id !== assignId; });
+      miniToast('登録を外しました ✓');
+      renderCurrent();
+    } else {
+      // 失敗時: fade-outを元に戻す
+      if (chip) { chip.style.opacity = ''; chip.style.pointerEvents = ''; }
+      miniToast('削除エラー: ' + (res && res.error ? res.error : '不明'));
+    }
+  }, 'POST');
+}
+
+/**
+ * 生徒の講習登録コマ一覧モーダルを開く（編集・新規追加）
+ */
+function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
+  var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
+  if (!period) return;
+  // この期間の割付・カレンダーが未ロードなら取得してから開く（2026-06-11：ロード前に開くと0回表示になる問題の防止）
+  if (!_loaded && window.__koushuDataPid !== periodId) {
+    var urlG = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+    if (urlG) {
+      miniToast('期間データ読み込み中...');
+      var loadedG = 0;
+      function doneG() { loadedG++; if (loadedG >= 2) openKoushuStudentEdit(studentId, studentName, periodId, true); }
+      callGas(urlG, { action: 'getKoushuCalendar', periodId: periodId }, function(rc) {
+        if (rc && rc.success) _koushuCalendar = rc.entries || [];
+        doneG();
+      }, 'POST');
+      callGas(urlG, { action: 'getKoushuAssignments', periodId: periodId }, function(r) {
+        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = periodId; }
+        doneG();
+      });
+      return;
+    }
+  }
+  var assigns = _koushuAssignments.filter(function(a){
+    return a.periodId === periodId && (a.studentId === studentId || a.studentName === studentName);
+  });
+
+  var komaFrames  = (period.komaFrames && period.komaFrames.length) ? period.komaFrames : KOUSHU_DEFAULT_KOMA_FRAMES;
+  var youbiNames  = ['日','月','火','水','木','金','土'];
+
+  // 開校日リスト
+  var openDays = [];
+  var startD = new Date(period.startDate + 'T00:00:00');
+  var endD   = new Date(period.endDate   + 'T00:00:00');
+  var dd = new Date(startD);
+  while (dd <= endD) {
+    var ds = isoDate(dd);
+    var isOpen = _koushuCalendar.some(function(e){ return e.date === ds && e.isOpen; }) ||
+                 (_koushuCalendar.length === 0 && dd.getDay() !== 0);
+    if (isOpen) openDays.push(ds);
+    dd.setDate(dd.getDate() + 1);
+  }
+
+  // 登録済みセット（レコード全体を保持 2026-06-10 UI刷新）
+  var regMap = {};
+  assigns.forEach(function(a){ regMap[a.date + '|' + a.komaTime] = a; });
+
+  // 全日を週に分割
+  var allDays = [];
+  var ad = new Date(startD);
+  while (ad <= endD) { allDays.push(isoDate(ad)); ad.setDate(ad.getDate()+1); }
+  var weeks = [], week = [];
+  allDays.forEach(function(ds) {
+    var dobj = new Date(ds + 'T00:00:00');
+    if (week.length > 0 && dobj.getDay() === 0) { weeks.push(week); week = []; }
+    week.push(ds);
+  });
+  if (week.length) weeks.push(week);
+
+  // グリッドHTML
+  var gridHtml = '<div style="overflow-x:auto;margin-bottom:12px"><table style="border-collapse:collapse;font-size:12px;min-width:100%">';
+  weeks.forEach(function(wDays, wi) {
+    var mNum = new Date(wDays[0]+'T00:00:00').getMonth()+1;
+    var d0   = new Date(wDays[0]+'T00:00:00').getDate();
+    var d1   = new Date(wDays[wDays.length-1]+'T00:00:00').getDate();
+    gridHtml += '<tr style="background:var(--bg-sub,#f8fafc)"><td colspan="' + (wDays.length+1) + '" style="padding:3px 6px;font-size:11px;font-weight:600;color:var(--text-muted)">' +
+      mNum + '月 第' + (wi+1) + '週（' + d0 + '〜' + d1 + '日）</td></tr>';
+    gridHtml += '<tr><th style="padding:4px 6px;min-width:108px;font-size:11px;text-align:left;font-weight:500;color:var(--text-muted);border-bottom:1px solid var(--border)">コマ</th>';
+    wDays.forEach(function(ds) {
+      var dobj = new Date(ds+'T00:00:00');
+      var yn = youbiNames[dobj.getDay()];
+      var isSun = dobj.getDay()===0, isSat = dobj.getDay()===6;
+      var isOpen = openDays.indexOf(ds) >= 0;
+      var col = isSun ? '#dc2626' : isSat ? '#2563eb' : 'var(--text)';
+      gridHtml += '<th style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);' + (isOpen ? '' : 'background:#f3f4f6;') + '">' +
+        '<div style="display:flex;flex-direction:column;align-items:center;gap:1px">' +
+        '<span style="font-size:13px;font-weight:500;color:' + col + '">' + dobj.getDate() + '</span>' +
+        '<span style="font-size:10px;color:' + col + '">(' + yn + ')</span></div></th>';
+    });
+    gridHtml += '</tr>';
+    komaFrames.forEach(function(kf) {
+      gridHtml += '<tr><td style="padding:4px 6px;font-size:11px;color:var(--text-muted);white-space:nowrap;border-bottom:1px solid var(--border)">' + esc(kf) +
+        ' <button onclick="kseToggleRow(this.dataset.kf)" data-kf="' + esc(kf) + '" title="この時間帯を期間中全日まとめてチェック／解除" style="font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:4px;padding:1px 5px;cursor:pointer;color:#3C3489">⇒全</button></td>';
+      wDays.forEach(function(ds) {
+        var isOpen = openDays.indexOf(ds) >= 0;
+        var key    = ds + '|' + kf;
+        var aRec2  = regMap[key] || null;
+        var aid    = aRec2 ? aRec2.id : '';
+        var isOn   = !!aid;
+        if (!isOpen) {
+          gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
+            '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
+        } else {
+          gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
+            '<button class="kse-cell-btn' + (isOn ? ' kse-cell-on' : '') + (aRec2 && aRec2.type === 'jishu' ? ' kse-cell-jishu' : '') + '"' +
+            ' data-ds="' + esc(ds) + '" data-kf="' + esc(kf) + '"' +
+            ' data-aid="' + esc(aid) + '"' +
+            (aRec2 ? ' data-atype="' + esc(aRec2.type || 'taisaku') + '" data-acr="' + esc(aRec2.classroom || '') + '"' : '') +
+            ' data-sid="' + esc(studentId) + '"' +
+            ' data-sname="' + esc(studentName) + '"' +
+            ' data-pid="' + esc(periodId) + '"' +
+            ' onclick="kseToggleCell(this)">' +
+            (isOn ? '&#10003;' : '') +
+            '</button></td>';
+        }
+      });
+      gridHtml += '</tr>';
+    });
+  });
+  gridHtml += '</table></div>';
+
+  // ヘッダー回数
+  var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
+  var kseGoal       = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
+  var kseRegistered = period.type === 'test'
+    ? assigns.filter(function(a){ return a.type === 'taisaku'; }).length
+    : assigns.length;
+  var kseRemain     = kseGoal > 0 ? kseGoal - kseRegistered : null;
+  var kseColor      = kseRemain === null ? '#6b7280' : kseRemain <= 0 ? '#059669' : kseRemain <= 3 ? '#d97706' : '#dc2626';
+  var kseCountHtml  = '<span id="kse-count-badge" style="font-size:12px;font-weight:400;margin-left:10px;color:' + kseColor + '">' +
+    (kseGoal > 0 ? kseRegistered + '回 / 目標' + kseGoal + '回 / ' + (kseRemain <= 0 ? '達成✓' : '残り' + kseRemain + '回') : kseRegistered + '回登録済') +
+    '</span>';
+
+  // 2026-06-10 UI刷新：区分・教室の事前選択バーを廃止。チェック＝所属教室・対策で追加し、下の一覧で行ごとに変更する
+  var kseNote = '';
+  if (period.type === 'test') {
+    var homeCr = (s && s.classroom) || '';
+    kseNote = '<div style="font-size:12px;color:#78350f;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:6px 10px;margin-bottom:8px">' +
+      'セルをクリックすると<b>所属教室（' + esc(homeCr || '自動') + '）・📝対策</b>で追加されます。教室・自習への変更は下の「選択中のコマ」で行ごとに変えられます。' +
+      '</div>';
+  }
+  var kseListWrap = period.type === 'test'
+    ? '<div style="border-top:2px solid var(--border);padding-top:10px;margin-bottom:8px">' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:6px">📝 選択中のコマ <span id="kse-list-count" style="font-weight:400;color:var(--text-muted)"></span><span style="font-weight:400;font-size:11px;color:var(--text-muted)">　行ごとに教室・区分を変更できます</span></div>' +
+      '<div id="kse-selected-list"></div></div>'
+    : '';
+  var bodyHtml = kseNote + gridHtml + kseListWrap +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:4px">' +
+    '<span style="font-size:11px;color:var(--text-muted)">セルをクリックで選択 → 保存で確定</span>' +
+    '<button class="btn-secondary" onclick="closeModal(\'modal-kse\')">閉じる</button>' +
+    '<button id="kse-save-btn" class="btn-primary" onclick="kseSave(\'' + esc(studentId) + '\',\'' + esc(studentName) + '\',\'' + esc(periodId) + '\')">保存</button>' +
+    '</div>';
+
+  var existing = document.getElementById('modal-kse');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'modal-kse';
+  modal.className = 'modal-overlay';
+  modal.onclick = function(e) { if (e.target === modal) closeModal('modal-kse'); };
+  modal.innerHTML =
+    '<div class="modal" style="max-width:90vw;width:900px">' +
+    '<div class="modal-header"><span>&#128203; ' + esc(studentName) + kseCountHtml + '</span>' +
+    '<span class="modal-close" onclick="closeModal(\'modal-kse\')">&#215;</span></div>' +
+    '<div class="modal-body" style="overflow-y:auto;max-height:calc(90vh - 80px)">' + bodyHtml + '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  openModal('modal-kse');
+  kseRenderList();
+}
+
+// セルトグル（個別編集モーダル）- data属性からIDを取得
+function kseToggleCell(btn) {
+  // クリック時はローカルのみ更新。保存はkseSave()で行う
+  var isOn = btn.classList.contains('kse-cell-on');
+  if (isOn) {
+    btn.classList.remove('kse-cell-on');
+    btn.classList.remove('kse-cell-jishu');
+    btn.innerHTML = '';
+    delete btn.dataset.newtype;
+    delete btn.dataset.newcr;
+    delete btn.dataset.modtype;
+    delete btn.dataset.modcr;
+  } else {
+    btn.classList.add('kse-cell-on');
+    btn.innerHTML = '&#10003;';
+    // 2026-06-10 UI刷新：常にデフォルト（対策・所属教室）で追加。変更は選択中一覧で行う
+    var period0 = _koushuPeriods.find(function(p){ return p.id === (btn.dataset.pid || ''); });
+    if (period0 && period0.type === 'test' && !btn.dataset.aid) {
+      btn.dataset.newtype = 'taisaku';
+    }
+  }
+  // バッジ・一覧をリアルタイム更新（ローカル集計）
+  var studentId   = btn.dataset.sid || '';
+  var studentName = btn.dataset.sname || '';
+  var periodId    = btn.dataset.pid || '';
+  kseUpdateCountBadgeLocal(studentId, studentName, periodId);
+  kseRenderList();
+}
+
+// 行一括トグル（2026-06-11：講習は毎日同じ時間帯が多いので、横1列まとめてチェック）
+// 全週・期間中の同じ時間帯セルを対象。全部ONなら全OFF、それ以外は全ON
+function kseToggleRow(kf) {
+  var cells = Array.prototype.slice.call(document.querySelectorAll('#modal-kse .kse-cell-btn[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]')).filter(function(c) { return !c.disabled; });
+  if (!cells.length) return;
+  var allOn = cells.every(function(c) { return c.classList.contains('kse-cell-on'); });
+  var period0 = _koushuPeriods.find(function(p) { return p.id === (cells[0].dataset.pid || ''); });
+  cells.forEach(function(c) {
+    if (!allOn) {
+      if (!c.classList.contains('kse-cell-on')) {
+        c.classList.add('kse-cell-on');
+        c.innerHTML = '&#10003;';
+        if (period0 && period0.type === 'test' && !c.dataset.aid) c.dataset.newtype = 'taisaku';
+      }
+    } else {
+      c.classList.remove('kse-cell-on');
+      c.classList.remove('kse-cell-jishu');
+      c.innerHTML = '';
+      delete c.dataset.newtype;
+      delete c.dataset.newcr;
+      delete c.dataset.modtype;
+      delete c.dataset.modcr;
+    }
+  });
+  kseUpdateCountBadgeLocal(cells[0].dataset.sid || '', cells[0].dataset.sname || '', cells[0].dataset.pid || '');
+  kseRenderList();
+}
+
+// 選択中のコマ一覧（2026-06-10 UI刷新：行ごとに教室・区分をプルダウン変更）
+function kseRenderList() {
+  var listEl = document.getElementById('kse-selected-list');
+  if (!listEl) return;
+  var cells = Array.prototype.slice.call(document.querySelectorAll('#modal-kse .kse-cell-btn.kse-cell-on'));
+  cells.sort(function(a, b) { return (a.dataset.ds + a.dataset.kf) < (b.dataset.ds + b.dataset.kf) ? -1 : 1; });
+  var cntEl = document.getElementById('kse-list-count');
+  if (cntEl) cntEl.textContent = '（' + cells.length + '件）';
+  if (!cells.length) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px">セルをチェックするとここに並びます</div>';
+    return;
+  }
+  var YB2 = ['日','月','火','水','木','金','土'];
+  var sRec = _students.find(function(st){ return st.id === (cells[0].dataset.sid || '') || st.name === (cells[0].dataset.sname || ''); });
+  var homeCr2 = (sRec && sRec.classroom) || '';
+  listEl.innerHTML = cells.map(function(c, i) {
+    var d2 = new Date(c.dataset.ds + 'T00:00:00');
+    var dateLabel = (d2.getMonth() + 1) + '/' + d2.getDate() + '(' + YB2[d2.getDay()] + ') ' + c.dataset.kf;
+    var curType = c.dataset.modtype || c.dataset.newtype || c.dataset.atype || 'taisaku';
+    var curCr   = c.dataset.modcr || c.dataset.newcr || c.dataset.acr || homeCr2;
+    var isSaved = !!c.dataset.aid;
+    var typeStyle = curType === 'jishu'
+      ? 'background:#dcfce7;color:#166534;border:1px solid #16a34a'
+      : 'background:#fef9c3;color:#854d0e;border:1px solid #f59e0b';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid #f3f4f6;font-size:13px">' +
+      '<span style="width:175px;font-weight:600;white-space:nowrap">' + esc(dateLabel) +
+      (isSaved ? ' <span style="font-size:10px;color:#059669;font-weight:400">登録済み</span>' : '') + '</span>' +
+      '<select onchange="kseRowChange(' + i + ',\'cr\',this.value)" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer">' +
+      ['北久里浜','久里浜'].map(function(cr) { return '<option value="' + cr + '"' + (curCr === cr ? ' selected' : '') + '>' + cr + '</option>'; }).join('') +
+      '</select>' +
+      '<select onchange="kseRowChange(' + i + ',\'type\',this.value)" style="font-size:12px;padding:2px 6px;border-radius:6px;cursor:pointer;' + typeStyle + '">' +
+      '<option value="taisaku"' + (curType === 'taisaku' ? ' selected' : '') + '>📝 対策</option>' +
+      '<option value="jishu"' + (curType === 'jishu' ? ' selected' : '') + '>📖 自習</option>' +
+      '</select>' +
+      '<button onclick="kseRowRemove(' + i + ')" title="このコマを外す" style="margin-left:auto;border:none;background:none;color:#dc2626;font-weight:700;font-size:14px;cursor:pointer">×</button>' +
+      '</div>';
+  }).join('');
+}
+
+function kseSortedOnCells_() {
+  var cells = Array.prototype.slice.call(document.querySelectorAll('#modal-kse .kse-cell-btn.kse-cell-on'));
+  cells.sort(function(a, b) { return (a.dataset.ds + a.dataset.kf) < (b.dataset.ds + b.dataset.kf) ? -1 : 1; });
+  return cells;
+}
+
+function kseRowChange(idx, field, value) {
+  var c = kseSortedOnCells_()[idx];
+  if (!c) return;
+  if (field === 'type') {
+    if (c.dataset.aid) { c.dataset.modtype = value; } else { c.dataset.newtype = value; }
+    c.classList.toggle('kse-cell-jishu', value === 'jishu');
+  } else {
+    if (c.dataset.aid) { c.dataset.modcr = value; } else { c.dataset.newcr = value; }
+  }
+  kseUpdateCountBadgeLocal(c.dataset.sid || '', c.dataset.sname || '', c.dataset.pid || '');
+  kseRenderList();
+}
+
+function kseRowRemove(idx) {
+  var c = kseSortedOnCells_()[idx];
+  if (c) kseToggleCell(c);
+}
+
+function kseUpdateCountBadgeLocal(studentId, studentName, periodId) {
+  // モーダル内の現在のチェック状態をカウント
+  var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
+  if (!period) return;
+  var checkedCells = document.querySelectorAll('#modal-kse .kse-cell-btn.kse-cell-on');
+  var kseRegistered = 0;
+  var isTestK = period.type === 'test';
+  checkedCells.forEach(function(c) {
+    if (!isTestK) { kseRegistered++; return; }
+    var ty = c.dataset.modtype || c.dataset.newtype || c.dataset.atype || 'taisaku';
+    if (ty !== 'jishu') kseRegistered++;
+  });
+  var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
+  var kseGoal  = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
+  var kseRemain = kseGoal > 0 ? kseGoal - kseRegistered : null;
+  var kseColor  = kseRemain === null ? '#6b7280' : kseRemain <= 0 ? '#059669' : kseRemain <= 3 ? '#d97706' : '#dc2626';
+  var badge = document.getElementById('kse-count-badge');
+  if (badge) {
+    badge.style.color = kseColor;
+    badge.textContent = kseGoal > 0
+      ? kseRegistered + '回 / 目標' + kseGoal + '回 / ' + (kseRemain <= 0 ? '達成✓' : '残り' + kseRemain + '回')
+      : kseRegistered + '回登録済';
+  }
+}
+
+function kseSave(studentId, studentName, periodId) {
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
+  if (!period) return;
+
+  // モーダル内の全セルの現在状態を収集
+  var allCells = document.querySelectorAll('#modal-kse .kse-cell-btn');
+  var toAdd = [], toDelete = [], toUpdate = [];
+  allCells.forEach(function(btn) {
+    var ds  = btn.dataset.ds;
+    var kf  = btn.dataset.kf;
+    var aid = btn.dataset.aid || '';
+    var isOn = btn.classList.contains('kse-cell-on');
+    if (isOn && !aid) {
+      // 新規追加（選択中一覧で変更した区分・教室を使う）
+      var s  = _students.find(function(st){ return st.id === studentId || st.name === studentName; }) || { id: studentId, name: studentName };
+      var cr = btn.dataset.newcr || s.classroom || (s.komas && s.komas[0] ? s.komas[0].classroom : '');
+      var aType = (period.type === 'test') ? (btn.dataset.newtype || 'taisaku') : 'normal';
+      toAdd.push({ btn: btn, data: { id: '', periodId: periodId, studentId: studentId, studentName: studentName, classroom: cr, date: ds, komaTime: kf, type: aType } });
+    } else if (!isOn && aid) {
+      // 削除
+      toDelete.push({ btn: btn, aid: aid });
+    } else if (isOn && aid && (btn.dataset.modtype || btn.dataset.modcr)) {
+      // 既存行の区分・教室変更（2026-06-10 UI刷新：saveKoushuAssignmentのid付きupsertで更新）
+      var newType = btn.dataset.modtype || btn.dataset.atype || 'taisaku';
+      var newCr   = btn.dataset.modcr   || btn.dataset.acr   || '';
+      if (newType !== (btn.dataset.atype || 'taisaku') || newCr !== (btn.dataset.acr || '')) {
+        // 更新時は既存レコードの生徒名・IDを維持する（誤った名前での上書きを防止 2026-06-11）
+        var recU = _koushuAssignments.find(function(a){ return a.id === aid; });
+        toUpdate.push({ btn: btn, data: { id: aid, periodId: periodId, studentId: (recU && recU.studentId) || studentId, studentName: (recU && recU.studentName) || studentName, classroom: newCr, date: ds, komaTime: kf, type: newType } });
+      }
+    }
+  });
+
+  if (toAdd.length === 0 && toDelete.length === 0 && toUpdate.length === 0) {
+    miniToast('変更はありません');
+    return;
+  }
+
+  // スピナー表示
+  var saveBtn = document.getElementById('kse-save-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中...'; }
+
+  var queue = [];
+  // 削除→更新→追加の順で直列処理
+  toDelete.forEach(function(item) { queue.push({ type: 'delete', item: item }); });
+  toUpdate.forEach(function(item) { queue.push({ type: 'add',    item: item }); }); // saveKoushuAssignmentはid付きで更新になる
+  toAdd.forEach(function(item)    { queue.push({ type: 'add',    item: item }); });
+
+  var total  = queue.length;
+  var errors = [];
+
+  function processNext(idx) {
+    if (idx >= queue.length) {
+      // 全完了
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+      if (errors.length > 0) {
+        miniToast('一部エラー: ' + errors[0]);
+      } else {
+        miniToast('保存しました (' + total + '件)');
+        if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
+      }
+      return;
+    }
+    var entry = queue[idx];
+    if (entry.type === 'delete') {
+      var item = entry.item;
+      callGas(url, { action: 'deleteKoushuAssignment', assignmentId: item.aid }, function(res) {
+        var notFound = res && res.error && res.error.indexOf('見つかりません') >= 0;
+        if ((res && res.success) || notFound) {
+          _koushuAssignments = _koushuAssignments.filter(function(a){ return a.id !== item.aid; });
+          item.btn.dataset.aid = '';
+        } else {
+          errors.push('削除失敗: ' + (res && res.error ? res.error : '不明'));
+          item.btn.classList.add('kse-cell-on');
+          item.btn.innerHTML = '&#10003;';
+        }
+        processNext(idx + 1);
+      }, 'POST');
+    } else {
+      var item = entry.item;
+      callGas(url, { action: 'saveKoushuAssignment', assignment: item.data }, function(res) {
+        if (res && res.success) {
+          var savedId = (res.assignment && res.assignment.id) || res.id || '';
+          var wasUpdate = !!item.data.id; // 既存行の更新（2026-06-10）
+          item.data.id = savedId;
+          item.btn.dataset.aid = savedId;
+          if (wasUpdate) {
+            var ex = _koushuAssignments.find(function(a){ return a.id === savedId; });
+            if (ex) { ex.classroom = item.data.classroom; ex.type = item.data.type; }
+            item.btn.dataset.atype = item.data.type;
+            item.btn.dataset.acr = item.data.classroom;
+            delete item.btn.dataset.modtype;
+            delete item.btn.dataset.modcr;
+          } else {
+            _koushuAssignments.push(item.data);
+          }
+        } else {
+          errors.push('保存失敗: ' + (res && res.error ? res.error : '不明'));
+          item.btn.classList.remove('kse-cell-on');
+          item.btn.innerHTML = '';
+        }
+        processNext(idx + 1);
+      }, 'POST');
+    }
+  }
+
+  processNext(0);
+}
+
+function kseUpdateCountBadge(studentId, studentName, periodId) {
+  var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
+  if (!period) return;
+  var assigns = _koushuAssignments.filter(function(a){
+    return a.periodId === periodId && (a.studentId === studentId || a.studentName === studentName);
+  });
+  var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
+  var kseGoal       = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
+  var kseRegistered = period.type === 'test'
+    ? assigns.filter(function(a){ return a.type === 'taisaku'; }).length
+    : assigns.length;
+  var kseRemain     = kseGoal > 0 ? kseGoal - kseRegistered : null;
+  var kseColor      = kseRemain === null ? '#6b7280' : kseRemain <= 0 ? '#059669' : kseRemain <= 3 ? '#d97706' : '#dc2626';
+  var badge = document.getElementById('kse-count-badge');
+  if (badge) {
+    badge.style.color = kseColor;
+    badge.textContent = kseGoal > 0
+      ? kseRegistered + '回 / 目標' + kseGoal + '回 / ' + (kseRemain <= 0 ? '達成✓' : '残り' + kseRemain + '回')
+      : kseRegistered + '回登録済';
+  }
+}
+
+// 後方互換スタブ
+function kseAddRow(periodId) {}
+function kseDeleteRow(btn) {}
+
+function kseSubmit(studentId, studentName, periodId) {} // カレンダーグリッド方式に移行済み
+
+// ─── 講習D&D ────────────────────────────────────────────────
+var _ddAssignId   = null; // ドラッグ中のassignId
+var _ddOriginDate = null; // 元の日付
+var _ddOriginKoma = null; // 元のコマ
+
+/**
+ * ドラッグ開始：assignIdをstateに保存
+ */
+document.addEventListener('dragstart', function(e) {
+  var chip = e.target.closest('[data-assign-id]');
+  if (!chip) return;
+  _ddAssignId   = chip.dataset.assignId;
+  _ddOriginDate = null;
+  _ddOriginKoma = null;
+  var a = _koushuAssignments.find(function(x){ return x.id === _ddAssignId; });
+  if (a) { _ddOriginDate = a.date; _ddOriginKoma = a.komaTime; }
+  e.dataTransfer.effectAllowed = 'move';
+});
+
+document.addEventListener('dragend', function() {
+  _ddAssignId = null;
+  _ddOriginDate = null;
+  _ddOriginKoma = null;
+  document.querySelectorAll('.koushu-drop-target').forEach(function(el){
+    el.classList.remove('koushu-drop-target');
+  });
+});
+
+/**
+ * ドロップ先ハイライト
+ */
+document.addEventListener('dragover', function(e) {
+  if (!_ddAssignId) return;
+  var cell = e.target.closest('[data-koma][data-date]');
+  if (!cell) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.koushu-drop-target').forEach(function(el){
+    el.classList.remove('koushu-drop-target');
+  });
+  cell.classList.add('koushu-drop-target');
+});
+
+document.addEventListener('dragleave', function(e) {
+  var cell = e.target.closest('[data-koma][data-date]');
+  if (cell && !cell.contains(e.relatedTarget)) {
+    cell.classList.remove('koushu-drop-target');
+  }
+});
+
+/**
+ * ドロップ処理
+ */
+document.addEventListener('drop', function(e) {
+  var cell = e.target.closest('[data-koma][data-date]');
+  if (!cell || !_ddAssignId) return;
+  e.preventDefault();
+  cell.classList.remove('koushu-drop-target');
+
+  var newDate     = cell.dataset.date;
+  var newKoma     = cell.dataset.koma;
+  var newClassroom = cell.dataset.classroom || '';
+
+  // 変化なし
+  if (newDate === _ddOriginDate && newKoma === _ddOriginKoma) return;
+
+  // 今日タブ：日付変更は不可（コマ変更のみ）
+  var activeTab = localStorage.getItem('cb_active_tab') || 'today';
+  if (activeTab === 'today' && newDate !== _ddOriginDate) {
+    miniToast('今日タブではコマの変更のみ可能です');
+    return;
+  }
+
+  var a = _koushuAssignments.find(function(x){ return x.id === _ddAssignId; });
+  if (!a) return;
+
+  // 重複チェック
+  var dup = _koushuAssignments.some(function(x) {
+    return x.id !== _ddAssignId &&
+           x.periodId === a.periodId &&
+           (x.studentId === a.studentId || x.studentName === a.studentName) &&
+           x.date === newDate &&
+           x.komaTime === newKoma;
+  });
+  if (dup) {
+    miniToast(a.studentName + ' はすでに ' + newDate + ' ' + newKoma + ' に登録されています');
+    return;
+  }
+
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+
+  // 楽観的UI: _koushuAssignmentsを即更新→renderCurrent
+  var origDate = a.date;
+  var origKoma = a.komaTime;
+  a.date     = newDate;
+  a.komaTime = newKoma;
+  if (newClassroom) a.classroom = newClassroom;
+  renderCurrent();
+
+  // GASに保存
+  callGas(url, { action: 'saveKoushuAssignment', assignment: a }, function(res) {
+    if (!res || !res.success) {
+      // 失敗時: 元に戻す
+      a.date     = origDate;
+      a.komaTime = origKoma;
+      renderCurrent();
+      miniToast('移動の保存に失敗しました: ' + (res && res.error ? res.error : '不明'));
+    } else {
+      miniToast(a.studentName + ' を ' + newKoma + ' に移動しました ✓');
+    }
+  }, 'POST');
+});
+// ──────────────────────────────────────────────────────────────
+
+function closeKoushuBulkAssign() {
+  renderSettings();
+}
+
+function selectBulkGrade(el) {
+  document.querySelectorAll('.bulk-grade-chip').forEach(function(c) {
+    c.style.background = '#f3f4f6';
+    c.style.color = 'var(--text)';
+    c.style.borderColor = 'var(--border)';
+  });
+  el.style.background = 'var(--crimson)';
+  el.style.color = '#fff';
+  el.style.borderColor = 'var(--crimson)';
+  renderBulkStudentList();
+}
+
+function bulkCheckByYoubi(yn) {
+  var youbiNames = ['日','月','火','水','木','金','土'];
+  document.querySelectorAll('.bulk-day-cb').forEach(function(el) {
+    var dayObj = new Date(el.value + 'T00:00:00');
+    if (youbiNames[dayObj.getDay()] === yn) el.checked = true;
+  });
+  updateBulkDayCount();
+}
+
+function bulkCheckDays(checked) {
+  document.querySelectorAll('.bulk-day-cb').forEach(function(el) { el.checked = checked; });
+  updateBulkDayCount();
+}
+function bulkCheckStudents(checked) {
+  document.querySelectorAll('.bulk-student-cb').forEach(function(el) { el.checked = checked; });
+  updateBulkSelectedCount();
+}
+
+function updateBulkKomaCount() {
+  var cnt = document.querySelectorAll('.bulk-koma-cb:checked').length;
+  var el = document.getElementById('bulk-koma-count');
+  if (el) el.textContent = cnt > 0 ? cnt + 'コマ選択中' : '';
+}
+
+function updateBulkDayCount() {
+  var cnt = document.querySelectorAll('.bulk-day-cb:checked').length;
+  var el = document.getElementById('bulk-day-count');
+  if (el) el.textContent = cnt > 0 ? cnt + '日選択中' : '';
+}
+
+function updateBulkSelectedCount() {
+  var cnt = document.querySelectorAll('.bulk-student-cb:checked').length;
+  var el = document.getElementById('bulk-selected-count');
+  if (el) el.textContent = cnt + '人選択中';
+}
+
+function renderBulkStudentList() {
+  var statuses = Array.from(document.querySelectorAll('.bulk-status-cb:checked')).map(function(e){ return e.value; });
+  var showJuku = (document.getElementById('bulk-type-juku') || {}).checked !== false;
+  var showCa   = !!(document.getElementById('bulk-type-ca') || {}).checked;
+  var crChecked = Array.from(document.querySelectorAll('.bulk-cr-cb:checked')).map(function(e){ return e.value; });
+  var gradeChip = document.querySelector('.bulk-grade-chip[style*="crimson"]');
+  var gradeFilter = gradeChip ? gradeChip.dataset.grade : '';
+  var search = ((document.getElementById('bulk-search') || {}).value || '').trim();
+
+  var list = document.getElementById('bulk-student-list');
+  if (!list) return;
+
+  var bulkPeriodId0 = (document.getElementById('main-content') || {}).dataset && document.getElementById('main-content').dataset.bulkPeriodId || '';
+  var bulkPeriod0 = _koushuPeriods.find(function(p){ return p.id === bulkPeriodId0; });
+  var isTestList = !!(bulkPeriod0 && bulkPeriod0.type === 'test');
+
+  var filtered = _students.filter(function(s) {
+    // テスト対策：中高生の塾生のみ（CA専業除外）
+    if (isTestList) {
+      if (!s.attrJuku) return false;
+      var g0 = s.grade || '';
+      if (!(g0.indexOf('中') === 0 || g0.indexOf('高') === 0)) return false;
+    }
+    // 在籍状況フィルタ（チェックあり項目のみに絞る。全チェックなし＝絞り込みなし）
+    if (statuses.length > 0 && !statuses.includes(s.status)) return false;
+    // 種別フィルタ（チェックあり項目のみに絞る。全チェックなし＝絞り込みなし）
+    var isCa = (s.komas||[]).some(function(k){ return k.satType==='ca'; });
+    if (showJuku || showCa) {
+      if (isCa && !showCa) return false;
+      if (!isCa && !showJuku) return false;
+    }
+    // 教室フィルタ（チェックあり項目のみに絞る。全チェックなし＝絞り込みなし）
+    if (crChecked.length > 0 && !crChecked.includes(s.classroom)) return false;
+    // 学年フィルタ
+    if (gradeFilter && s.grade !== gradeFilter) return false;
+    // テキスト検索
+    if (search && s.name.indexOf(search) === -1) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:8px">該当する生徒がいません</p>';
+    return;
+  }
+
+  var bulkPeriodId = (document.getElementById('main-content') || {}).dataset && document.getElementById('main-content').dataset.bulkPeriodId || '';
+  var activePeriodForBulk = _koushuPeriods.find(function(p){ return p.id === bulkPeriodId; });
+  list.innerHTML = filtered.map(function(s) {
+    var registered = 0; var goal = 0; var countBadge = '';
+    if (activePeriodForBulk) {
+      registered = _koushuAssignments.filter(function(a){
+        if (a.periodId !== activePeriodForBulk.id || !(a.studentId === s.id || a.studentName === s.name)) return false;
+        if (activePeriodForBulk.type === 'test') return a.type === 'taisaku';
+        return true;
+      }).length;
+      goal = (activePeriodForBulk.gradeGoals || {})[s.grade] || 0;
+      var remainColor = goal > 0 ? (registered >= goal ? '#059669' : registered >= goal * 0.7 ? '#d97706' : '#dc2626') : '#6b7280';
+      countBadge = '<span style="font-size:11px;color:' + remainColor + ';margin-left:auto;flex-shrink:0">' +
+        (goal > 0 ? registered + '/' + goal + '回' : registered + '回') + '</span>';
+    }
+    return '<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid #f3f4f6;cursor:pointer">' +
+      '<input type="checkbox" class="bulk-student-cb" value="' + esc(s.id || s.name) + '" data-name="' + esc(s.name) + '" data-cr="' + esc(s.classroom || '') + '" onchange="updateBulkSelectedCount()">' +
+      '<span style="font-size:13px;font-weight:600">' + esc(s.name) + '</span>' +
+      '<span style="font-size:11px;color:var(--text-muted)">' + (s.grade||'') + '・' + (s.classroom||'') + '</span>' +
+      countBadge +
+      '</label>';
+  }).join('');
+  updateBulkSelectedCount();
+}
+
+/**
+ * コマ割り登録（一括）を実行
+ */
+function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
+  var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
+  if (!period) return '';
+  var allDays = [];
+  var ad = new Date(period.startDate + 'T00:00:00');
+  var ed = new Date(period.endDate   + 'T00:00:00');
+  while (ad <= ed) { allDays.push(isoDate(ad)); ad.setDate(ad.getDate()+1); }
+  var weeks = [], week = [];
+  allDays.forEach(function(ds) {
+    var dobj = new Date(ds+'T00:00:00');
+    if (week.length > 0 && dobj.getDay() === 0) { weeks.push(week); week = []; }
+    week.push(ds);
+  });
+  if (week.length) weeks.push(week);
+
+  var html = '<table style="border-collapse:collapse;font-size:12px;min-width:100%">';
+  weeks.forEach(function(wDays, wi) {
+    var mNum = new Date(wDays[0]+'T00:00:00').getMonth()+1;
+    var d0   = new Date(wDays[0]+'T00:00:00').getDate();
+    var d1   = new Date(wDays[wDays.length-1]+'T00:00:00').getDate();
+    html += '<tr style="background:var(--bg-sub,#f8fafc)"><td colspan="' + (wDays.length+1) + '" style="padding:3px 6px;font-size:11px;font-weight:600;color:var(--text-muted)">' +
+      mNum + '月 第' + (wi+1) + '週（' + d0 + '〜' + d1 + '日）</td></tr>';
+    html += '<tr><th style="padding:4px 6px;min-width:108px;font-size:11px;text-align:left;font-weight:500;color:var(--text-muted);border-bottom:1px solid var(--border)">コマ</th>';
+    wDays.forEach(function(ds) {
+      var dobj = new Date(ds+'T00:00:00');
+      var yn = youbiNames[dobj.getDay()];
+      var isSun = dobj.getDay()===0, isSat = dobj.getDay()===6;
+      var isOpen = openDays.indexOf(ds) >= 0;
+      var col = isSun ? '#dc2626' : isSat ? '#2563eb' : 'var(--text)';
+      html += '<th style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);' + (isOpen ? '' : 'background:#f3f4f6;') + '">' +
+        '<div style="display:flex;flex-direction:column;align-items:center;gap:1px">' +
+        '<span style="font-size:13px;font-weight:500;color:' + col + '">' + dobj.getDate() + '</span>' +
+        '<span style="font-size:10px;color:' + col + '">(' + yn + ')</span></div></th>';
+    });
+    html += '</tr>';
+    komaFrames.forEach(function(kf) {
+      html += '<tr><td style="padding:4px 6px;font-size:11px;color:var(--text-muted);white-space:nowrap;border-bottom:1px solid var(--border)">' + esc(kf) +
+        ' <button onclick="bulkToggleRow(this.dataset.kf)" data-kf="' + esc(kf) + '" title="この時間帯を期間中全日まとめてチェック／解除" style="font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:4px;padding:1px 5px;cursor:pointer;color:#3C3489">⇒全</button></td>';
+      wDays.forEach(function(ds) {
+        var isOpen = openDays.indexOf(ds) >= 0;
+        if (!isOpen) {
+          html += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
+            '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
+        } else {
+          html += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
+            '<button class="kse-cell-btn bulk-cal-cell"' +
+            ' data-ds="' + esc(ds) + '" data-kf="' + esc(kf) + '"' +
+            ' onclick="bulkCalToggle(this)"></button></td>';
+        }
+      });
+      html += '</tr>';
+    });
+  });
+  html += '</table>';
+  return html;
+}
+
+// 行一括トグル（2026-06-11：講習は毎日同じ時間帯が多いので、横1列まとめてチェック）
+function bulkToggleRow(kf) {
+  var cells = Array.prototype.slice.call(document.querySelectorAll('.bulk-cal-cell[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]'));
+  if (!cells.length) return;
+  var allOn = cells.every(function(c) { return c.classList.contains('kse-cell-on'); });
+  cells.forEach(function(c) {
+    c.classList.toggle('kse-cell-on', !allOn);
+    c.innerHTML = !allOn ? '&#10003;' : '';
+  });
+  var cnt = document.querySelectorAll('.bulk-cal-cell.kse-cell-on').length;
+  var el = document.getElementById('bulk-cal-count');
+  if (el) el.textContent = cnt + 'セル選択中';
+}
+
+function bulkCalToggle(btn) {
+  btn.classList.toggle('kse-cell-on');
+  btn.innerHTML = btn.classList.contains('kse-cell-on') ? '&#10003;' : '';
+  var cnt = document.querySelectorAll('.bulk-cal-cell.kse-cell-on').length;
+  var el = document.getElementById('bulk-cal-count');
+  if (el) el.textContent = cnt + 'セル選択中';
+}
+
+function submitKoushuBulkAssign(periodId) {
+  var checkedCells = Array.from(document.querySelectorAll('.bulk-cal-cell.kse-cell-on'));
+  var studentEls   = Array.from(document.querySelectorAll('.bulk-student-cb:checked'));
+  if (checkedCells.length === 0) { miniToast('コマを選択してください'); return; }
+  if (studentEls.length === 0)   { miniToast('生徒を選択してください'); return; }
+
+  var periodB = _koushuPeriods.find(function(p){ return p.id === periodId; });
+  var isTestB = !!(periodB && periodB.type === 'test');
+  var bulkTypeSel = document.querySelector('input[name="bulk-type"]:checked');
+  var bulkType  = isTestB ? (bulkTypeSel ? bulkTypeSel.value : 'taisaku') : 'normal';
+  var bulkCrFix = isTestB ? ((document.getElementById('bulk-cr-target') || {}).value || '') : '';
+
+  var assignments = [], conflicts = [];
+  studentEls.forEach(function(el) {
+    var s = _students.find(function(st){ return st.id === el.value || st.name === el.dataset.name; });
+    var isElemOrCa = s && ((s.grade && s.grade.indexOf('小') === 0) || (s.attrCa && !s.attrJuku));
+    checkedCells.forEach(function(btn) {
+      var date  = btn.dataset.ds;
+      var koma  = btn.dataset.kf;
+      var youbi = ['日','月','火','水','木','金','土'][new Date(date+'T00:00:00').getDay()];
+      if (isElemOrCa && s) {
+        var hasNormalKoma = (s.komas || []).some(function(k){ return k.youbi === youbi && k.time === koma; });
+        if (hasNormalKoma) { conflicts.push(el.dataset.name + '（' + date + ' ' + koma + '）'); return; }
+      }
+      assignments.push({ periodId: periodId, studentId: el.value, studentName: el.dataset.name, classroom: bulkCrFix || el.dataset.cr, date: date, komaTime: koma, type: bulkType });
+    });
+  });
+
+  if (conflicts.length > 0) {
+    miniToast('通常コマ重複：' + conflicts.slice(0,3).join(' / ') + (conflicts.length > 3 ? ' 他' + (conflicts.length-3) + '件' : ''));
+    return;
+  }
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  miniToast('登録中... ' + assignments.length + '件');
+  callGas(url, { action: 'bulkSaveKoushuAssignments', assignments: assignments }, function(res) {
+    if (res && res.success) {
+      miniToast('登録完了 ✓ 追加:' + res.added + '件 スキップ:' + res.skipped + '件');
+      callGas(url, { action: 'getKoushuAssignments', periodId: periodId }, function(r) {
+        _koushuAssignments = (r && r.success) ? r.assignments : [];
+        if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
+      }, 'POST');
+    } else {
+      miniToast('登録エラー: ' + (res && res.error ? res.error : '不明'));
+    }
+  }, 'POST');
+}
+
 
 function saveSettings() {
   localStorage.setItem(GAS_STUDENT_URL_KEY, document.getElementById('s-student-url').value.trim());
@@ -4030,42 +6480,7 @@ function saveUserName() {
   miniToast('使用者名を保存しました ✓');
 }
 
-// =====================================================
-// モード追加・削除
-// =====================================================
-function submitAddMode() {
-  var name = document.getElementById('new-mode-name').value.trim();
-  if (!name) { miniToast('モード名を入力してください'); return; }
-  var type = document.querySelector('input[name="mode-type"]:checked').value;
-  var data = (type === 'copy') ? { students: JSON.parse(JSON.stringify(_students)) } : {};
-  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
-  if (!url) { miniToast('GAS URLが未設定です'); return; }
-  callGas(url, { action: 'saveTimetableMode', mode: JSON.stringify({ modeName: name, data: data }) }, function(res) {
-    if (res && res.success) {
-      closeModal('modal-add-mode');
-      miniToast('モードを作成しました ✓');
-      callGas(url, { action: 'getTimetableModes' }, function(r) {
-        if (r && r.success && r.modes) { _modes = r.modes; localStorage.setItem('cb_cache_modes', JSON.stringify(_modes)); }
-        renderCurrent();
-      });
-    } else miniToast('作成エラー');
-  }, 'POST');
-}
 
-function deleteMode(modeId, modeName) {
-  if (!confirm('「' + modeName + '」を削除しますか？')) return;
-  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
-  if (!url) { miniToast('GAS URLが未設定です'); return; }
-  callGas(url, { action: 'deleteTimetableMode', modeId: modeId }, function(res) {
-    if (res && res.success) {
-      _modes = _modes.filter(function(m) { return m.modeId !== modeId; });
-      localStorage.setItem('cb_cache_modes', JSON.stringify(_modes));
-      if (_currentMode === modeId) _currentMode = 'normal';
-      miniToast('削除しました ✓');
-      renderCurrent();
-    } else miniToast('削除エラー');
-  }, 'POST');
-}
 
 // =====================================================
 // 学校行事：追加・削除
@@ -4252,10 +6667,17 @@ function openTaskModal(taskId) {
   if (!t) return;
   _currentTaskId = taskId;
   var isDone = t.status === 'done';
-  // 担当者リストを既存タスクから動的生成
-  var assigneeSet = {};
-  (_tasks || []).forEach(function(tk) { if (tk.assignee) assigneeSet[tk.assignee] = true; });
-  var assigneeOptions = Object.keys(assigneeSet).map(function(a) {
+  // 担当者リストをマスターから生成。マスター未取得時は既存タスクのassigneeをfallback
+  var assigneeList = _taskAssignees.length > 0 ? _taskAssignees : (function() {
+    var set = {};
+    (_tasks || []).forEach(function(tk) { if (tk.assignee) set[tk.assignee] = true; });
+    return Object.keys(set);
+  })();
+  // 現在のassigneeがリストになければ末尾に追加（既存データ保護）
+  if (t.assignee && assigneeList.indexOf(t.assignee) === -1) {
+    assigneeList = assigneeList.concat([t.assignee]);
+  }
+  var assigneeOptions = assigneeList.map(function(a) {
     return '<option value="' + esc(a) + '"' + (a === (t.assignee||'') ? ' selected' : '') + '>' + esc(a) + '</option>';
   }).join('');
   var inputStyle = 'width:100%;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text);background:var(--bg);box-sizing:border-box;';
@@ -5353,5 +7775,6 @@ document.addEventListener('keydown', function(e) {
 
 </script>
 
+<div id="kp-print-root"></div>
 </body>
 </html>
