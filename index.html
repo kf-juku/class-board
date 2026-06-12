@@ -588,7 +588,29 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 
 /* 印刷 */
 @media print {
-  @page { margin: 6mm; }
+  @page { size: A4 portrait; margin: 6mm; }
+
+  /* A4 1枚印刷（printA4_経由）：チェックリスト・マトリクスを展開して含める（2026-06-12） */
+  body.a4-printing .cl-card-body { display: block !important; }
+  body.a4-printing .cl-card-body, body.a4-printing .cl-card-body > div, body.a4-printing .cl-cr-group > div { max-height: none !important; overflow: visible !important; }
+  body.a4-printing [id^="mxadd-"] { display: none !important; }
+  /* A4専用印刷ページ（2026-06-12：固定サイズページに流し込み、実測縮小・実測ページ割り） */
+  body.a4p-printing > :not(#a4-print-root) { display: none !important; }
+  body.a4p-printing #a4-print-root { display: block !important; position: static !important; left: 0 !important; top: 0 !important; }
+  body.a4p-printing .a4-page { page-break-after: always; break-inside: avoid; margin-top: 0 !important; }
+  body.a4p-printing .a4-page:last-child { page-break-after: auto; }
+  #a4-print-root .cl-card-body { display: block !important; }
+  #a4-print-root .cl-card-body, #a4-print-root .cl-card-body > div, #a4-print-root .cl-cr-group > div { max-height: none !important; overflow: visible !important; }
+  #a4-print-root [id^="mxadd-"], #a4-print-root .cl-chip-popup, #a4-print-root .gs-help, #a4-print-root button[data-rowkey], #a4-print-root .cl-card-header button, #a4-print-root .absence-btn { display: none !important; }
+  #a4-print-root .mx-table thead th { position: static !important; box-shadow: none !important; border-bottom: 1px solid #94a3b8 !important; }
+  #a4-print-root .mx-table th, #a4-print-root .mx-table td { padding: 1px 2px !important; font-size: 8px !important; }
+  #a4-print-root .mx-cb { width: 10px !important; height: 10px !important; font-size: 7px !important; border-radius: 2px !important; pointer-events: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .mx-table thead th { position: static !important; box-shadow: none !important; border-bottom: 1px solid #94a3b8 !important; }
+  .mx-table th, .mx-table td { padding: 1px 2px !important; font-size: 7px !important; }
+  .mx-cb { width: 10px !important; height: 10px !important; font-size: 7px !important; border-radius: 2px !important; pointer-events: none; }
+  .mx-cb.on { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cl-chip-popup, .gs-help, .gs-help-body, button[data-rowkey], .cl-card-header button { display: none !important; }
+  .cl-card { border-radius: 4px !important; box-shadow: none !important; break-inside: avoid; }
 
   /* 非表示 */
   #side-nav, .top-bar, .mode-tabs, .mode-add-btn,
@@ -644,6 +666,14 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   /* 印刷ヘッダー表示 */
   .print-header { display: block !important; }
 }
+
+/* ── 本日・今週 A4印刷（a4-） ── */
+#a4-print-root { display: none; }
+.a4-page { background: #fff; color: #111; box-sizing: border-box; overflow: hidden; padding: 4px; }
+.a4-page.portrait { width: 748px; height: 1070px; }
+.a4-page.landscape { width: 1070px; height: 740px; }
+.a4-page + .a4-page { margin-top: 24px; }
+.a4-page-title { font-size: 14px; font-weight: 700; border-bottom: 2px solid #333; padding-bottom: 3px; margin-bottom: 6px; }
 
 /* ── 講習期間印刷（kp-） ── */
 #kp-print-root { display: none; }
@@ -743,6 +773,20 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cl-chip-popup-name { font-weight: 700; font-size: 12px; color: #1e1b4b; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #e0e7ff; }
 .cl-chip-popup-row { display: flex; align-items: center; gap: 5px; padding: 2px 0; font-size: 11px; color: #6b7280; }
 .cl-chip-popup-row.row-done { color: #15803d; }
+/* チェックリスト統合マトリクス（2026-06-11） */
+.mx-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.mx-table th, .mx-table td { border-bottom: 1px solid #f1f5f9; padding: 3px 6px; text-align: center; }
+.mx-table thead th { background: #f8fafc; position: sticky; top: 0; z-index: 5; font-size: 11px; padding: 5px 4px; border-bottom: none; box-shadow: inset 0 -1px 0 #e5e7eb; }
+.mx-table th.mx-name, .mx-table td.mx-name { text-align: left; white-space: nowrap; padding-left: 12px; min-width: 120px; }
+.mx-table td.mx-name small { color: #9ca3af; margin-left: 4px; font-size: 10px; }
+.mx-cb { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid #d1d5db; background: #fff; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+.mx-cb.on { background: #059669; border-color: #059669; color: #fff; }
+.mx-gray { background: #f3f4f6; }
+.mx-rowprog { font-size: 10px; color: #6b7280; white-space: nowrap; }
+.mx-rowprog.full { color: #059669; font-weight: 700; }
+tr.mx-done-row td { background: #f0fdf4; }
+.mx-colcnt { display: block; font-weight: 400; color: #6b7280; font-size: 10px; }
+.mx-colcnt.done { color: #059669; font-weight: 700; }
 /* ─── チェックリスト詳細モーダル ─── */
 .cl-detail-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
 .cl-detail-row:last-child { border-bottom: none; }
@@ -2218,7 +2262,7 @@ function renderToday() {
   document.getElementById('main-content').innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
     '<span></span>' +
-    '<button class="btn-secondary btn-sm" onclick="window.print()" style="font-size:12px">🖨️ 印刷</button>' +
+    '<button class="btn-secondary btn-sm" onclick="printA4_()" data-tooltip="A4縦・表裏2ページで印刷します（表面=タスク＋チェックリスト／裏面=時間割。両面印刷で紙1枚）。講習・テスト対策の期間全体は「📄 期間印刷」（B4横・1週=1ページ）を使ってください" style="font-size:12px">🖨️ 印刷</button>' +
     '</div>' +
     '<div class="print-header">本日の時間割　' + todayLabel + '　' + _currentClassroom + '</div>' +
     alerts +
@@ -2600,8 +2644,8 @@ function renderWeek() {
     '<span class="week-label">📆 ' + weekLabel + '</span>' +
     '<button class="btn-secondary btn-sm" onclick="_weekOffset++;renderWeek()">来週 →</button>' +
     '<button class="btn-secondary btn-sm" onclick="_weekOffset=0;renderWeek()">今週</button>' +
-    '<button class="btn-secondary btn-sm" onclick="window.print()">🖨️ 印刷</button>' +
-    (isKoushuModeActive() && getActiveKoushuPeriod() ? '<button class="btn-secondary btn-sm" onclick="printKoushuPeriod()">📄 期間印刷</button>' : '') +
+    '<button class="btn-secondary btn-sm" onclick="printA4_()" data-tooltip="A4縦・表裏2ページで印刷します（表面=タスク＋チェックリスト／裏面=時間割。両面印刷で紙1枚）。講習・テスト対策の期間全体は「📄 期間印刷」（B4横・1週=1ページ）を使ってください">🖨️ 印刷</button>' +
+    (isKoushuModeActive() && getActiveKoushuPeriod() ? '<button class="btn-secondary btn-sm" onclick="printKoushuPeriod()" data-tooltip="選択中の講習・テスト対策期間の全日程をB4横で印刷します（1週間=1ページ・表示中の教室のみ）。今日の業務用にはタブ右上の「🖨️ 印刷」（A4縦1枚）を使ってください">📄 期間印刷</button>' : '') +
     '</div>' +
     '<div class="classroom-tabs">' +
     ['北久里浜','久里浜'].map(function(cr2) {
@@ -2858,6 +2902,172 @@ function buildWeekGrid(days, todayIso) {
 // =====================================================
 // 講習期間 一括印刷（表示中教室・1週=1ページ・B4横）
 // =====================================================
+// 本日・今週タブのA4印刷（2026-06-12：専用印刷ページ方式。本日=縦・今週=横。
+// 固定サイズページに実測で流し込み、入らない場合はページ構成を自動調整。期間印刷=B4横とは用途が別）
+function printA4_() {
+  buildA4Pages_();
+  setTimeout(function() { window.print(); }, 50);
+}
+
+// Ctrl+P（ブラウザメニュー印刷）でも専用ページ印刷にする（2026-06-12）
+window.addEventListener('beforeprint', function() {
+  if (document.body.classList.contains('a4p-printing')) return; // ボタン経由で構築済み
+  if (document.body.classList.contains('kp-printing')) return;  // 期間印刷中
+  if (_currentTab !== 'today' && _currentTab !== 'week') return; // 他タブは素の印刷のまま
+  buildA4Pages_();
+});
+
+// 保険：万一クリーンアップが漏れても印刷後に必ず掃除する常設リスナー（冪等 2026-06-12）
+window.addEventListener('afterprint', function() {
+  if (!document.body.classList.contains('a4p-printing')) return;
+  document.body.classList.remove('a4p-printing');
+  var r0 = document.getElementById('a4-print-root');
+  if (r0) { r0.style.display = 'none'; r0.innerHTML = ''; }
+  var s0 = document.getElementById('a4-page-style');
+  if (s0 && s0.parentNode) s0.parentNode.removeChild(s0);
+});
+
+function buildA4Pages_() {
+  var isWeek = !!document.querySelector('.week-grid-wrap');
+  var root = document.getElementById('a4-print-root');
+  if (!root) return;
+  root.innerHTML = '';
+  var orient = isWeek ? 'landscape' : 'portrait';
+  var pageH = isWeek ? 730 : 1060; // padding分の余裕込み
+
+  function cloneOf(sel) {
+    var el = document.querySelector(sel);
+    return el ? el.cloneNode(true) : null;
+  }
+  function newPage(title) {
+    var pg = document.createElement('div');
+    pg.className = 'a4-page ' + orient;
+    if (title) {
+      var t = document.createElement('div');
+      t.className = 'a4-page-title';
+      t.textContent = title;
+      pg.appendChild(t);
+    }
+    root.appendChild(pg);
+    return pg;
+  }
+  var dateLabel = isoDate(new Date()).replace(/-/g, '/');
+  var titleBase = isWeek ? '今週の時間割（' + _currentClassroom + '）' : '本日 ' + dateLabel;
+
+  // 部品クローン（チェックリストは展開状態に）
+  var taskC = cloneOf('.task-bar');
+  var clC   = cloneOf('.cl-zone');
+  if (clC) clC.querySelectorAll('.cl-card-body').forEach(function(b) { b.classList.add('open'); });
+  var gridC = cloneOf(isWeek ? '.week-grid-wrap' : '.today-grid');
+  var extraC = null;
+  var gridEl = document.querySelector(isWeek ? '.week-grid-wrap' : '.today-grid');
+  if (!isWeek && gridEl && gridEl.nextElementSibling && gridEl.nextElementSibling.tagName === 'DIV' && !gridEl.nextElementSibling.classList.contains('cl-zone')) {
+    extraC = gridEl.nextElementSibling.cloneNode(true);
+  }
+
+  // ページに要素を入れて実測。収まる縮小率（下限あり）を返す
+  function fitPage(pg, minZoom) {
+    var inner = document.createElement('div');
+    while (pg.children.length > (pg.querySelector('.a4-page-title') ? 1 : 0)) {
+      inner.appendChild(pg.children[pg.querySelector('.a4-page-title') ? 1 : 0]);
+    }
+    pg.appendChild(inner);
+    // 実測（display:blockで画面外に出して測る）
+    root.style.display = 'block';
+    root.style.position = 'absolute';
+    root.style.left = '-99999px';
+    root.style.top = '0';
+    var titleH = pg.querySelector('.a4-page-title') ? pg.querySelector('.a4-page-title').offsetHeight + 9 : 0;
+    var avail = pageH - titleH;
+    var h = inner.scrollHeight;
+    var z = h > avail ? avail / h : 1;
+    if (z < minZoom) z = minZoom;
+    inner.style.zoom = z.toFixed(3);
+    return { zoom: z, fits: inner.scrollHeight * z <= avail + 2 };
+  }
+
+  if (isWeek) {
+    // 今週（A4横）：横幅フィットの倍率を保ったまま、高さ方向に複数ページへ分割（2026-06-12）
+    if (gridC) {
+      root.style.display = 'block'; root.style.position = 'absolute'; root.style.left = '-99999px'; root.style.top = '0';
+      var measW = document.createElement('div');
+      root.appendChild(measW);
+      measW.appendChild(gridC);
+      var gw = gridC.scrollWidth || 1062;
+      var gh = gridC.scrollHeight;
+      root.removeChild(measW);
+      var z = Math.min(1, 1062 / gw);
+      var availW = pageH - 30; // タイトル分
+      var totalH = gh * z;
+      var nPages = Math.max(1, Math.ceil(totalH / availW));
+      for (var pi = 0; pi < nPages; pi++) {
+        var pg = newPage(titleBase + (nPages > 1 ? '　' + (pi + 1) + '/' + nPages : ''));
+        var win = document.createElement('div');
+        win.style.cssText = 'height:' + availW + 'px;overflow:hidden';
+        var zoomBox = document.createElement('div');
+        zoomBox.style.zoom = z.toFixed(3);
+        var clone2 = gridC.cloneNode(true);
+        clone2.style.marginTop = '-' + Math.round(pi * availW / z) + 'px';
+        zoomBox.appendChild(clone2);
+        win.appendChild(zoomBox);
+        pg.appendChild(win);
+      }
+    }
+    if (clC) { var p2 = newPage('チェックリスト'); p2.appendChild(clC); fitPage(p2, 0.45); }
+  } else {
+    // 本日（A4縦）：組み方を実測で自動調整
+    // まず各部品の素の高さを測る
+    root.style.display = 'block'; root.style.position = 'absolute'; root.style.left = '-99999px'; root.style.top = '0';
+    var meas = document.createElement('div');
+    meas.style.width = '740px';
+    root.appendChild(meas);
+    function rawH(el) { if (!el) return 0; meas.appendChild(el); var h = meas.scrollHeight; meas.removeChild(el); meas.innerHTML = ''; return h; }
+    var hT = rawH(taskC), hC = rawH(clC), hG = rawH(gridC) + rawH(extraC);
+    root.removeChild(meas);
+    // 判定：タスク＋チェックリストが0.6以上で1ページに入るならA案、入らないならB案（タスク＋時間割）
+    var planA = (hT + hC) > 0 ? Math.min(1, pageH / (hT + hC)) : 1;
+    var planB = (hT + hG) > 0 ? Math.min(1, pageH / (hT + hG)) : 1;
+    if (clC && planA >= 0.6 && planA >= planB) {
+      var pa1 = newPage(titleBase + '　タスク・チェックリスト');
+      if (taskC) pa1.appendChild(taskC);
+      pa1.appendChild(clC);
+      fitPage(pa1, 0.5);
+      var pa2 = newPage(titleBase + '　時間割');
+      if (gridC) pa2.appendChild(gridC);
+      if (extraC) pa2.appendChild(extraC);
+      fitPage(pa2, 0.4);
+    } else {
+      // B案：表=タスク＋時間割、裏=チェックリスト
+      var pb1 = newPage(titleBase + '　タスク・時間割');
+      if (taskC) pb1.appendChild(taskC);
+      if (gridC) pb1.appendChild(gridC);
+      if (extraC) pb1.appendChild(extraC);
+      fitPage(pb1, 0.45);
+      if (clC) {
+        var pb2 = newPage(titleBase + '　チェックリスト');
+        pb2.appendChild(clC);
+        fitPage(pb2, 0.45);
+      }
+    }
+  }
+
+  // 用紙向きを動的注入
+  var st = document.createElement('style');
+  st.id = 'a4-page-style';
+  st.textContent = '@page { size: A4 ' + orient + '; margin: 6mm; }';
+  document.head.appendChild(st);
+  document.body.classList.add('a4p-printing');
+  function a4Cleanup() {
+    document.body.classList.remove('a4p-printing');
+    root.style.display = 'none';
+    root.innerHTML = '';
+    var s2 = document.getElementById('a4-page-style');
+    if (s2 && s2.parentNode) s2.parentNode.removeChild(s2);
+    window.removeEventListener('afterprint', a4Cleanup);
+  }
+  window.addEventListener('afterprint', a4Cleanup);
+}
+
 function printKoushuPeriod() {
   var period = getActiveKoushuPeriod();
   if (!period) { alert('講習期間がありません'); return; }
@@ -4464,7 +4674,7 @@ function submitAbsence(mode) {
       var newTask = {
         id:        'cb_' + Date.now(),
         title:     taskTitle,
-        memo:      memo,
+        memo:      absTaskMemo_(d, memo),
         dueDate:   subDate,
         dueTime:   subTime,
         taskType:  '授業外',
@@ -4534,7 +4744,7 @@ function submitAbsence(mode) {
       var newTask = {
         id:        'cb_' + Date.now() + '_b',
         title:     taskTitle,
-        memo:      memo,
+        memo:      absTaskMemo_(d, memo),
         dueDate:   dateB,
         dueTime:   timeB,
         taskType:  '授業内',
@@ -4558,6 +4768,18 @@ function submitAbsence(mode) {
       }, 'POST');
     }
   }
+}
+
+// 欠席由来の自動タスクのメモ先頭に「いつの欠席分か」を入れる（2026-06-12 川上さん要望）
+function absTaskMemo_(d, userMemo) {
+  var pre = '';
+  if (d && d.dateStr) {
+    var dt = new Date(d.dateStr + 'T00:00:00');
+    var yb = ['日','月','火','水','木','金','土'][dt.getDay()];
+    pre = '【欠席分】' + d.dateStr + '（' + yb + '）' + (d.komaTime ? ' ' + d.komaTime : '') + (d.classroom ? ' ' + d.classroom : '');
+  }
+  if (!pre) return userMemo || '';
+  return userMemo ? pre + '\n' + userMemo : pre;
 }
 
 function saveSubstitute(recordId, uid) {
@@ -7033,6 +7255,17 @@ function checklistBarHtml() {
   });
   if (active.length === 0) return '';
 
+  // ── 自動統合（2026-06-11）：開始日が古い順に処理し、リストのメンバーの80%以上が
+  //    既存グループの行（生徒の和集合）に含まれるならそのグループに統合する ──
+  //    noMerge=true のリストは統合しない（作成時に「いいえ」を選んだ独立リスト 2026-06-12）
+  active.sort(function(a, b) { return (a.startDate || '') < (b.startDate || '') ? -1 : 1; });
+  var mxGroups = mxComputeGroups_(active);
+  var matrixCards = mxGroups.filter(function(g) { return g.lists.length >= 2; })
+    .map(function(g) { return buildMatrixCard_(g); }).join('');
+  var singleActive = mxGroups.filter(function(g) { return g.lists.length === 1; })
+    .map(function(g) { return g.lists[0]; });
+  active = singleActive; // 以降の従来カード生成は単独リストのみ
+
   var ico_chev = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
   var cards = active.map(function(cl) {
@@ -7128,7 +7361,349 @@ function checklistBarHtml() {
       '</div>';
   }).join('');
 
-  return '<div class="cl-grid">' + cards + '</div>';
+  var out = (matrixCards ? matrixCards : '') + (cards ? '<div class="cl-grid">' + cards + '</div>' : '');
+  return out ? '<div class="cl-zone">' + out + '</div>' : '';
+}
+
+// ── チェックリスト統合マトリクス（2026-06-11：行=生徒・列=リスト、列は開始日が古い順） ──
+var _mxOpenState = {}; // グループ開閉状態（先頭リストid → bool）
+
+function buildMatrixCard_(g) {
+  var lists = g.lists; // 開始日昇順
+  var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+  var CR_ORDER = ['北久里浜', '久里浜'];
+  function mKey_(it) { return it.uid || it.name; }
+
+  // 行（生徒）：和集合。情報は最初に登場したitemから
+  var rowMap = {}, rowList = [];
+  lists.forEach(function(cl) {
+    (cl.items || []).forEach(function(it) {
+      var k = mKey_(it);
+      if (!rowMap[k]) {
+        var stu = (_students || []).find(function(st) { return (st.uid || st.name) === k || st.name === it.name; });
+        rowMap[k] = { key: k, name: it.name, grade: it.grade || (stu && stu.grade) || '', cr: (stu && stu.classroom) || (it.classroom || '').split(/[・,]/)[0].trim() || '' };
+        rowList.push(rowMap[k]);
+      }
+    });
+  });
+  rowList.sort(function(a, b) {
+    var crA = CR_ORDER.indexOf(a.cr), crB = CR_ORDER.indexOf(b.cr);
+    if (crA === -1) crA = 99; if (crB === -1) crB = 99;
+    if (crA !== crB) return crA - crB;
+    var gA = GRADE_ORDER.indexOf(a.grade), gB = GRADE_ORDER.indexOf(b.grade);
+    if (gA === -1) gA = 99; if (gB === -1) gB = 99;
+    if (gA !== gB) return gA - gB;
+    return a.name < b.name ? -1 : 1;
+  });
+
+  // セル参照：list×rowKey → itemIdx
+  var cellIdx = lists.map(function(cl) {
+    var m = {};
+    (cl.items || []).forEach(function(it, i) { m[mKey_(it)] = i; });
+    return m;
+  });
+
+  var gid = lists[0].id;
+  var isOpen = _mxOpenState[gid] !== false; // デフォルト開
+  var totalDone = 0, totalAll = 0;
+  lists.forEach(function(cl) {
+    totalAll += (cl.items || []).length;
+    totalDone += (cl.items || []).filter(function(it) { return it.done; }).length;
+  });
+
+  var ico_pencil = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+  var ico_x = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+  // ヘッダ行
+  var thead = '<tr><th class="mx-name">生徒</th>' +
+    lists.map(function(cl, li) {
+      var done = (cl.items || []).filter(function(it) { return it.done; }).length;
+      var total = (cl.items || []).length;
+      return '<th style="min-width:76px;max-width:110px" title="' + esc(cl.title) + '">' +
+        '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:104px;margin:0 auto">' + esc(cl.title) + '</span>' +
+        '<span class="mx-colcnt' + (done === total && total > 0 ? ' done' : '') + '" id="mxcnt-' + cl.id + '">' + done + '/' + total + '</span>' +
+        '<span style="white-space:nowrap">' +
+        '<button onclick="event.stopPropagation();openEditChecklistModal(&quot;' + cl.id + '&quot;)" title="編集" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px">' + ico_pencil + '</button>' +
+        '<button onclick="event.stopPropagation();clDeleteCard(\'' + cl.id + '\')" title="削除" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px">' + ico_x + '</button>' +
+        '</span></th>';
+    }).join('') + '<th style="min-width:52px">進捗</th><th style="width:26px"></th></tr>';
+
+  // 行（2026-06-12：北久里浜=左・久里浜=右の2カラム。独立チェックリストと同じ教室色ルール）
+  var colSpan = lists.length + 3;
+  function rowHtml_(row) {
+    var doneCnt = 0, targetCnt = 0;
+    var tds = lists.map(function(cl, li) {
+      var idx = cellIdx[li][row.key];
+      if (idx === undefined) return '<td class="mx-gray"></td>';
+      targetCnt++;
+      var it = cl.items[idx];
+      if (it.done) doneCnt++;
+      return '<td><button class="mx-cb' + (it.done ? ' on' : '') + '" data-cl="' + cl.id + '" data-idx="' + idx + '" onclick="clMatrixToggle(\'' + cl.id + '\',' + idx + ',this)">' + (it.done ? '✓' : '') + '</button></td>';
+    }).join('');
+    var full = targetCnt > 0 && doneCnt === targetCnt;
+    return '<tr data-mxrow="' + esc(row.key) + '"' + (full ? ' class="mx-done-row"' : '') + '>' +
+      '<td class="mx-name"><b>' + esc(row.name) + '</b><small>' + esc(row.grade) + '</small></td>' +
+      tds +
+      '<td class="mx-rowprog' + (full ? ' full' : '') + '">' + (full ? '完了 ✓' : doneCnt + '/' + targetCnt) + '</td>' +
+      '<td><button data-rowkey="' + esc(row.key) + '" data-rowname="' + esc(row.name) + '" onclick="clMatrixRemoveRow(this)" title="この生徒を表のすべてのリストから外す" style="background:none;border:none;color:#d1d5db;cursor:pointer;font-weight:700;font-size:13px;padding:0 4px">×</button></td></tr>';
+  }
+  var CR_COLS_MX = ['北久里浜', '久里浜'];
+  var crBuckets = { '北久里浜': [], '久里浜': [], 'その他': [] };
+  rowList.forEach(function(row) {
+    (crBuckets[row.cr] || crBuckets['その他']).push(row);
+  });
+  // 縦並び（2026-06-12：横スクロール回避のため左右配置をやめ、教室色の枠で上下に分ける）
+  var columnsHtml = '<div style="padding:8px">' + CR_COLS_MX.map(function(cr) {
+    var crCls = cr === '北久里浜' ? ' kita' : ' kuri';
+    var rows = crBuckets[cr];
+    if (!rows.length) return '';
+    return '<div class="cl-cr-group' + crCls + '" style="margin-bottom:8px">' +
+      '<div class="cl-cr-group-label">' + esc(cr) + '（' + rows.length + '人）</div>' +
+      '<div style="max-height:300px;overflow-y:auto;background:#fff;border-radius:5px"><table class="mx-table"><thead>' + thead + '</thead><tbody>' + rows.map(rowHtml_).join('') + '</tbody></table></div>' +
+      '</div>';
+  }).join('') +
+  (crBuckets['その他'].length
+    ? '<div class="cl-cr-group" style="margin-bottom:8px;background:#f3f4f6;border-radius:5px;padding:5px 6px"><div class="cl-cr-group-label" style="background:#e5e7eb;color:#374151">教室未設定（' + crBuckets['その他'].length + '人）</div><div style="max-height:300px;overflow-y:auto;background:#fff;border-radius:5px"><table class="mx-table"><thead>' + thead + '</thead><tbody>' + crBuckets['その他'].map(rowHtml_).join('') + '</tbody></table></div></div>'
+    : '') +
+  '</div>';
+
+  var titleNames = lists.map(function(cl) { return cl.title; }).join('・');
+  var clIds = lists.map(function(cl) { return cl.id; }).join(',');
+  var helpHtml = '<span class="gs-help" onclick="event.stopPropagation()"><span class="gs-help-icon">?</span>' +
+    '<span class="gs-help-body">【自動統合のルール】<br>開始日が古い順に並べ、新しいリストのメンバーの<b>80%以上がこの表のメンバーに含まれる</b>場合、自動でこの表に統合されます。<br><br>・列＝チェックリスト（開始日が古い順）／行＝生徒<br>・グレーのセル＝そのリストの対象外<br>・列の削除＝列ヘッダの ×（リストごと削除）<br>・行の削除＝行末の ×（全リストから外す）<br>・対象者の追加＝「＋生徒」で表内の全リストに追加。列ヘッダの ✎ で個別リストにも追加できます</span></span>';
+  return '<div class="cl-card" style="margin-bottom:10px" data-mx-gid="' + gid + '" data-mx-cls="' + esc(clIds) + '">' +
+    '<div class="cl-card-header' + (isOpen ? '' : ' collapsed') + '" onclick="mxToggleCard(\'' + gid + '\',this)">' +
+    '<span style="flex-shrink:0">📊</span>' +
+    '<span class="cl-card-title" title="' + esc(titleNames) + '">' + esc(titleNames) + '（自動統合：' + lists.length + 'リスト・' + rowList.length + '人）</span>' +
+    helpHtml +
+    '<button onclick="event.stopPropagation();mxToggleAddRow(\'' + gid + '\')" title="生徒を表内のすべてのリストに追加（新入生・追加漏れ用）" style="flex-shrink:0;font-size:11px;border:1px solid #c7d2fe;background:#fff;color:#3730a3;border-radius:6px;padding:1px 7px;cursor:pointer">＋生徒</button>' +
+    '<span class="cl-card-progress' + (totalDone === totalAll && totalAll > 0 ? ' all-done' : '') + '">' + totalDone + '/' + totalAll + '</span>' +
+    '<span class="cl-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+    '</div>' +
+    '<div id="mxadd-' + gid + '" style="display:none;padding:8px 12px;border-bottom:1px solid var(--border);background:#f8fafc;font-size:12px" onclick="event.stopPropagation()"></div>' +
+    '<div class="cl-card-body' + (isOpen ? ' open' : '') + '" style="padding:0">' +
+    columnsHtml +
+    '</div></div>';
+}
+
+// 統合グループ計算（checklistBarHtmlと作成時判定で共用 2026-06-12）
+function mxComputeGroups_(lists) {
+  function mKey_(it) { return it.uid || it.name; }
+  var groups = [];
+  lists.forEach(function(cl) {
+    var keys = (cl.items || []).map(mKey_);
+    if (!cl.noMerge) {
+      var best = null, bestRatio = 0;
+      groups.forEach(function(g) {
+        if (g.noMerge) return;
+        var inCnt = keys.filter(function(k) { return g.rowKeys[k]; }).length;
+        var ratio = keys.length ? inCnt / keys.length : 0;
+        if (ratio >= 0.8 && ratio > bestRatio) { best = g; bestRatio = ratio; }
+      });
+      if (best) {
+        best.lists.push(cl);
+        keys.forEach(function(k) { best.rowKeys[k] = true; });
+        return;
+      }
+    }
+    var rk = {};
+    keys.forEach(function(k) { rk[k] = true; });
+    groups.push({ lists: [cl], rowKeys: rk, noMerge: !!cl.noMerge });
+  });
+  return groups;
+}
+
+// 新規リストの統合先を判定（作成時の確認ポップ用 2026-06-12）。該当なしは null
+function mxFindMergeTarget_(cl) {
+  var todayIso = isoDate(new Date());
+  var act = _checklists.filter(function(c) { return c.status !== 'done' && c.startDate <= todayIso; });
+  act.sort(function(a, b) { return (a.startDate || '') < (b.startDate || '') ? -1 : 1; });
+  var groups = mxComputeGroups_(act);
+  var keys = (cl.items || []).map(function(it) { return it.uid || it.name; });
+  var best = null, bestRatio = 0;
+  groups.forEach(function(g) {
+    if (g.noMerge) return;
+    var inCnt = keys.filter(function(k) { return g.rowKeys[k]; }).length;
+    var ratio = keys.length ? inCnt / keys.length : 0;
+    if (ratio >= 0.8 && ratio > bestRatio) { best = g; bestRatio = ratio; }
+  });
+  return best ? { names: best.lists.map(function(c) { return c.title; }).join('・'), ratio: Math.round(bestRatio * 100) } : null;
+}
+
+// グループのチェックリスト群を取得
+function mxListsOf_(gid) {
+  var card = document.querySelector('[data-mx-gid="' + gid + '"]');
+  if (!card) return [];
+  return (card.dataset.mxCls || '').split(',').map(function(id) {
+    return _checklists.find(function(c) { return c.id === id; });
+  }).filter(Boolean);
+}
+
+// 行削除：生徒を表内のすべてのリストから外す（2026-06-12）
+function clMatrixRemoveRow(btn) {
+  var gid = btn.closest('[data-mx-gid]').dataset.mxGid;
+  var rowKey = btn.dataset.rowkey;
+  var rowName = btn.dataset.rowname;
+  var lists = mxListsOf_(gid);
+  if (!lists.length) return;
+  if (!confirm(rowName + ' さんをこの表のすべてのチェックリストから外しますか？')) return;
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  var changed = 0;
+  lists.forEach(function(cl) {
+    var before = (cl.items || []).length;
+    cl.items = (cl.items || []).filter(function(it) { return (it.uid || it.name) !== rowKey; });
+    if (cl.items.length !== before) {
+      changed++;
+      if (taskUrl) callGas(taskUrl, { action: 'updateChecklist', checklist: JSON.stringify(cl) }, null, 'POST');
+    }
+  });
+  miniToast(rowName + ' さんを ' + changed + ' 件のリストから外しました ✓');
+  rerenderCurrentTab();
+}
+
+// 生徒追加UI（2026-06-12：一括登録と同様の絞り込み＋複数選択）
+var _mxAddF = { cr: '', grade: '', q: '' };
+function mxToggleAddRow(gid) {
+  var box = document.getElementById('mxadd-' + gid);
+  if (!box) return;
+  var show = box.style.display === 'none';
+  box.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  _mxAddF = { cr: '', grade: '', q: '' };
+  var GRADES = ['', '小2', '小3', '小4', '小5', '小6', '中1', '中2', '中3', '高校生'];
+  box.innerHTML =
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px">' +
+    '<span style="font-weight:700">生徒を追加</span>' +
+    '<span>' + ['', '北久里浜', '久里浜'].map(function(cr) {
+      return '<label style="cursor:pointer;margin-right:8px"><input type="radio" name="mxadd-cr-' + gid + '" value="' + cr + '"' + (cr === '' ? ' checked' : '') + ' onchange="_mxAddF.cr=this.value;mxRenderAddList(\'' + gid + '\')"> ' + (cr || '全教室') + '</label>';
+    }).join('') + '</span>' +
+    '<span id="mxadd-grades-' + gid + '">' + GRADES.map(function(g) {
+      return '<span class="bulk-grade-chip" data-grade="' + g + '" onclick="_mxAddF.grade=this.dataset.grade;mxRenderAddList(\'' + gid + '\');Array.prototype.forEach.call(this.parentNode.children,function(c){c.style.background=c.dataset.grade===_mxAddF.grade?\'var(--crimson)\':\'#f3f4f6\';c.style.color=c.dataset.grade===_mxAddF.grade?\'#fff\':\'var(--text)\';})" style="cursor:pointer;font-size:11px;padding:2px 8px;border-radius:12px;border:1px solid var(--border);background:' + (g === '' ? 'var(--crimson)' : '#f3f4f6') + ';color:' + (g === '' ? '#fff' : 'var(--text)') + ';margin-right:3px;display:inline-block">' + (g || 'すべて') + '</span>';
+    }).join('') + '</span>' +
+    '<input type="text" placeholder="🔍 名前で検索..." style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;width:140px" oninput="_mxAddF.q=this.value.trim();mxRenderAddList(\'' + gid + '\')">' +
+    '</div>' +
+    '<div id="mxadd-list-' + gid + '" style="max-height:150px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:6px;padding:4px 8px;margin-bottom:6px"></div>' +
+    '<button class="btn-primary btn-sm" style="font-size:11px;padding:3px 12px" onclick="mxAddSelected(\'' + gid + '\')">チェックした生徒を表内の全リストに追加</button>';
+  mxRenderAddList(gid);
+}
+
+function mxRenderAddList(gid) {
+  var listEl = document.getElementById('mxadd-list-' + gid);
+  if (!listEl) return;
+  var lists = mxListsOf_(gid);
+  var inRows = {};
+  lists.forEach(function(cl) { (cl.items || []).forEach(function(it) { inRows[it.uid || it.name] = true; }); });
+  // チェック済みを保持
+  var kept = {};
+  listEl.querySelectorAll('input:checked').forEach(function(cb) { kept[cb.value] = true; });
+  var cands = (_students || []).filter(function(st) {
+    if (st.status !== '在籍' || inRows[st.uid || st.name]) return false;
+    if (_mxAddF.cr && st.classroom !== _mxAddF.cr) return false;
+    if (_mxAddF.grade && (st.grade || '') !== _mxAddF.grade && !(_mxAddF.grade === '高校生' && (st.grade || '').indexOf('高') === 0)) return false;
+    if (_mxAddF.q && st.name.indexOf(_mxAddF.q) === -1) return false;
+    return true;
+  });
+  var GRADE_ORDER2 = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+  cands.sort(function(a, b) {
+    var gA = GRADE_ORDER2.indexOf(a.grade || ''), gB = GRADE_ORDER2.indexOf(b.grade || '');
+    if (gA === -1) gA = 99; if (gB === -1) gB = 99;
+    if (gA !== gB) return gA - gB;
+    return a.name < b.name ? -1 : 1;
+  });
+  listEl.innerHTML = cands.length ? cands.map(function(st) {
+    var k = st.uid || st.name;
+    return '<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0;cursor:pointer;font-size:12px;white-space:nowrap"><input type="checkbox" value="' + esc(k) + '"' + (kept[k] ? ' checked' : '') + '> ' + esc(st.name) + '<span style="color:#9ca3af;font-size:10px">' + esc(st.grade || '') + '・' + esc(st.classroom || '') + '</span></label>';
+  }).join('') : '<span style="color:var(--text-muted);font-size:11px">該当する生徒がいません</span>';
+}
+
+function mxAddSelected(gid) {
+  var listEl = document.getElementById('mxadd-list-' + gid);
+  if (!listEl) return;
+  var keys = Array.prototype.map.call(listEl.querySelectorAll('input:checked'), function(cb) { return cb.value; });
+  if (!keys.length) { miniToast('生徒をチェックしてください'); return; }
+  var lists = mxListsOf_(gid);
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  var addedNames = [];
+  keys.forEach(function(key) {
+    var stu = (_students || []).find(function(st) { return (st.uid || st.name) === key; });
+    if (!stu) return;
+    var touched = false;
+    lists.forEach(function(cl) {
+      var exists = (cl.items || []).some(function(it) { return (it.uid || it.name) === key; });
+      if (exists) return;
+      cl.items.push({ uid: stu.uid || '', name: stu.name, grade: stu.grade || '', classroom: stu.classroom || '', done: false, doneAt: '' });
+      touched = true;
+    });
+    if (touched) addedNames.push(stu.name);
+  });
+  // リストごとに1回だけ保存
+  if (taskUrl) {
+    lists.forEach(function(cl) {
+      callGas(taskUrl, { action: 'updateChecklist', checklist: JSON.stringify(cl) }, null, 'POST');
+    });
+  }
+  miniToast(addedNames.length + '人を表内の全リストに追加しました ✓');
+  rerenderCurrentTab();
+}
+
+function mxToggleCard(gid, hdrEl) {
+  var card = document.querySelector('[data-mx-gid="' + gid + '"]');
+  if (!card) return;
+  var body = card.querySelector('.cl-card-body');
+  var toOpen = !body.classList.contains('open');
+  body.classList.toggle('open', toOpen);
+  hdrEl.classList.toggle('collapsed', !toOpen);
+  _mxOpenState[gid] = toOpen;
+}
+
+// マトリクスのセルトグル（clChipClickと同じ保存処理・セル単体更新）
+function clMatrixToggle(clId, idx, btn) {
+  var cl = _checklists.find(function(c) { return c.id === clId; });
+  if (!cl) return;
+  var it = cl.items[idx];
+  if (it.done) {
+    if (!confirm(it.name + ' の完了を取り消しますか？')) return;
+    it.done = false;
+    it.doneAt = '';
+    btn.classList.remove('on');
+    btn.innerHTML = '';
+  } else {
+    it.done = true;
+    it.doneAt = isoDate(new Date());
+    btn.classList.add('on');
+    btn.innerHTML = '✓';
+  }
+  // 列ヘッダ更新
+  var cnt = document.getElementById('mxcnt-' + clId);
+  if (cnt) {
+    var d = cl.items.filter(function(i) { return i.done; }).length;
+    cnt.textContent = d + '/' + cl.items.length;
+    cnt.classList.toggle('done', d === cl.items.length && cl.items.length > 0);
+  }
+  // 行の進捗更新
+  var tr = btn.closest('tr');
+  if (tr) {
+    var cbs = tr.querySelectorAll('.mx-cb');
+    var done2 = tr.querySelectorAll('.mx-cb.on').length;
+    var full = cbs.length > 0 && done2 === cbs.length;
+    tr.classList.toggle('mx-done-row', full);
+    var prog = tr.querySelector('.mx-rowprog');
+    if (prog) {
+      prog.textContent = full ? '完了 ✓' : done2 + '/' + cbs.length;
+      prog.classList.toggle('full', full);
+    }
+  }
+  // 全完了判定とGAS保存（clChipClickと同じ）
+  var allDone = cl.items.every(function(i) { return i.done; });
+  if (allDone) {
+    cl.status = 'done';
+    miniToast('全員完了！「' + cl.title + '」を完了しました ✓');
+    rerenderCurrentTab();
+  }
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (taskUrl) {
+    callGas(taskUrl, { action: 'updateChecklistItem', id: clId, idx: idx, done: it.done, doneAt: it.doneAt }, null, 'POST');
+  }
 }
 
 function clToggleCard(clId, hdrEl) {
@@ -7438,6 +8013,12 @@ function submitChecklist() {
       }),
       createdAt: isoDate(new Date())
     };
+    // 統合の自動判定→確認ポップ（2026-06-12：80%条件に該当したら聞く。いいえ＝独立リスト）
+    var mt = mxFindMergeTarget_(cl);
+    if (mt) {
+      var okMerge = confirm('「' + cl.title + '」は対象メンバーの' + mt.ratio + '%が「' + mt.names + '」と重なっています。\n\n1つの表に統合しますか？\n\nOK＝統合する\nキャンセル＝独立したチェックリストにする');
+      if (!okMerge) cl.noMerge = true;
+    }
     _checklists.push(cl);
     if (taskUrl) {
       callGas(taskUrl, { action: 'saveChecklist', checklist: JSON.stringify(cl) }, function(res) {
@@ -7776,5 +8357,6 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <div id="kp-print-root"></div>
+<div id="a4-print-root"></div>
 </body>
 </html>
