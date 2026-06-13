@@ -1422,28 +1422,12 @@ function loadAll() {
     if (pending <= 0) { showLoading(false); renderCurrent(); updateTopTitle(_currentTab || 'today'); updateLastLoaded(); }
   }
 
-  function loadCache(key, target) {
-    var c = localStorage.getItem('cb_cache_' + key);
-    if (c) { try { return JSON.parse(c); } catch(e) {} }
-    return target;
-  }
-  _students    = loadCache('students',     _students);
-  // 受験特訓コマのtime正規化（旧データ対応）
-  _students.forEach(function(s) {
-    (s.komas || []).forEach(function(k) {
-      if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
-    });
+  // キャッシュ廃止（2026-06-14）：スプレッドシートを唯一の正とする。localStorageのデータキャッシュは使わない。
+  // 古いキャッシュが残っていれば削除する
+  ['students','school_info','school_tasks','test_records','school_events','school_works',
+   'tasks','exam_strategies','exam_schedules','absence_records','koushu_periods','modes'].forEach(function(k){
+    localStorage.removeItem('cb_cache_' + k);
   });
-  _schoolInfo  = loadCache('school_info',  _schoolInfo);
-  _schoolTasks = loadCache('school_tasks', _schoolTasks);
-  _testRecords   = loadCache('test_records',   _testRecords);
-  _schoolEvents  = loadCache('school_events',  _schoolEvents);
-  _schoolWorks   = loadCache('school_works',   _schoolWorks);
-  _tasks         = loadCache('tasks',          _tasks);
-  _examStrategies = loadCache('exam_strategies', _examStrategies);
-  _examSchedules  = loadCache('exam_schedules',  _examSchedules);
-  _absenceRecords  = (loadCache('absence_records', []) || []).map(normalizeAbsenceRecord_);
-  _koushuPeriods   = loadCache('koushu_periods', []);
 
   if (!studentUrl && !taskUrl) {
     showLoading(false); renderCurrent(); updateLastLoaded();
@@ -1460,48 +1444,47 @@ function loadAll() {
             if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
           });
         });
-        _students = res.students; localStorage.setItem('cb_cache_students', JSON.stringify(_students));
+        _students = res.students;
       }
       done();
     });
     callGas(studentUrl, { action: 'getSchoolInfo' }, function(res) {
-      if (res && res.success && res.list) { _schoolInfo = res.list; localStorage.setItem('cb_cache_school_info', JSON.stringify(_schoolInfo)); }
+      if (res && res.success && res.list) { _schoolInfo = res.list; }
       done();
     });
     callGas(studentUrl, { action: 'getSchoolTasks' }, function(res) {
-      if (res && res.success && res.tasks) { _schoolTasks = res.tasks; localStorage.setItem('cb_cache_school_tasks', JSON.stringify(_schoolTasks)); }
+      if (res && res.success && res.tasks) { _schoolTasks = res.tasks; }
       done();
     });
     pending++;
     callGas(studentUrl, { action: 'getTestRecords' }, function(res) {
-      if (res && res.success && res.records) { _testRecords = res.records; localStorage.setItem('cb_cache_test_records', JSON.stringify(_testRecords)); }
+      if (res && res.success && res.records) { _testRecords = res.records; }
       done();
     });
     pending++;
     callGas(studentUrl, { action: 'getSchoolEvents' }, function(res) {
-      if (res && res.success && res.events) { _schoolEvents = res.events; localStorage.setItem('cb_cache_school_events', JSON.stringify(_schoolEvents)); }
+      if (res && res.success && res.events) { _schoolEvents = res.events; }
       done();
     });
     pending++;
     callGas(studentUrl, { action: 'getSchoolWorks' }, function(res) {
-      if (res && res.success && res.works) { _schoolWorks = res.works; localStorage.setItem('cb_cache_school_works', JSON.stringify(_schoolWorks)); }
+      if (res && res.success && res.works) { _schoolWorks = res.works; }
       done();
     });
     pending++;
     callGas(studentUrl, { action: 'getExamStrategies' }, function(res) {
-      if (res && res.success && res.strategies) { _examStrategies = res.strategies; localStorage.setItem('cb_cache_exam_strategies', JSON.stringify(_examStrategies)); }
+      if (res && res.success && res.strategies) { _examStrategies = res.strategies; }
       done();
     });
     pending++;
     callGas(studentUrl, { action: 'getExamSchedules' }, function(res) {
-      if (res && res.success && res.schedules) { _examSchedules = res.schedules; localStorage.setItem('cb_cache_exam_schedules', JSON.stringify(_examSchedules)); }
+      if (res && res.success && res.schedules) { _examSchedules = res.schedules; }
       done();
     });
     pending++;
     callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
       if (res && res.success && res.records) {
         _absenceRecords = res.records.map(normalizeAbsenceRecord_);
-        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
       }
       done();
     });
@@ -1510,7 +1493,6 @@ function loadAll() {
     callGas(studentUrl, { action: 'getKoushuPeriods' }, function(res) {
       if (res && res.success && res.periods) {
         _koushuPeriods = res.periods;
-        localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
       }
       // アクティブな講習期間があれば割付データも読み込む（準備中・期間内どちらも対象）
       var todayIso_ = isoDate(new Date());
@@ -1566,7 +1548,6 @@ function loadAll() {
           }
           return t;
         });
-        localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
         // A-5：自動持越し処理
         autoCarryOverTasks(taskUrl);
       }
@@ -3668,7 +3649,6 @@ function saveSubjectMemo(textarea) {
         textarea.setAttribute('data-recordid', res.recordId);
         rec.recordId = res.recordId;
       }
-      localStorage.setItem('cb_cache_test_records', JSON.stringify(_testRecords));
       miniToast('保存 ✓');
     } else miniToast('保存エラー');
   }, 'POST');
@@ -3680,7 +3660,6 @@ function reloadTestRecords() {
   callGas(url, { action: 'getTestRecords' }, function(res) {
     if (res && res.success && res.records) {
       _testRecords = res.records;
-      localStorage.setItem('cb_cache_test_records', JSON.stringify(_testRecords));
       renderSchool();
     }
   });
@@ -3812,7 +3791,6 @@ function saveSchoolMemo(school, memo) {
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
   callGas(url, { action: 'saveSchoolInfo', info: JSON.stringify(_schoolInfo) }, function(res) {
-    if (res && res.success) { miniToast('保存済 ✓'); localStorage.setItem('cb_cache_school_info', JSON.stringify(_schoolInfo)); }
     else miniToast('保存エラー');
   }, 'POST');
 }
@@ -3902,7 +3880,6 @@ function submitAddTest() {
       closeModal('modal-add-test');
       miniToast('保存しました ✓');
       callGas(url, { action: 'getSchoolTasks' }, function(r) {
-        if (r && r.success && r.tasks) { _schoolTasks = r.tasks; localStorage.setItem('cb_cache_school_tasks', JSON.stringify(_schoolTasks)); }
         renderSchool();
         if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
       });
@@ -3918,7 +3895,6 @@ function deleteTest(taskId) {
   callGas(url, { action: 'deleteSchoolTask', taskId: taskId }, function(res) {
     if (res && res.success) {
       _schoolTasks = _schoolTasks.filter(function(t) { return t.taskId !== taskId; });
-      localStorage.setItem('cb_cache_school_tasks', JSON.stringify(_schoolTasks));
       miniToast('削除しました ✓');
       renderSchool();
       if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
@@ -4197,7 +4173,6 @@ function submitExamSchedule() {
     if (res && res.success) {
       var s = _examSchedules.find(function(x){ return x.scheduleId === tmp.scheduleId; });
       if (s) s.scheduleId = res.scheduleId;
-      localStorage.setItem('cb_cache_exam_schedules', JSON.stringify(_examSchedules));
     } else {
       _examSchedules = _examSchedules.filter(function(x){ return x.scheduleId !== tmp.scheduleId; });
       renderExam();
@@ -4219,7 +4194,6 @@ function deleteExamSchedule(scheduleId) {
       renderExam();
       miniToast('削除エラー（再読み込みしてください）');
     } else {
-      localStorage.setItem('cb_cache_exam_schedules', JSON.stringify(_examSchedules));
     }
   }, 'POST');
 }
@@ -4749,7 +4723,6 @@ function reloadAbsence() {
   callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
     if (res && res.success && res.records) {
       _absenceRecords = res.records.map(normalizeAbsenceRecord_);
-      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
     }
     renderAbsence();
   });
@@ -4864,7 +4837,6 @@ function submitAbsence(mode) {
     var tempId = 'tmp_' + Date.now();
     record.id = tempId;
     _absenceRecords.push(record);
-    localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
     closeModal('modal-absence');
     miniToast('欠席＋振替を登録しました ✓');
     if (_currentTab === 'absence') renderAbsence();
@@ -4875,10 +4847,8 @@ function submitAbsence(mode) {
       if (res && res.success && res.id) {
         var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
         if (idx >= 0) _absenceRecords[idx].id = res.id;
-        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
       } else {
         _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
-        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
         miniToast('⚠️ 欠席登録に失敗しました');
         renderCurrent();
       }
@@ -4902,13 +4872,11 @@ function submitAbsence(mode) {
         createdBy: getUserName()
       };
       _tasks.push(newTask);
-      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       var willGcal = CB_GCAL_AUTO_CATEGORIES.indexOf('振替') !== -1 && subDate && subTime && subCr;
       if (willGcal) miniToast('振替タスクをGカレにも登録しました 📅');
       callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
         if (!res || !res.success) {
           _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
-          localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
         } else if (willGcal) {
           pushCbTaskToGcal(newTask, taskUrl);
         }
@@ -4934,7 +4902,6 @@ function submitAbsence(mode) {
     var tempId = 'tmp_' + Date.now();
     record.id = tempId;
     _absenceRecords.push(record);
-    localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
     closeModal('modal-absence');
     miniToast('欠席を登録しました ✓');
     if (_currentTab === 'absence') renderAbsence();
@@ -4945,10 +4912,8 @@ function submitAbsence(mode) {
       if (res && res.success && res.id) {
         var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
         if (idx >= 0) _absenceRecords[idx].id = res.id;
-        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
       } else {
         _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
-        localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
         miniToast('⚠️ 欠席登録に失敗しました');
         renderCurrent();
       }
@@ -4972,12 +4937,10 @@ function submitAbsence(mode) {
         createdBy: getUserName()
       };
       _tasks.push(newTask);
-      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       var willGcalB = CB_GCAL_AUTO_CATEGORIES.indexOf('生徒対応') !== -1 && dateB && timeB && crB;
       callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
         if (!res || !res.success) {
           _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
-          localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
         } else if (willGcalB) {
           pushCbTaskToGcal(newTask, taskUrl);
         }
@@ -5026,14 +4989,12 @@ function saveSubstitute(recordId, uid) {
   // 楽観的UI
   var prev = { substituteDate: rec.substituteDate, substituteKomaTime: rec.substituteKomaTime, substituteClassroom: rec.substituteClassroom, status: rec.status };
   rec.substituteDate = subDate; rec.substituteKomaTime = subKoma; rec.substituteClassroom = subCr; rec.status = 'scheduled';
-  localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
   miniToast('振替日時を確定しました ✓');
   renderAbsence();
 
   callGas(studentUrl, { action: 'updateAbsenceRecord', record: { id: recordId, substituteDate: subDate, substituteKomaTime: subKoma, substituteClassroom: subCr, status: 'scheduled' } }, function(res) {
     if (!res || !res.success) {
       rec.substituteDate = prev.substituteDate; rec.substituteKomaTime = prev.substituteKomaTime; rec.substituteClassroom = prev.substituteClassroom; rec.status = prev.status;
-      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
       miniToast('⚠️ 振替確定に失敗しました');
       renderAbsence();
     }
@@ -5048,14 +5009,12 @@ function cancelAbsence(recordId) {
 
   var prev = rec.status;
   rec.status = 'cancelled';
-  localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
   miniToast('欠席記録をキャンセルしました');
   renderAbsence();
 
   callGas(studentUrl, { action: 'updateAbsenceRecord', record: { id: recordId, status: 'cancelled' } }, function(res) {
     if (!res || !res.success) {
       rec.status = prev;
-      localStorage.setItem('cb_cache_absence_records', JSON.stringify(_absenceRecords));
       miniToast('⚠️ キャンセルに失敗しました');
       renderAbsence();
     }
@@ -5171,7 +5130,6 @@ function deleteKoushuPeriod(periodId, periodName) {
     if (res && res.success) {
       _koushuPeriods = _koushuPeriods.filter(function(p) { return p.id !== periodId; });
       _koushuAssignments = (_koushuAssignments || []).filter(function(a){ return a.periodId !== periodId; });
-      localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
       if (_activeKoushuPeriodId === periodId) _activeKoushuPeriodId = null;
       miniToast('削除しました ✓');
       renderCurrent();
@@ -5240,7 +5198,6 @@ function submitKoushuEditPeriod() {
     if (!res || !res.success) { alert('保存エラー：' + (res && res.error || '不明')); return; }
     var idx = _koushuPeriods.findIndex(function(x) { return x.id === id; });
     if (idx !== -1) _koushuPeriods[idx] = updated;
-    localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
     closeModal('modal-koushu-edit');
     renderSettings();
     miniToast('講習期間を更新しました');
@@ -5598,11 +5555,9 @@ function saveKoushuPage(pageId) {
     if (!isNew) {
       var idx = _koushuPeriods.findIndex(function(p) { return p.id === pageId; });
       if (idx !== -1) _koushuPeriods[idx] = updatedPeriod;
-      localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
     }
     // GASから再取得してシートの実態と画面を同期
     callGas(url, { action: 'getKoushuPeriods' }, function(r) {
-      if (r && r.success) { _koushuPeriods = r.periods || []; localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods)); }
       renderSettings();
     });
   }
@@ -5921,7 +5876,6 @@ function saveKoushuDetail(periodId) {
       // ローカルの期間データを更新
       period.komaFrames = komaFrames;
       period.gradeGoals = gradeGoals;
-      localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
       miniToast('保存しました ✓');
       renderCurrent();
     }
@@ -6957,7 +6911,6 @@ function submitAddEvent() {
       callGas(url, { action: 'getSchoolEvents' }, function(r) {
         if (r && r.success && r.events) {
           _schoolEvents = r.events;
-          localStorage.setItem('cb_cache_school_events', JSON.stringify(_schoolEvents));
         }
         renderSchool();
       });
@@ -6973,7 +6926,6 @@ function deleteSchoolEvent(eventId) {
   callGas(url, { action: 'deleteSchoolEvent', eventId: eventId }, function(res) {
     if (res && res.success) {
       _schoolEvents = _schoolEvents.filter(function(ev) { return ev.eventId !== eventId; });
-      localStorage.setItem('cb_cache_school_events', JSON.stringify(_schoolEvents));
       miniToast('削除しました ✓');
       renderSchool();
       if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
@@ -7008,7 +6960,6 @@ function saveWorkCheck(select) {
   if (!url) { miniToast('GAS URLが未設定です'); return; }
   callGas(url, { action: 'saveSchoolWork', work: JSON.stringify({ school: school, grade: grade, checks: work.checks }) }, function(res) {
     if (res && res.success) {
-      localStorage.setItem('cb_cache_school_works', JSON.stringify(_schoolWorks));
       miniToast('保存 ✓');
     } else miniToast('保存エラー');
   }, 'POST');
@@ -7022,7 +6973,6 @@ function submitAddSchool() {
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (url) {
     callGas(url, { action: 'saveSchoolInfo', info: JSON.stringify(_schoolInfo) }, function() {
-      localStorage.setItem('cb_cache_school_info', JSON.stringify(_schoolInfo));
     }, 'POST');
   }
   closeModal('modal-add-school');
@@ -7171,7 +7121,6 @@ function submitTaskEdit() {
   });
   // 即反映
   Object.assign(t, updated);
-  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
   miniToast('タスクを保存しました ✓');
   closeTaskModal();
   renderCurrent();
@@ -7219,7 +7168,6 @@ function submitPostpone() {
   var prevMemo = t.memo;
   t.dueDate = newDate;
   t.memo = updatedMemo;
-  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
   miniToast('期日を変更しました ✓');
   closeTaskModal();
   renderCurrent();
@@ -7229,7 +7177,6 @@ function submitPostpone() {
       // 失敗時ロールバック
       t.dueDate = prevDate;
       t.memo = prevMemo;
-      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       miniToast('⚠️ 保存に失敗しました。再試行してください。');
       renderCurrent();
     }
@@ -7246,7 +7193,6 @@ function completeTask() {
   var updated = Object.assign({}, t, { status: 'done', memo: updatedMemo });
   // 即反映
   _tasks = _tasks.filter(function(x) { return x.id !== t.id; });
-  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
   miniToast('完了にしました ✓');
   closeTaskModal();
   renderCurrent();
@@ -7255,7 +7201,6 @@ function completeTask() {
     if (!res || !res.success) {
       // 失敗時ロールバック（タスクを戻す）
       _tasks.push(t);
-      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       miniToast('⚠️ 保存に失敗しました。再試行してください。');
       renderCurrent();
     }
@@ -7272,7 +7217,6 @@ function deleteTask(taskId, btn) {
   // 即反映
   _tasks = _tasks.filter(function(x) { return x.id !== taskId; });
   _pendingDeleteIds[taskId] = true; // GAS削除完了まで復活を防ぐ
-  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
   miniToast('削除しました ✓');
   renderCurrent();
   // 裏でGAS送信
@@ -7281,7 +7225,6 @@ function deleteTask(taskId, btn) {
     if (!res || !res.success) {
       // 失敗時ロールバック
       _tasks.push(t);
-      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       miniToast('⚠️ 削除に失敗しました。再試行してください。');
       renderCurrent();
     }
@@ -7347,7 +7290,6 @@ function submitQuickAdd(uid, classroom, taskType) {
 
   // 即反映
   _tasks.push(newTask);
-  localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
 
   // Gカレ自動登録（カテゴリ・dueDate・dueTime・classroom が揃っているとき）
   var willGcal = CB_GCAL_AUTO_CATEGORIES.indexOf(category) !== -1 && dueDate && dueTime && classroom;
@@ -7358,7 +7300,6 @@ function submitQuickAdd(uid, classroom, taskType) {
   callGas(url, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
     if (!res || !res.success) {
       _tasks = _tasks.filter(function(x) { return x.id !== newTask.id; });
-      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       miniToast('⚠️ 追加に失敗しました。再試行してください。');
       renderCurrent();
       return;
@@ -7402,7 +7343,6 @@ function pushCbTaskToGcal(task, taskUrl) {
         // gcalEventId をタスクに書き戻してGASに同期
         task.gcalEventId = gcalRes.gcalEventId;
         task.gcalCalId   = m.calId;
-        localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
         callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(task) }, null, 'POST');
       }
     });
@@ -7424,7 +7364,6 @@ function autoCarryOverTasks(taskUrl) {
 
   function processNext() {
     if (queue.length === 0) {
-      localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
       miniToast('期限切れタスクを ' + targets.length + ' 件、今日に持越しました');
       renderCurrent();
       return;
