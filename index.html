@@ -1662,15 +1662,12 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     if (k.satType === 'juken') return false;
     // classroomが未設定（土曜コマ等）または一致する場合のみ通す
     if (k.classroom && k.classroom !== classroom) return false;
-    // 通常コマ・オンラインコマ（hiraコマは除外、sat/eiken等は youbi+time で判定）
+    // 通常コマ・オンライン・演習回（enshuu）・eiken・sat はyoubi+timeで判定
     if (k.satType !== 'hira' && k.youbi === youbi && k.time === komaTime) return true;
-    // 平日演習回コマ: hiraKoma の判定
-    // 新形式: "教室_youbi+time" (例: 北久里浜_月17:15〜18:35)
-    // 旧形式: "youbi+time" (例: 月17:15〜18:35) ← 後方互換
+    // 旧形式互換: hiraKoma を持つ hira コマ
     if (k.satType === 'hira' && k.hiraKoma) {
       var hiraTarget = youbi + komaTime;
       var hiraVal = k.hiraKoma;
-      // 新形式の場合は "_" 以降を比較
       if (hiraVal.indexOf('_') !== -1) hiraVal = hiraVal.split('_').slice(1).join('_');
       return hiraVal === hiraTarget;
     }
@@ -1720,13 +1717,12 @@ function getKomasForClassroom(classroom) {
     (s.komas || []).forEach(function(k) {
       if (k.classroom === classroom) times[k.time] = true;
       else if (!k.classroom && k.satType && k.satType !== 'juken' && getMainClassroom(s) === classroom) {
+        // enshuu/eiken/satはyoubi+timeで管理。旧形式hiraKomaは後方互換
         if (k.satType === 'hira' && k.hiraKoma) {
-          // hiraKoma から時間部分のみ取り出す（新形式: "教室_曜日時間", 旧形式: "曜日時間"）
           var hiraT = k.hiraKoma.indexOf('_') !== -1 ? k.hiraKoma.split('_').slice(1).join('_') : k.hiraKoma;
-          // 先頭の曜日1文字を除去して時間部分だけにする
           hiraT = hiraT.replace(/^[月火水木金土日]/, '');
           if (hiraT) times[hiraT] = true;
-        } else {
+        } else if (k.time) {
           times[k.time] = true;
         }
       }
@@ -1849,11 +1845,17 @@ function studentChipHtml(s, opts) {
   // opts = { classroom, komaTime, youbi } — 渡されたコマのみで判定
   var koma = null;
   if (opts && opts.classroom && opts.komaTime && opts.youbi) {
-    // hiraコマを優先：同じ平日コマに通常コマとhiraコマが両方ある場合、hiraを使う
+    // enshuuコマを優先：同じ平日コマにenshuuと通常コマが両方ある場合、enshuuを使う
     var _hiraKoma = (s.komas || []).find(function(k) {
       if (opts.isJuken) return false;
+      // 新形式: satType:'enshuu' でyoubi+timeが一致
+      if (k.satType === 'enshuu' && k.youbi === opts.youbi && k.time === opts.komaTime) {
+        if (k.classroom && k.classroom !== opts.classroom) return false;
+        return true;
+      }
+      // 旧形式互換: satType:'hira' + hiraKoma
       if (k.satType !== 'hira' || !k.hiraKoma) return false;
-      if (k.classroom !== opts.classroom) return false;
+      if (k.classroom && k.classroom !== opts.classroom) return false;
       var hiraTarget2 = opts.youbi + opts.komaTime;
       var hiraVal2 = k.hiraKoma;
       if (hiraVal2.indexOf('_') !== -1) hiraVal2 = hiraVal2.split('_').slice(1).join('_');
@@ -1869,10 +1871,10 @@ function studentChipHtml(s, opts) {
       // classroomが一致、または未設定（土曜コマ等）かつ getMainClassroom で教室が一致する場合に通す
       var crMatch = k.classroom ? k.classroom === opts.classroom : (!k.satType || k.satType === 'juken' ? false : getMainClassroom(s) === opts.classroom);
       if (!crMatch) return false;
-      // hiraコマは上で処理済みなのでスキップ
-      if (k.satType === 'hira') return false;
+      // hira/enshuuコマは上で処理済みなのでスキップ
+      if (k.satType === 'hira' || k.satType === 'enshuu') return false;
       // 通常コマ・オンラインコマ
-      if (k.satType !== 'hira' && k.youbi === opts.youbi && k.time === opts.komaTime) return true;
+      if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
       return false;
     })[0] || null;
   }
@@ -1888,12 +1890,14 @@ function studentChipHtml(s, opts) {
       lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
     } else if (koma.satType === 'eiken') {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#FAEEDA;color:#854F0B">英検</span>';
+    } else if (koma.satType === 'enshuu') {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#dbeafe;color:#1d4ed8">演習回</span>';
     } else if (koma.satType === 'sat') {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#EAF3DE;color:#3B6D11">土曜演習</span>';
     } else if (koma.satType === 'juken') {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#ede9fe;color:#6d28d9">受験特訓</span>';
     } else if (koma.satType === 'hira') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#dbeafe;color:#1d4ed8">平日演習回</span>';
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#dbeafe;color:#1d4ed8">演習回</span>';
     } else {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     }
@@ -1915,8 +1919,9 @@ function studentChipHtml(s, opts) {
     else if (_komaIsCa)          _courseName = 'CA';
     else if (koma.satType === 'eiken')  _courseName = '英検';
     else if (koma.satType === 'juken')  _courseName = '受験特訓';
+    else if (koma.satType === 'enshuu') _courseName = '演習回';
     else if (koma.satType === 'sat') _courseName = '土曜演習';
-    else if (koma.satType === 'hira') _courseName = '平日演習回';
+    else if (koma.satType === 'hira') _courseName = '演習回';
     else                         _courseName = '塾';
   }
 
@@ -1960,10 +1965,11 @@ function studentChipHtml(s, opts) {
         var typeLabel;
         if (k.online) typeLabel = 'online';
         else if ((k.id || '').indexOf('ca_') === 0) typeLabel = 'CA';
-        else if (k.satType === 'eiken') typeLabel = '英検';
-        else if (k.satType === 'sat')   typeLabel = '土曜';
-        else if (k.satType === 'juken') typeLabel = '受験';
-        else if (k.satType === 'hira')  typeLabel = '平日';
+        else if (k.satType === 'eiken')  typeLabel = '英検';
+        else if (k.satType === 'enshuu') typeLabel = '演習';
+        else if (k.satType === 'sat')    typeLabel = '土曜';
+        else if (k.satType === 'juken')  typeLabel = '受験';
+        else if (k.satType === 'hira')   typeLabel = '演習';
         else typeLabel = '';
         var youbi = k.youbi || '';
         var time  = k.time || (k.hiraKoma || '');
