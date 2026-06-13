@@ -1511,11 +1511,21 @@ function loadAll() {
         _koushuPeriods = res.periods;
         localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
       }
-      // アクティブな講習期間があれば割付データも読み込む
+      // アクティブな講習期間があれば割付データも読み込む（準備中・期間内どちらも対象）
       var todayIso_ = isoDate(new Date());
       var activePeriod = _koushuPeriods.find(function(p) {
         return p.startDate <= todayIso_ && todayIso_ <= p.endDate;
       });
+      // 期間外でも選択中の期間（準備中モード）があれば割付データを読む
+      if (!activePeriod) {
+        var savedPid = localStorage.getItem('cb_view_period_id');
+        if (savedPid) activePeriod = _koushuPeriods.find(function(p){ return p.id === savedPid; });
+      }
+      // それもなければ直近の未来期間を対象にする
+      if (!activePeriod && _koushuPeriods.length) {
+        activePeriod = _koushuPeriods.slice().sort(function(a,b){ return a.startDate < b.startDate ? -1 : 1; })
+          .find(function(p){ return p.startDate > todayIso_; });
+      }
       if (activePeriod) {
         pending++;
         callGas(studentUrl, { action: 'getKoushuCalendar', periodId: activePeriod.id }, function(rc) {
