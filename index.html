@@ -1305,6 +1305,7 @@ function testAssignPopupBadges_(s, forcePeriod) {
 }
 
 function testAssignChips_(cr, kt, dateIso, youbi) {
+  // テストモード限定（講習モードは別経路で表示）
   if (!getActiveTestPeriod_()) return '';
   return _koushuAssignments.filter(function(a) {
     return a.date === dateIso && a.classroom === cr && a.komaTime === kt;
@@ -1315,7 +1316,7 @@ function testAssignChips_(cr, kt, dateIso, youbi) {
   }).join('');
 }
 
-// テスト対策：指定セルの割付人数
+// テスト対策：指定セルの割付人数（テストモードのみ）
 function testAssignCount_(cr, kt, dateIso) {
   if (!getActiveTestPeriod_()) return 0;
   return _koushuAssignments.filter(function(a) {
@@ -2150,9 +2151,9 @@ function renderToday() {
       });
       if (komaTimes.length) {
         komaTimes.forEach(function(kt) {
-          var assigns = komaMap[kt];
+          var assigns = komaMap[kt] || [];
           var cntCls = assigns.length >= 15 ? ' count-danger' : assigns.length >= 12 ? ' count-warn' : '';
-          var countHtml = ' <span class="koma-count' + cntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + assigns.length + '人）</span>';
+          var countHtml = assigns.length > 0 ? ' <span class="koma-count' + cntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + assigns.length + '人）</span>' : '';
           var chips = assigns.map(function(a) {
             var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
             return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: a.id });
@@ -2210,7 +2211,8 @@ function renderToday() {
             var _cntTotal = _cntBase + _testCount;
             var _cntLabel = (_cnt && typeof _cnt === 'object') ? _cnt.label.replace('（計' + (_cntBase - _jukenCountT) + '人）', '（計' + _cntTotal + '人）') : '';
             var _cntCls = _cntTotal >= 15 ? ' count-danger' : _cntTotal >= 12 ? ' count-warn' : '';
-            var _cntTitle = ' title="12人以上：黄色 / 15人以上：赤"';
+            var _cntTooltipBase = (_cnt && typeof _cnt === 'object' && _cnt.tooltip) ? _cnt.tooltip : '席数カウント（オンライン除外）';
+            var _cntTitle = ' title="' + _cntTooltipBase + ' / 12人以上：黄色 / 15人以上：赤" style="cursor:help"';
             var countHtml = _cntTotal > 0 ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cntLabel + '</span>' : '';
             var allKomas = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
             var isLastKoma = allKomas.length > 0 && allKomas[allKomas.length - 1] === kt;
@@ -2940,7 +2942,8 @@ function buildWeekGrid(days, todayIso) {
       var _wTotal = _wBase + _jukenCountW + testAssignCount_(cr, kt, iso);
       var _wLabel = (_wCnt && typeof _wCnt === 'object') ? _wCnt.label.replace('（計' + _wBase + '人）', '（計' + _wTotal + '人）') : '';
       var _wCls = _wTotal >= 15 ? ' count-danger' : _wTotal >= 12 ? ' count-warn' : '';
-      var _wTitle = ' title="12人以上：黄色 / 15人以上：赤"';
+      var _wTooltipBase = (_wCnt && typeof _wCnt === 'object' && _wCnt.tooltip) ? _wCnt.tooltip : '席数カウント（オンライン除外）';
+      var _wTitle = ' title="' + _wTooltipBase + ' / 12人以上：黄色 / 15人以上：赤" style="cursor:help"';
       var wgCountDiv = _wTotal > 0 ? '<div class="wg-count' + _wCls + '"' + _wTitle + '>' + _wLabel + '</div>' : '';
       // 最終コマに受験特訓を相乗り
       var jukenBlockW = '';
@@ -4409,7 +4412,7 @@ function komaCountLabel_(students, dateStr, komaTime, classroom) {
       return (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
     });
 
-  // 欠席者を除外
+  // 欠席者（席数カウントに含める・tooltip表示用に件数だけ取得）
   var absentNames = (_absenceRecords || [])
     .filter(function(r) {
       return r.absenceDate === dateStr &&
@@ -4419,9 +4422,8 @@ function komaCountLabel_(students, dateStr, komaTime, classroom) {
     })
     .map(function(r){ return r.studentName; });
 
+  // オンライン生徒は席を使わないので除外。欠席は席を確保しているので含める。
   var all = students.concat(subStudents).filter(function(s){
-    if (absentNames.indexOf(s.name) >= 0) return false;
-    // 対象コマが online 設定の生徒は除外
     var komas = s.komas || [];
     var isOnline = komas.some(function(k){
       var crMatch = k.classroom ? k.classroom === classroom : getMainClassroom(s) === classroom;
@@ -4448,7 +4450,16 @@ function komaCountLabel_(students, dateStr, komaTime, classroom) {
   if (other > 0) parts.push('他' + other);
 
   var total = all.length;
-  return { label: parts.join('・') + '（計' + total + '人）', total: total };
+  // tooltip：欠席・振替待ち の内訳
+  var absentCount = all.filter(function(s){ return absentNames.indexOf(s.name) >= 0; }).length;
+  var furikaeWaitCount = (_absenceRecords || []).filter(function(r){
+    return r.absenceDate === dateStr && r.komaTime === komaTime && r.classroom === classroom &&
+           r.status !== 'cancelled' && r.substituteDate === '';
+  }).length;
+  var tooltipParts = ['席数カウント（オンライン除外）'];
+  if (absentCount > 0) tooltipParts.push('うち欠席' + absentCount + '名含む');
+  var tooltip = tooltipParts.join(' / ');
+  return { label: parts.join('・') + '（計' + total + '人）', total: total, tooltip: tooltip };
 }
 
 
