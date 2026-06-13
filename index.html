@@ -1302,7 +1302,7 @@ function testAssignPopupBadges_(s, forcePeriod) {
     return '<span style="display:inline-block;font-size:10px;background:' + bg + ';color:' + col + ';border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb;white-space:nowrap">' + esc(label.trim()) + '【' + tag + '】</span>';
   }).join('');
   var listTitle = tp.type === 'test' ? 'テスト対策の予定' : '講習の予定';
-  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">' + badges + '</div></div>';
+  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="display:flex;flex-direction:column;gap:2px">' + badges + '</div></div>';
 }
 
 function testAssignChips_(cr, kt, dateIso, youbi) {
@@ -1694,13 +1694,14 @@ function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn)
     if (assignType === 'taisaku') return 6; // テスト対策
     return 7;                               // 講習
   }
-  // 通常コマ生徒
+  // 通常コマ生徒（assignTypeなし = normalStudentsK）
+  // CA専業生はkomaのclassroom設定によらずCA通常として扱う
+  if (isCaOnly) return 0; // CA通常
   var koma = matchFn ? (s.komas||[]).find(matchFn) : null;
-  if (!koma) return 7;
-  if (koma.online)                                   return 8; // オンライン
-  if (isCaOnly)                                      return 0; // CA通常
+  if (!koma) return 2;  // komaが見つからなくても通常塾として扱う
+  if (koma.online)                                    return 8; // オンライン
   if (koma.satType==='enshuu'||koma.satType==='hira') return 4; // 演習回
-  return 2;                                                      // 通常塾
+  return 2;                                                       // 通常塾
 }
 
 function getStudentsForKoma(classroom, youbi, komaTime) {
@@ -1800,8 +1801,9 @@ function isNormalKomaInKoushu_(s, kt) {
  * 学年・名前・欠席バッジだけ表示。土曜演習等のコマ種別バッジは出さない。
  */
 function koushuChipHtml(s, opts) {
-  // CAの生徒はコマ種別バッジをそのまま表示（通常チップに委譲）
-  if (s.attrCa && !s.attrJuku) {
+  // CA専業生：講習期間中に通常コマ（塾扱い）で来る場合はバッジなし・koushuチップで表示
+  // opts.skipCaDelegate=true の場合は委譲しない（CAバッジを付けない）
+  if (s.attrCa && !s.attrJuku && !opts.skipCaDelegate) {
     return studentChipHtml(s, opts);
   }
   var name = s.name || '';
@@ -2960,8 +2962,12 @@ function buildWeekGrid(days, todayIso) {
           return lessonRankCommon_(s, assignType, dateIso, komaT, cr_, matchFn);
         }
         // normalChips の生徒をオブジェクト化
-        var normalStudentsK = ss.filter(function(s){ return isNormalKomaInKoushu_(s, kt); })
-          .map(function(s){ return { s: s, assignType: undefined }; });
+        var kAssignNames = kAssigns.map(function(a){ return a.studentId || a.studentName; });
+        var normalStudentsK = ss.filter(function(s){
+          if (!isNormalKomaInKoushu_(s, kt)) return false;
+          // kAssignObjs に既にいる生徒は除外（重複防止）
+          return !kAssignNames.some(function(n){ return n === s.id || n === s.name; });
+        }).map(function(s){ return { s: s, assignType: undefined }; });
         // 講習割付の生徒をオブジェクト化
         var kAssigns = _koushuAssignments.filter(function(a) {
           return a.date === iso && a.classroom === cr && a.komaTime === kt;
@@ -2984,7 +2990,14 @@ function buildWeekGrid(days, todayIso) {
         var kChips = [];       // 使用しない（allKObjs に統合）
         var allKChips = allKObjs.map(function(obj) {
           if (obj.assignId !== undefined) {
+            // 講習割付生徒（中高生）
             return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType });
+          }
+          // 通常コマ生徒（小学生・CA専業・英検）
+          // CA専業生は講習期間中に来る場合、CAコマではなく塾コマ扱い → koushuChipHtmlで描画（CAバッジを出さない）
+          var isCaOnlyS = obj.s.attrCa && !obj.s.attrJuku;
+          if (isCaOnlyS) {
+            return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, skipCaDelegate: true });
           }
           return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso });
         }).concat(subChips);
