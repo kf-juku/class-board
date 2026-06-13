@@ -1290,7 +1290,7 @@ function testAssignPopupBadges_(s, forcePeriod) {
   list.sort(function(a, b) { return (a.date + a.komaTime) < (b.date + b.komaTime) ? -1 : 1; });
   var todayIso = isoDate(new Date());
   var YB = ['日','月','火','水','木','金','土'];
-  var badges = list.map(function(a) {
+  function badgeHtml(a) {
     var d = new Date(a.date + 'T00:00:00');
     var label = (d.getMonth() + 1) + '/' + d.getDate() + '(' + YB[d.getDay()] + ') ' + (a.komaTime || '') + ' ' + (a.classroom || '');
     var isPast = a.date < todayIso;
@@ -1300,13 +1300,21 @@ function testAssignPopupBadges_(s, forcePeriod) {
     var col = isPast ? '#9ca3af' : (isJi ? '#166534' : isTa ? '#854d0e' : '#9a3412');
     var tag = isJi ? '自習' : isTa ? '対策' : '講習';
     return '<span style="display:inline-block;font-size:10px;background:' + bg + ';color:' + col + ';border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb;white-space:nowrap">' + esc(label.trim()) + '【' + tag + '】</span>';
-  }).join('');
+  }
   var listTitle = tp.type === 'test' ? 'テスト対策の予定' : '講習の予定';
-  // 川上さん指示(2026-06-14)：講習コマ登録状況のポップオーバーは7件以上で2列カラム化（縦長で見づらいため）
-  var listStyle = list.length >= 7
-    ? 'display:grid;grid-template-columns:1fr 1fr;gap:2px 6px;align-items:start'
-    : 'display:flex;flex-direction:column;gap:2px';
-  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="' + listStyle + '">' + badges + '</div></div>';
+  // 川上さん指示(2026-06-14)：10件未満は全件を1列表示。10件以上は要約（件数＋直近10件＋ほかN件）にして
+  //   ホバーが大きくなりすぎないようにする。縦横スクロールは使わない。全件確認はカードクリックで行う。
+  var inner;
+  if (list.length < 10) {
+    inner = '<div style="display:flex;flex-direction:column;gap:2px">' + list.map(badgeHtml).join('') + '</div>';
+  } else {
+    var head = list.slice(0, 10).map(badgeHtml).join('');
+    var rest = list.length - 10;
+    inner = '<div style="font-size:10px;color:#6b7280;margin-bottom:3px">全' + list.length + '件</div>' +
+            '<div style="display:flex;flex-direction:column;gap:2px">' + head + '</div>' +
+            '<div style="font-size:10px;color:#9ca3af;margin-top:4px">…ほか' + rest + '件（カードをクリックで全件）</div>';
+  }
+  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div>' + inner + '</div>';
 }
 
 function testAssignChips_(cr, kt, dateIso, youbi) {
@@ -8450,12 +8458,6 @@ function rerenderCurrentTab() {
 
   function showPopup(el, html, x, y) {
     el.innerHTML = html;
-    // 川上さん指示(2026-06-14)：講習予定が2列のときだけポップを広げて横スクロールを出さない。それ以外は標準幅(360px)
-    if (html.indexOf('grid-template-columns:1fr 1fr') >= 0) {
-      el.style.maxWidth = '480px';
-    } else {
-      el.style.maxWidth = '360px';
-    }
     el.style.display = 'block';
     el.style.left = '-9999px';
     el.style.top  = '-9999px';
