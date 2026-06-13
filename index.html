@@ -1710,6 +1710,7 @@ function getKomasForClassroom(classroom) {
   getActiveModeStudents().forEach(function(s) {
     (s.komas || []).forEach(function(k) {
       if (k.classroom === classroom) times[k.time] = true;
+      else if (!k.classroom && k.satType && k.satType !== 'juken' && getMainClassroom(s) === classroom) times[k.time] = true;
     });
   });
   return Object.keys(times).sort(function(a, b) {
@@ -2118,6 +2119,15 @@ function renderToday() {
           return (parseInt((k1||'').replace(':','').substring(0,4))||0) - (parseInt((k2||'').replace(':','').substring(0,4))||0);
         });
       }
+      // 振替来塾：振替生徒しかいないコマ枠も行に追加
+      (_absenceRecords || []).forEach(function(r) {
+        if (r.substituteDate === todayIso && r.substituteClassroom === cr && r.status === 'scheduled') {
+          if (komas.indexOf(r.substituteKomaTime) === -1) komas.push(r.substituteKomaTime);
+        }
+      });
+      komas.sort(function(k1, k2) {
+        return (parseInt((k1||'').replace(':','').substring(0,4))||0) - (parseInt((k2||'').replace(':','').substring(0,4))||0);
+      });
       var komaHtml = komas.length
         ? komas.map(function(kt) {
             var ss = getStudentsForKoma(cr, todayYoubi, kt);
@@ -2153,7 +2163,7 @@ function renderToday() {
             }
             return '<div class="koma-block">' +
               '<div class="koma-time">⏰ ' + esc(kt) + countHtml + '</div>' +
-              '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + testAssignChips_(cr, kt, todayIso, todayYoubi) + jukenBlock + '</div>' +
+              '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + ss.map(function(s){return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('') + (function(){var subStu=(_absenceRecords||[]).filter(function(r){return r.substituteDate===todayIso&&r.substituteKomaTime===kt&&r.substituteClassroom===cr&&r.status==='scheduled'&&!ss.find(function(s){return s.name===r.studentName;});});return subStu.map(function(r){var stu=(_students||[]).find(function(s){return s.name===r.studentName;})||{name:r.studentName};return studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('');})() + testAssignChips_(cr, kt, todayIso, todayYoubi) + jukenBlock + '</div>' +
               '</div>';
           }).join('')
         : '<div class="koma-empty">本日の授業はありません</div>';
