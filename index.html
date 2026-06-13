@@ -1674,10 +1674,29 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     return false;
   }
   function lessonRank(s) {
+    // 振替来塾かチェック（subRecがあれば振替生徒）
+    var _todayForRank = getTodayStr();
+    var subRec = (_absenceRecords || []).find(function(r) {
+      return r.studentName === s.name &&
+             r.substituteDate === _todayForRank &&
+             r.substituteKomaTime === komaTime &&
+             r.substituteClassroom === classroom &&
+             r.status !== 'cancelled';
+    });
+    if (subRec) {
+      // 元コマ種別を判定（absenceDate時点のkomaTime+classroomでkomas検索）
+      var origKoma = (s.komas || []).find(function(k) {
+        if (!k.classroom || k.classroom !== subRec.classroom) return false;
+        return k.time === subRec.komaTime;
+      });
+      var isEnshuuSub = origKoma && (origKoma.satType === 'enshuu' || origKoma.satType === 'hira');
+      return isEnshuuSub ? 3 : 1; // 演習回振替=3、通常振替=1
+    }
     var koma = (s.komas || []).filter(function(k) { return matchesKoma(k); })[0];
     if (!koma) return 0;
-    if (koma.online) return 2;
-    if ((koma.id || '').indexOf('ca_') === 0) return 1;
+    if (koma.online) return 4;
+    if ((koma.id || '').indexOf('ca_') === 0) return 0;
+    if (koma.satType === 'enshuu' || koma.satType === 'hira') return 2;
     return 0;
   }
   function gradeRank(s) {
@@ -2021,7 +2040,15 @@ function studentChipHtml(s, opts) {
       // 欠席済→さらに欠席（振替の連鎖）
       absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\')" title="この振替をさらに欠席処理">↩</button>';
     } else if (subRec) {
-      absenceBadge = '<span class="badge" style="font-size:10px;background:#0ea5e9;color:#fff;margin-left:2px">⚡振替</span>';
+      // 元コマ種別を判定
+      var _subOrigKoma = (s.komas || []).find(function(k) {
+        if (!k.classroom || k.classroom !== subRec.classroom) return false;
+        return k.time === subRec.komaTime;
+      });
+      var _subIsEnshuu = _subOrigKoma && (_subOrigKoma.satType === 'enshuu' || _subOrigKoma.satType === 'hira');
+      absenceBadge = _subIsEnshuu
+        ? '<span class="badge" style="font-size:10px;background:#dcfce7;color:#16a34a;margin-left:2px">⚡振替（演習回）</span>'
+        : '<span class="badge" style="font-size:10px;background:#0ea5e9;color:#fff;margin-left:2px">⚡振替（通常）</span>';
       absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\')" title="欠席を記録">欠</button>';
     } else {
       absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\')" title="欠席を記録">欠</button>';
