@@ -1767,7 +1767,11 @@ function koushuChipHtml(s, opts) {
   var todayIso = opts.dateStr || '';
   // 欠席チェック
   var isAbsent = (_absenceRecords || []).some(function(r) {
-    return r.studentName === name && r.absenceDate === todayIso && r.status !== 'cancelled';
+    return r.studentName === name &&
+           r.absenceDate === todayIso &&
+           (!opts.komaTime || r.komaTime === opts.komaTime) &&
+           (!opts.classroom || r.classroom === opts.classroom) &&
+           r.status !== 'cancelled';
   });
   var absBadge = isAbsent ? '<span class="chip-abs">欠</span>' : '';
   var gradeLabel = grade ? '<span class="chip-grade">' + esc(grade) + '</span>' : '';
@@ -2102,6 +2106,15 @@ function renderToday() {
         komaMap[a.komaTime].push(a);
       });
       var komaTimes = Object.keys(komaMap).sort();
+      // 振替来塾：振替生徒しかいないコマ枠も行に追加
+      (_absenceRecords || []).forEach(function(r) {
+        if (r.substituteDate === todayIso && r.substituteClassroom === cr && r.status === 'scheduled') {
+          if (komaTimes.indexOf(r.substituteKomaTime) === -1) komaTimes.push(r.substituteKomaTime);
+        }
+      });
+      komaTimes.sort(function(k1, k2) {
+        return (parseInt((k1||'').replace(':','').substring(0,4))||0) - (parseInt((k2||'').replace(':','').substring(0,4))||0);
+      });
       if (komaTimes.length) {
         komaTimes.forEach(function(kt) {
           var assigns = komaMap[kt];
@@ -2113,7 +2126,7 @@ function renderToday() {
           }).join('');
           komaBlocksHtml += '<div class="koma-block">' +
             '<div class="koma-time">🎓 ' + esc(kt) + countHtml + '</div>' +
-            '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + chips + '</div>' +
+            '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + chips + (function(){var subStu=(_absenceRecords||[]).filter(function(r){return r.substituteDate===todayIso&&r.substituteKomaTime===kt&&r.substituteClassroom===cr&&r.status==='scheduled'&&!( _koushuAssignments.find(function(a){return a.date===todayIso&&a.komaTime===kt&&a.classroom===cr&&(a.studentName===r.studentName);}) );});return subStu.map(function(r){var stu=(_students||[]).find(function(s){return s.name===r.studentName;})||{name:r.studentName};return studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('');})() + '</div>' +
             '</div>';
         });
       } else if (!normalKomas.length) {
@@ -4378,7 +4391,8 @@ function komaCountLabel_(students, dateStr, komaTime, classroom) {
     // 対象コマが online 設定の生徒は除外
     var komas = s.komas || [];
     var isOnline = komas.some(function(k){
-      return k.classroom === classroom && k.time === komaTime && k.online === true;
+      var crMatch = k.classroom ? k.classroom === classroom : getMainClassroom(s) === classroom;
+      return crMatch && k.time === komaTime && k.online === true;
     });
     return !isOnline;
   });
@@ -4480,7 +4494,9 @@ function renderAbsence() {
       statusBadge = '<span class="ac-badge ac-badge-red">振替待ち</span>';
       cardCls += ' ac-waiting';
     } else if (r.status === 'scheduled') {
-      statusBadge = '<span class="ac-badge" style="background:#dbeafe;color:#1d4ed8">振替確定</span>';
+      var isPast = r.substituteDate && r.substituteDate < todayIso;
+      statusBadge = '<span class="ac-badge" style="background:#dbeafe;color:#1d4ed8">振替確定</span>' +
+        (isPast ? '<span class="badge substitute-done" style="background:#d1fae5;color:#065f46;font-size:10px;padding:2px 6px;border-radius:4px;">来塾済み？</span>' : '');
       cardCls += ' ac-waiting'; // 左赤ボーダーは維持（まだ来塾前）
     } else if (r.status === 'substituted' || r.status === 'done') {
       statusBadge = '<span class="ac-badge ac-badge-green">振替済</span>';
@@ -4985,6 +5001,7 @@ function deleteKoushuPeriod(periodId, periodName) {
   callGas(url, { action: 'deleteKoushuPeriod', periodId: periodId }, function(res) {
     if (res && res.success) {
       _koushuPeriods = _koushuPeriods.filter(function(p) { return p.id !== periodId; });
+      _koushuAssignments = (_koushuAssignments || []).filter(function(a){ return a.periodId !== periodId; });
       localStorage.setItem('cb_cache_koushu_periods', JSON.stringify(_koushuPeriods));
       if (_activeKoushuPeriodId === periodId) _activeKoushuPeriodId = null;
       miniToast('削除しました ✓');
