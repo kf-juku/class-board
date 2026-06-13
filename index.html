@@ -3791,6 +3791,7 @@ function saveSchoolMemo(school, memo) {
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
   callGas(url, { action: 'saveSchoolInfo', info: JSON.stringify(_schoolInfo) }, function(res) {
+    if (res && res.success) miniToast('保存しました ✓');
     else miniToast('保存エラー');
   }, 'POST');
 }
