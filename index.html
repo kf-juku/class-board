@@ -2990,11 +2990,20 @@ function buildWeekGrid(days, todayIso) {
           var s = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
           if (!s && a.studentName) {
             // 割付名とマスタ名の表記揺れ対策（例：「倉茂（ハリス）エイサン」vs「ハリスエイサン倉茂」）
+            // ① 部分一致（順序が同じ場合）
             s = _students.find(function(st){
-              var an = a.studentName.replace(/[（）\s]/g,'');
-              var sn = (st.name||'').replace(/[（）\s]/g,'');
+              var an = a.studentName.replace(/[（）\(\)\s]/g,'');
+              var sn = (st.name||'').replace(/[（）\(\)\s]/g,'');
               return an && sn && (an.indexOf(sn) >= 0 || sn.indexOf(an) >= 0);
             });
+            // ② 文字セット一致（順序が違う場合：「倉茂ハリスエイサン」vs「ハリスエイサン倉茂」）
+            if (!s) {
+              s = _students.find(function(st){
+                var an = a.studentName.replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
+                var sn = (st.name||'').replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
+                return an.length >= 2 && sn.length >= 2 && an === sn;
+              });
+            }
           }
           if (!s) s = { name: a.studentName };
           return { s: s, assignType: a.type, assignId: a.id };
