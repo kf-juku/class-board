@@ -187,6 +187,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .koushu-chip .chip-remain { font-size: 10px; border-radius: 3px; padding: 0 4px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
 .chip-taisaku { font-size: 10px; background: #fef3c7; color: #92400e; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
 .chip-jishu { font-size: 10px; background: #dcfce7; color: #166534; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
+.chip-koushu { font-size: 10px; background: #ffedd5; color: #9a3412; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
 .koushu-chip-del { position:absolute; top:1px; right:2px; font-size:11px; font-weight:700; color:#9ca3af; line-height:1; padding:1px 2px; cursor:pointer; border-radius:3px; }
 .koushu-chip-del:hover { background:#fee2e2; color:#dc2626; }
 .koushu-chip[draggable="true"] { cursor: grab; }
@@ -1301,7 +1302,7 @@ function testAssignPopupBadges_(s, forcePeriod) {
     return '<span style="display:inline-block;font-size:10px;background:' + bg + ';color:' + col + ';border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb;white-space:nowrap">' + esc(label.trim()) + '【' + tag + '】</span>';
   }).join('');
   var listTitle = tp.type === 'test' ? 'テスト対策の予定' : '講習の予定';
-  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="display:flex;flex-wrap:wrap;max-width:280px">' + badges + '</div></div>';
+  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">' + badges + '</div></div>';
 }
 
 function testAssignChips_(cr, kt, dateIso, youbi) {
@@ -1664,6 +1665,44 @@ function getActiveModeStudents() {
   return _students;
 }
 
+// =====================================================
+// 共通ソートランク（通常・講習・テスト対策モード共通）
+// 順: CA通常(0) > CA振替(1) > 通常塾(2) > 振替通常(3) > 演習回(4) > 演習回振替(5) > テスト対策(6) > 講習(7) > オンライン(8)
+// 各グループ内は学年順。欠席は並び順に影響しない（チップのバッジで表示）
+// =====================================================
+function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn) {
+  var isCaOnly = s.attrCa && !s.attrJuku;
+  // 振替来塾チェック
+  var subRec = (_absenceRecords||[]).find(function(r) {
+    return r.studentName===s.name &&
+           r.substituteDate===dateIso &&
+           r.substituteKomaTime===komaTime &&
+           r.substituteClassroom===classroom &&
+           r.status!=='cancelled';
+  });
+  if (subRec) {
+    var origKoma = (s.komas||[]).find(function(k) {
+      return k.time===subRec.komaTime && (!k.classroom||k.classroom===classroom);
+    });
+    var isEnshuuSub = origKoma && (origKoma.satType==='enshuu'||origKoma.satType==='hira');
+    if (isCaOnly)      return 1; // CA振替
+    if (isEnshuuSub)   return 5; // 演習回振替
+    return 3;                     // 通常振替
+  }
+  // 講習割付生徒（assignType が渡された場合）
+  if (assignType !== undefined) {
+    if (assignType === 'taisaku') return 6; // テスト対策
+    return 7;                               // 講習
+  }
+  // 通常コマ生徒
+  var koma = matchFn ? (s.komas||[]).find(matchFn) : null;
+  if (!koma) return 7;
+  if (koma.online)                                   return 8; // オンライン
+  if (isCaOnly)                                      return 0; // CA通常
+  if (koma.satType==='enshuu'||koma.satType==='hira') return 4; // 演習回
+  return 2;                                                      // 通常塾
+}
+
 function getStudentsForKoma(classroom, youbi, komaTime) {
   var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
   // hiraKoma（平日演習回）が指定された曜日・時間に一致するか判定
@@ -1685,30 +1724,7 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     return false;
   }
   function lessonRank(s) {
-    // 振替来塾かチェック（subRecがあれば振替生徒）
-    var _todayForRank = getTodayStr();
-    var subRec = (_absenceRecords || []).find(function(r) {
-      return r.studentName === s.name &&
-             r.substituteDate === _todayForRank &&
-             r.substituteKomaTime === komaTime &&
-             r.substituteClassroom === classroom &&
-             r.status !== 'cancelled';
-    });
-    if (subRec) {
-      // 元コマ種別を判定（absenceDate時点のkomaTime+classroomでkomas検索）
-      var origKoma = (s.komas || []).find(function(k) {
-        if (!k.classroom || k.classroom !== subRec.classroom) return false;
-        return k.time === subRec.komaTime;
-      });
-      var isEnshuuSub = origKoma && (origKoma.satType === 'enshuu' || origKoma.satType === 'hira');
-      return isEnshuuSub ? 3 : 1; // 演習回振替=3、通常振替=1
-    }
-    var koma = (s.komas || []).filter(function(k) { return matchesKoma(k); })[0];
-    if (!koma) return 0;
-    if (koma.online) return 4;
-    if ((koma.id || '').indexOf('ca_') === 0) return 0;
-    if (koma.satType === 'enshuu' || koma.satType === 'hira') return 2;
-    return 0;
+    return lessonRankCommon_(s, undefined, getTodayStr(), komaTime, classroom, matchesKoma);
   }
   function gradeRank(s) {
     var idx = GRADE_ORDER.indexOf(s.grade);
@@ -1862,7 +1878,8 @@ function koushuChipHtml(s, opts) {
     ? ' onclick="openKoushuStudentEdit(\'' + esc(s.id || name) + '\',\'' + esc(name) + '\',\'' + periodId + '\')"'
     : '';
   var typeBadge = opts.assignType === 'taisaku' ? '<span class="chip-taisaku">対策</span>'
-                : opts.assignType === 'jishu'   ? '<span class="chip-jishu">自習</span>' : '';
+                : opts.assignType === 'jishu'   ? '<span class="chip-jishu">自習</span>'
+                : (activePeriod && activePeriod.type !== 'test') ? '<span class="chip-koushu">講習</span>' : '';
   var assignIdAttr = assignId ? ' data-assign-id="' + assignId + '"' : '';
   var draggableAttr = assignId ? ' draggable="true"' : '';
   var isElem = grade && grade.indexOf('小') === 0;
@@ -2924,17 +2941,53 @@ function buildWeekGrid(days, todayIso) {
       // ── 講習モード（夏期等）：通常コマ（小学生・CA）＋講習割付コマ を両方表示（その日が期間内のセルだけ 2026-06-10） ──
       if (isKoushuModeActive() && !getActiveTestPeriod_() && isDateInViewPeriod_(iso)) {
         // 通常コマの生徒（小学生・CAのみ、塾の中高生は除外）
-        var normalChipsK = ss.filter(function(s){ return isNormalKomaInKoushu_(s, kt); })
-          .map(function(s){ return studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso}); });
-        // 講習割付の生徒
+        // ── 講習モード：全生徒を統合ソート ──
+        // CA通常/CA振替/通常塾/振替(通常)/演習回/振替(演習)/テスト対策/講習/オンライン の順、各グループ内は学年順
+        var GRADE_ORDER_K = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+        // lessonRankCommon_ を使う（buildWeekGrid内変数スコープ用ラッパー）
+        function koushuLessonRank_(s, assignType, dateIso, komaT, cr_) {
+          var matchFn = function(k) {
+            if (k.satType==='juken') return false;
+            if (k.classroom && k.classroom!==cr_) return false;
+            if (k.satType!=='hira' && k.youbi===YOUBIS[i] && k.time===komaT) return true;
+            if (k.satType==='hira' && k.hiraKoma) {
+              var ht = YOUBIS[i]+komaT;
+              var hv = k.hiraKoma.indexOf('_')!==-1 ? k.hiraKoma.split('_').slice(1).join('_') : k.hiraKoma;
+              return hv===ht;
+            }
+            return false;
+          };
+          return lessonRankCommon_(s, assignType, dateIso, komaT, cr_, matchFn);
+        }
+        // normalChips の生徒をオブジェクト化
+        var normalStudentsK = ss.filter(function(s){ return isNormalKomaInKoushu_(s, kt); })
+          .map(function(s){ return { s: s, assignType: undefined }; });
+        // 講習割付の生徒をオブジェクト化
         var kAssigns = _koushuAssignments.filter(function(a) {
           return a.date === iso && a.classroom === cr && a.komaTime === kt;
         });
-        var kChips = kAssigns.map(function(a) {
-          var s = _students.find(function(st){ return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
-          return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: a.id });
+        var kAssignObjs = kAssigns.map(function(a) {
+          var s = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; }) || { name: a.studentName };
+          return { s: s, assignType: a.type, assignId: a.id };
         });
-        var allKChips = normalChipsK.concat(kChips).concat(subChips);
+        // 振替生徒（通常コマ以外から来た場合のみ）
+        var subObjsK = subChips; // subChips はすでにHTML文字列なので後で結合
+        // normalStudentsK + kAssignObjs を統合してソート
+        var allKObjs = normalStudentsK.concat(kAssignObjs);
+        allKObjs.sort(function(a, b) {
+          var ra = koushuLessonRank_(a.s, a.assignType, iso, kt, cr);
+          var rb = koushuLessonRank_(b.s, b.assignType, iso, kt, cr);
+          if (ra !== rb) return ra - rb;
+          return GRADE_ORDER_K.indexOf(a.s.grade||'') - GRADE_ORDER_K.indexOf(b.s.grade||'');
+        });
+        var normalChipsK = []; // 使用しない（allKObjs に統合）
+        var kChips = [];       // 使用しない（allKObjs に統合）
+        var allKChips = allKObjs.map(function(obj) {
+          if (obj.assignId !== undefined) {
+            return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType });
+          }
+          return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso });
+        }).concat(subChips);
         var kCntCls = allKChips.length >= 15 ? ' count-danger' : allKChips.length >= 12 ? ' count-warn' : '';
         var kCountDiv = allKChips.length > 0
           ? '<div class="wg-count' + kCntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + allKChips.length + '人）</div>'
@@ -8333,7 +8386,9 @@ function rerenderCurrentTab() {
     'box-shadow:0 4px 16px rgba(0,0,0,0.13)',
     'padding:10px 12px',
     'min-width:180px',
-    'max-width:300px',
+    'max-width:360px',
+    'max-height:80vh',
+    'overflow-y:auto',
     'font-size:12px',
     'color:#1a2535',
     'z-index:9999',
