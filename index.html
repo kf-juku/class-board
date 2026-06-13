@@ -1652,11 +1652,13 @@ function getActiveModeStudents() {
 
 // =====================================================
 // 共通ソートランク（通常・講習・テスト対策モード共通）
-// 順: CA通常(0) > CA振替(1) > 通常塾(2) > 振替通常(3) > 演習回(4) > 演習回振替(5) > テスト対策(6) > 講習(7) > オンライン(8)
+// 順: CA(0) > 通常塾(2) > 振替(3) > 演習回(4) > 演習回振替(5) > テスト対策(6) > 講習(7) > オンライン(8)
 // 各グループ内は学年順。欠席は並び順に影響しない（チップのバッジで表示）
+// 【川上さん指示 2026-06-14】並び順は生徒の属性ではなく「そのコマで来ている授業の種類」で決める。
+//   来ているコマがCAコマ（koma.id が ca_ 始まり）ならCA、それ以外の通常コマなら塾。バッジ判定と同じ基準。
+//   同じ種類の生徒はまとめて学年順。
 // =====================================================
 function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn) {
-  var isCaOnly = s.attrCa && !s.attrJuku;
   // 振替来塾チェック
   var subRec = (_absenceRecords||[]).find(function(r) {
     return r.studentName===s.name &&
@@ -1670,20 +1672,18 @@ function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn)
       return k.time===subRec.komaTime && (!k.classroom||k.classroom===classroom);
     });
     var isEnshuuSub = origKoma && (origKoma.satType==='enshuu'||origKoma.satType==='hira');
-    // 川上さん指示(2026-06-14)：講習コマに来た子はCA/塾で区別しない。CA振替(rank=1)分岐は撤去
     if (isEnshuuSub)   return 5; // 演習回振替
-    return 3;                     // 通常振替
+    return 3;                     // 振替
   }
-  // 講習割付生徒（assignType が渡された場合）
+  // 講習・テスト対策で来ている子（assignType が渡された場合）
   if (assignType !== undefined) {
     if (assignType === 'taisaku') return 6; // テスト対策
     return 7;                               // 講習
   }
-  // 通常コマ生徒（assignTypeなし = normalStudentsK）
-  // 川上さん指示(2026-06-14)：通常コマで表示される子はCAが先(rank=0)→塾(rank=2)。この区別は「残す」と明言済み
-  if (isCaOnly) return 0; // CA通常
+  // 通常コマで来ている子：来ているコマの種類で決める
   var koma = matchFn ? (s.komas||[]).find(matchFn) : null;
-  if (!koma) return 2;  // komaが見つからなくても通常塾として扱う
+  if (!koma) return 2;  // コマ不明時は塾扱い
+  if ((koma.id||'').indexOf('ca_') === 0)             return 0; // CAコマ
   if (koma.online)                                    return 8; // オンライン
   if (koma.satType==='enshuu'||koma.satType==='hira') return 4; // 演習回
   return 2;                                                       // 通常塾
@@ -1717,6 +1717,8 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     return idx >= 0 ? idx : 99;
   }
   return getActiveModeStudents().filter(function(s) {
+    // 川上さん指示(2026-06-14)：退会・休会の生徒は時間割に表示しない
+    if (s.status === '退会' || s.status === '休会') return false;
     return (s.komas || []).some(function(k) {
       if (!matchesKoma(k)) return false;
       // classroomが未設定の土曜コマ（sat/eiken/hira）はgetMainClassroomで教室を判定
@@ -1768,18 +1770,27 @@ function getKomasForClassroom(classroom) {
 }
 
 /**
- * 講習モード時に通常コマ表示すべき生徒か判定
- * 小学生 or CA専業生 → true（通常コマ維持）
- * 塾の中高生 → false（通常コマ非表示、講習割付で表示）
+ * 講習モード時に通常コマを表示すべきコマか判定
+ * 【川上さん指示 2026-06-14】来ているコマの種類で決める：
+ *   ・CAの通塾コマ（koma.id が ca_ 始まり）→ そのまま表示（学年問わず）
+ *   ・英検コマ → そのまま表示
+ *   ・塾の通常コマ → 小学生だけ表示（中高生は講習コマに置換するため非表示）
+ * 生徒の属性（attrCa/attrJuku）では判定しない。
  */
 function isNormalKomaInKoushu_(s, kt) {
   var grade = s.grade || '';
   var isElem = grade.indexOf('小') === 0;
-  // 仕様(機能仕様書12-1)：CA専業生は講習期間中も通常コマをそのまま維持表示する。この判定用のisCaOnlyは残す（並び順区別とは別物）
-  var isCaOnly = s.attrCa && !s.attrJuku;
-  // 英検コマは学年問わず通常表示（kt省略時はfalse）
-  var isEiken = kt ? (s.komas || []).some(function(k){ return k.satType === 'eiken' && k.time === kt; }) : false;
-  return isElem || isCaOnly || isEiken;
+  if (kt) {
+    // その時刻に来ているコマを特定して種類で判定
+    var komasAtKt = (s.komas || []).filter(function(k){ return k.time === kt; });
+    var hasCa    = komasAtKt.some(function(k){ return (k.id||'').indexOf('ca_') === 0; });
+    var hasEiken = komasAtKt.some(function(k){ return k.satType === 'eiken'; });
+    if (hasCa || hasEiken) return true;       // CAコマ・英検コマは学年問わず表示
+    return isElem;                            // 塾の通常コマは小学生のみ
+  }
+  // kt省略時（カウント等）：小学生 または CAコマを持つ子
+  var hasAnyCa = (s.komas || []).some(function(k){ return (k.id||'').indexOf('ca_') === 0; });
+  return isElem || hasAnyCa;
 }
 
 /**
@@ -1788,7 +1799,7 @@ function isNormalKomaInKoushu_(s, kt) {
  */
 function koushuChipHtml(s, opts) {
   // 川上さん指示(2026-06-14)：講習コマに登録された子は全員「講習」扱い。CA/塾で区別しCAバッジを出す委譲ロジックは撤去
-  // （旧コードはCA専業生をstudentChipHtmlに委譲しCAバッジを付けていた→skipCaDelegateで打ち消す後付けパッチも不要になり撤去）
+  // 講習・テスト対策で来ている子はその授業のバッジで表示する。来ているコマの種類で判定する。
   var name = s.name || '';
   var grade = s.grade || '';
   var todayIso = opts.dateStr || '';
@@ -1934,7 +1945,7 @@ function studentChipHtml(s, opts) {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     }
   } else {
-    // komaが見つからない場合：attrJukuがあれば塾、CA専業のみCA
+    // コマが見つからない場合のフォールバック：塾コマがあれば塾、なければCA
     if (s.attrJuku) {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     } else if (s.attrCa) {
@@ -2155,7 +2166,13 @@ function renderToday() {
       });
 
       // ── 2. 講習割付コマを表示 ──
-      var crAssign = todayAssign.filter(function(a) { return a.classroom === cr; });
+      var crAssign = todayAssign.filter(function(a) {
+        if (a.classroom !== cr) return false;
+        // 川上さん指示(2026-06-14)：退会・休会の生徒は表示しない
+        var as = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
+        if (as && (as.status === '退会' || as.status === '休会')) return false;
+        return true;
+      });
       var komaMap = {};
       crAssign.forEach(function(a) {
         if (!komaMap[a.komaTime]) komaMap[a.komaTime] = [];
@@ -2972,7 +2989,11 @@ function buildWeekGrid(days, todayIso) {
         }
         // 講習割付の生徒をオブジェクト化
         var kAssigns = _koushuAssignments.filter(function(a) {
-          return a.date === iso && a.classroom === cr && a.komaTime === kt;
+          if (a.date !== iso || a.classroom !== cr || a.komaTime !== kt) return false;
+          // 川上さん指示(2026-06-14)：退会・休会の生徒は表示しない
+          var as = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
+          if (as && (as.status === '退会' || as.status === '休会')) return false;
+          return true;
         });
         // normalChips の生徒をオブジェクト化
         // kAssigns に含まれる生徒のid/name両方を重複チェック用に収集
@@ -3029,7 +3050,7 @@ function buildWeekGrid(days, todayIso) {
             // 川上さん指示(2026-06-14)：講習コマに登録された子は全員「講習」扱い。CA/塾で区別しない（CAバッジなし・講習バッジ）
             return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType });
           }
-          // 通常コマ生徒（小学生・CA兼塾生・英検）：そのコマ種別でバッジを出す
+          // 通常コマで来ている子：そのコマの種類でバッジを出す
           // komaTimeはそのコマの時間だが、生徒のkomaと一致しない場合attrで判断
           return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, koushuNormalMode: true });
         });
@@ -3345,7 +3366,7 @@ function printKoushuPeriod() {
           var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || {};
           var badge = '';
           if (isTestPr) badge = (a.type === 'jishu') ? 'jishu' : 'taisaku';
-          else if (isNormalKomaInKoushu_(s, '')) badge = 'koushu'; // 通常コマ勢（小学生・CA）の追加受講
+          else if (isNormalKomaInKoushu_(s, '')) badge = 'koushu'; // 通常コマで来ている子の追加受講
           items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge });
         });
         if (!items.length) return '<td><span style="color:#ccc">—</span></td>';
@@ -6686,7 +6707,7 @@ function renderBulkStudentList() {
   var isTestList = !!(bulkPeriod0 && bulkPeriod0.type === 'test');
 
   var filtered = _students.filter(function(s) {
-    // テスト対策：中高生の塾生のみ（CA専業除外）
+    // テスト対策の一括登録対象：塾の通常授業がある中高生のみ（attrJuku=trueで判定）
     if (isTestList) {
       if (!s.attrJuku) return false;
       var g0 = s.grade || '';
