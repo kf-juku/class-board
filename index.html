@@ -2985,6 +2985,10 @@ function buildWeekGrid(days, todayIso) {
           if (r === 0 && assignType === undefined) r = 2;
           return r;
         }
+        // 講習割付の生徒をオブジェクト化
+        var kAssigns = _koushuAssignments.filter(function(a) {
+          return a.date === iso && a.classroom === cr && a.komaTime === kt;
+        });
         // normalChips の生徒をオブジェクト化
         // kAssigns に含まれる生徒のid/name両方を重複チェック用に収集
         var kAssignIds   = kAssigns.map(function(a){ return a.studentId; }).filter(Boolean);
@@ -2996,10 +3000,6 @@ function buildWeekGrid(days, todayIso) {
           if (s.name && kAssignNms.indexOf(s.name)   >= 0) return false;
           return true;
         }).map(function(s){ return { s: s, assignType: undefined }; });
-        // 講習割付の生徒をオブジェクト化
-        var kAssigns = _koushuAssignments.filter(function(a) {
-          return a.date === iso && a.classroom === cr && a.komaTime === kt;
-        });
         var kAssignObjs = kAssigns.map(function(a) {
           var s = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; }) || { name: a.studentName };
           return { s: s, assignType: a.type, assignId: a.id };
