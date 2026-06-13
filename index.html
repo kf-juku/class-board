@@ -2956,10 +2956,16 @@ function buildWeekGrid(days, todayIso) {
                r.status === 'scheduled' &&
                !ss.find(function(s){ return s.name === r.studentName; }); // 通常コマにいない生徒のみ
       });
+      // 振替生徒はオブジェクトとしてallKObjsに統合するためここでは生成しない
+      // subChips は講習モード外（通常モード）でのみ使用
       var subChips = subStudents.map(function(r) {
-        // 振替生徒は _students から情報を引く
         var stu = (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
         return studentChipHtml(stu, {classroom:cr, komaTime:kt, youbi:YOUBIS[i], dateStr:iso, absenceCourse: r.absenceCourse || ''});
+      });
+      // 講習モード用：振替生徒をオブジェクト化（allKObjsでソート対象にする）
+      var subObjs = subStudents.map(function(r) {
+        var stu = (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
+        return { s: stu, assignType: undefined, isSub: true };
       });
       // ── 講習モード（夏期等）：通常コマ（小学生・CA）＋講習割付コマ を両方表示（その日が期間内のセルだけ 2026-06-10） ──
       if (isKoushuModeActive() && !getActiveTestPeriod_() && isDateInViewPeriod_(iso)) {
@@ -2999,13 +3005,23 @@ function buildWeekGrid(days, todayIso) {
           return true;
         }).map(function(s){ return { s: s, assignType: undefined }; });
         var kAssignObjs = kAssigns.map(function(a) {
-          var s = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; }) || { name: a.studentName };
+          // まずid・完全一致で検索、なければ表示名の部分一致でフォールバック
+          var s = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
+          if (!s && a.studentName) {
+            // 割付名とマスタ名の表記揺れ対策（例：「倉茂（ハリス）エイサン」vs「ハリスエイサン倉茂」）
+            s = _students.find(function(st){
+              var an = a.studentName.replace(/[（）\s]/g,'');
+              var sn = (st.name||'').replace(/[（）\s]/g,'');
+              return an && sn && (an.indexOf(sn) >= 0 || sn.indexOf(an) >= 0);
+            });
+          }
+          if (!s) s = { name: a.studentName };
           return { s: s, assignType: a.type, assignId: a.id };
         });
         // 振替生徒（通常コマ以外から来た場合のみ）
         var subObjsK = subChips; // subChips はすでにHTML文字列なので後で結合
         // normalStudentsK + kAssignObjs を統合してソート
-        var allKObjs = normalStudentsK.concat(kAssignObjs);
+        var allKObjs = normalStudentsK.concat(kAssignObjs).concat(subObjs);
         allKObjs.sort(function(a, b) {
           var ra = koushuLessonRank_(a.s, a.assignType, iso, kt, cr);
           var rb = koushuLessonRank_(b.s, b.assignType, iso, kt, cr);
@@ -3015,18 +3031,17 @@ function buildWeekGrid(days, todayIso) {
         var normalChipsK = []; // 使用しない（allKObjs に統合）
         var kChips = [];       // 使用しない（allKObjs に統合）
         var allKChips = allKObjs.map(function(obj) {
+          if (obj.isSub) {
+            // 振替来塾生徒
+            return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso });
+          }
           if (obj.assignId !== undefined) {
             // 講習割付生徒（CA専業・小学生含む）は塾の講習として扱う → CAバッジなし・講習バッジ
             return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType, skipCaDelegate: true });
           }
-          // 通常コマ生徒（小学生・CA専業・英検）
-          // CA専業生は講習期間中に来る場合、CAコマではなく塾コマ扱い → koushuChipHtmlで描画（CAバッジを出さない）
-          var isCaOnlyS = obj.s.attrCa && !obj.s.attrJuku;
-          if (isCaOnlyS) {
-            return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, skipCaDelegate: true });
-          }
+          // 通常コマ生徒（小学生・CA専業・英検）は通常チップで表示
           return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso });
-        }).concat(subChips);
+        });
         var kCntCls = allKChips.length >= 15 ? ' count-danger' : allKChips.length >= 12 ? ' count-warn' : '';
         var kCountDiv = allKChips.length > 0
           ? '<div class="wg-count' + kCntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + allKChips.length + '人）</div>'
