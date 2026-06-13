@@ -1205,7 +1205,8 @@ var _koushuAssignments = [];  // 現在の期間の生徒割付
 var _activeKoushuPeriodId = null; // 設定タブで選択中の期間ID
 var _koushuMode = false;      // 講習モード表示中かどうか（今日・今週タブ）
 var _koushuModeUserOverride = null; // null=自動, true=手動ON, false=手動OFF
-var _selectedViewPeriodId = '__auto__'; // 期間選択プルダウン：'__auto__'=自動（進行中）, ''=通常表示固定, その他=期間ID（2026-06-10）
+var CB_VIEW_PERIOD_KEY = 'cb_view_period_id';
+var _selectedViewPeriodId = localStorage.getItem(CB_VIEW_PERIOD_KEY) || '__auto__'; // 期間選択プルダウン：'__auto__'=自動（進行中）, ''=通常表示固定, その他=期間ID（2026-06-10）
 
 // 現在日が含まれる講習期間を返す（なければ null）
 function getActiveKoushuPeriod() {
@@ -1237,6 +1238,7 @@ function viewPeriodOptions_() {
 // 期間プルダウン変更：選択期間のカレンダー・割付をロードして再描画
 function selectViewPeriod(val) {
   _selectedViewPeriodId = val;
+  try { localStorage.setItem(CB_VIEW_PERIOD_KEY, val); } catch(e) {}
   _koushuModeUserOverride = null;
   var tab = _currentTab || 'today';
   function rerender() {
@@ -1538,12 +1540,19 @@ function loadAll() {
       if (res && res.success && res.tasks) {
         // ローカルで完了・削除済みのIDをGAS結果から除外（競合状態対策）
         // GASへの書き込みが完了する前にloadAllが走ると復活するバグを防ぐ
-        var localIds = {};
-        (_tasks || []).forEach(function(t) { localIds[t.id] = t.status; });
+        var localMap = {};
+        (_tasks || []).forEach(function(t) { localMap[t.id] = t; });
         _tasks = res.tasks.filter(function(t) {
-          var localStatus = localIds[t.id];
+          var local = localMap[t.id];
           // ローカルで完了済み・削除中のタスクはGAS結果から除外
-          return localStatus !== 'done' && !_pendingDeleteIds[t.id];
+          return (!local || local.status !== 'done') && !_pendingDeleteIds[t.id];
+        }).map(function(t) {
+          var local = localMap[t.id];
+          // ローカルのdueDateがGASより未来なら（手動変更がGASより先行）ローカル値を優先
+          if (local && local.dueDate && local.dueDate > t.dueDate) {
+            return Object.assign({}, t, { dueDate: local.dueDate });
+          }
+          return t;
         });
         localStorage.setItem('cb_cache_tasks', JSON.stringify(_tasks));
         // A-5：自動持越し処理
@@ -1710,7 +1719,17 @@ function getKomasForClassroom(classroom) {
   getActiveModeStudents().forEach(function(s) {
     (s.komas || []).forEach(function(k) {
       if (k.classroom === classroom) times[k.time] = true;
-      else if (!k.classroom && k.satType && k.satType !== 'juken' && getMainClassroom(s) === classroom) times[k.time] = true;
+      else if (!k.classroom && k.satType && k.satType !== 'juken' && getMainClassroom(s) === classroom) {
+        if (k.satType === 'hira' && k.hiraKoma) {
+          // hiraKoma から時間部分のみ取り出す（新形式: "教室_曜日時間", 旧形式: "曜日時間"）
+          var hiraT = k.hiraKoma.indexOf('_') !== -1 ? k.hiraKoma.split('_').slice(1).join('_') : k.hiraKoma;
+          // 先頭の曜日1文字を除去して時間部分だけにする
+          hiraT = hiraT.replace(/^[月火水木金土日]/, '');
+          if (hiraT) times[hiraT] = true;
+        } else {
+          times[k.time] = true;
+        }
+      }
     });
   });
   return Object.keys(times).sort(function(a, b) {
@@ -1843,8 +1862,8 @@ function studentChipHtml(s, opts) {
       }
       // 受験特訓コマは通常コマのchip生成では無視する
       if (k.satType === 'juken') return false;
-      // classroomが一致する場合のみ通す
-      var crMatch = k.classroom === opts.classroom;
+      // classroomが一致、または未設定（土曜コマ等）かつ getMainClassroom で教室が一致する場合に通す
+      var crMatch = k.classroom ? k.classroom === opts.classroom : (!k.satType || k.satType === 'juken' ? false : getMainClassroom(s) === opts.classroom);
       if (!crMatch) return false;
       // hiraコマは上で処理済みなのでスキップ
       if (k.satType === 'hira') return false;
@@ -2140,8 +2159,10 @@ function renderToday() {
                 return (s.komas||[]).some(function(k2){ return k2.satType==='juken' && k2.youbi===todayYoubi; }) && getMainClassroom(s)===cr;
               }).length;
             }
-            var _cntTotal = ((_cnt && typeof _cnt === 'object') ? _cnt.total : 0) + _jukenCountT + testAssignCount_(cr, kt, todayIso);
-            var _cntLabel = (_cnt && typeof _cnt === 'object') ? _cnt.label.replace('（計' + (_cntTotal - _jukenCountT) + '人）', '（計' + _cntTotal + '人）') : '';
+            var _testCount = testAssignCount_(cr, kt, todayIso);
+            var _cntBase = ((_cnt && typeof _cnt === 'object') ? _cnt.total : 0) + _jukenCountT;
+            var _cntTotal = _cntBase + _testCount;
+            var _cntLabel = (_cnt && typeof _cnt === 'object') ? _cnt.label.replace('（計' + (_cntBase - _jukenCountT) + '人）', '（計' + _cntTotal + '人）') : '';
             var _cntCls = _cntTotal >= 15 ? ' count-danger' : _cntTotal >= 12 ? ' count-warn' : '';
             var _cntTitle = ' title="12人以上：黄色 / 15人以上：赤"';
             var countHtml = _cntTotal > 0 ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cntLabel + '</span>' : '';
@@ -2847,7 +2868,7 @@ function buildWeekGrid(days, todayIso) {
           var s = _students.find(function(st){ return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
           return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: a.id });
         });
-        var allKChips = normalChipsK.concat(kChips);
+        var allKChips = normalChipsK.concat(kChips).concat(subChips);
         var kCntCls = allKChips.length >= 15 ? ' count-danger' : allKChips.length >= 12 ? ' count-warn' : '';
         var kCountDiv = allKChips.length > 0
           ? '<div class="wg-count' + kCntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + allKChips.length + '人）</div>'
@@ -7167,6 +7188,8 @@ function submitQuickAdd(uid, classroom, taskType) {
 function pushCbTaskToGcal(task, taskUrl) {
   // dueTime がない場合は登録しない
   if (!task.dueTime) return;
+  // 既にGカレ登録済みの場合は重複登録しない
+  if (task.gcalEventId) return;
   // gcal_settings のマッピングを使うため、Task Manager GAS に createCalendarEvent を呼ぶ
   // classroom → calendarId のマッピングはTask Manager側のgcal_settingsに依存
   // まずgcal_settingsを取得してから登録する
