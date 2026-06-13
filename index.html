@@ -8450,6 +8450,12 @@ function rerenderCurrentTab() {
 
   function showPopup(el, html, x, y) {
     el.innerHTML = html;
+    // 川上さん指示(2026-06-14)：講習予定が2列のときだけポップを広げて横スクロールを出さない。それ以外は標準幅(360px)
+    if (html.indexOf('grid-template-columns:1fr 1fr') >= 0) {
+      el.style.maxWidth = '480px';
+    } else {
+      el.style.maxWidth = '360px';
+    }
     el.style.display = 'block';
     el.style.left = '-9999px';
     el.style.top  = '-9999px';
