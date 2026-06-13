@@ -1932,12 +1932,11 @@ function studentChipHtml(s, opts) {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     }
   } else {
-    if (s.attrCa && s.attrJuku) {
-      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
+    // komaが見つからない場合：attrJukuがあれば塾、CA専業のみCA
+    if (s.attrJuku) {
+      lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     } else if (s.attrCa) {
       lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
-    } else if (s.attrJuku) {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     }
   }
 
@@ -3029,8 +3028,9 @@ function buildWeekGrid(days, todayIso) {
             // 講習割付生徒（CA専業・小学生含む）は塾の講習として扱う → CAバッジなし・講習バッジ
             return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType, skipCaDelegate: true });
           }
-          // 通常コマ生徒（小学生・CA専業・英検）は通常チップで表示
-          return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso });
+          // 通常コマ生徒（小学生・CA兼塾生・英検）：そのコマ種別でバッジを出す
+          // komaTimeはそのコマの時間だが、生徒のkomaと一致しない場合attrで判断
+          return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, koushuNormalMode: true });
         });
         var kCntCls = allKChips.length >= 15 ? ' count-danger' : allKChips.length >= 12 ? ' count-warn' : '';
         var kCountDiv = allKChips.length > 0
