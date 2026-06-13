@@ -2981,8 +2981,6 @@ function buildWeekGrid(days, todayIso) {
             return false;
           };
           var r = lessonRankCommon_(s, assignType, dateIso, komaT, cr_, matchFn);
-          // CA専業生が講習モードの通常コマ枠で来る場合（assignType=undefined）は塾扱い(rank=2)
-          if (r === 0 && assignType === undefined) r = 2;
           return r;
         }
         // 講習割付の生徒をオブジェクト化
@@ -3018,8 +3016,8 @@ function buildWeekGrid(days, todayIso) {
         var kChips = [];       // 使用しない（allKObjs に統合）
         var allKChips = allKObjs.map(function(obj) {
           if (obj.assignId !== undefined) {
-            // 講習割付生徒（中高生）
-            return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType });
+            // 講習割付生徒（CA専業・小学生含む）は塾の講習として扱う → CAバッジなし・講習バッジ
+            return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType, skipCaDelegate: true });
           }
           // 通常コマ生徒（小学生・CA専業・英検）
           // CA専業生は講習期間中に来る場合、CAコマではなく塾コマ扱い → koushuChipHtmlで描画（CAバッジを出さない）
