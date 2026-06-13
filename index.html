@@ -2153,8 +2153,20 @@ function renderToday() {
         return getStudentsForKoma(cr, todayYoubi, kt).some(function(s){ return isNormalKomaInKoushu_(s, kt); });
       });
       normalKomas.forEach(function(kt) {
-        var ss = getStudentsForKoma(cr, todayYoubi, kt).filter(function(s){ return isNormalKomaInKoushu_(s, kt); });
-        var chips = ss.map(function(s) { return studentChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso}); }).join('');
+        var _todayKAssigns = (_koushuAssignments||[]).filter(function(a){ return a.date===todayIso && a.classroom===cr && a.komaTime===kt; });
+        var _todayKIds = _todayKAssigns.map(function(a){ return a.studentId; }).filter(Boolean);
+        var _todayKNms = _todayKAssigns.map(function(a){ return a.studentName; }).filter(Boolean);
+        var ss = getStudentsForKoma(cr, todayYoubi, kt).filter(function(s){
+          if (!isNormalKomaInKoushu_(s, kt)) return false;
+          if (s.id   && _todayKIds.indexOf(s.id)   >= 0) return false;
+          if (s.name && _todayKNms.indexOf(s.name) >= 0) return false;
+          return true;
+        });
+        var chips = ss.map(function(s) {
+          var isCaOnlyS = s.attrCa && !s.attrJuku;
+          if (isCaOnlyS) return koushuChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso, skipCaDelegate:true});
+          return studentChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso});
+        }).join('');
         komaBlocksHtml += '<div class="koma-block">' +
           '<div class="koma-time">' + esc(kt) + ' <span style="font-size:10px;color:#6b7280">（通常）</span></div>' +
           '<div class="koma-students">' + chips + '</div>' +
@@ -2183,9 +2195,18 @@ function renderToday() {
           var assigns = komaMap[kt] || [];
           var cntCls = assigns.length >= 15 ? ' count-danger' : assigns.length >= 12 ? ' count-warn' : '';
           var countHtml = assigns.length > 0 ? ' <span class="koma-count' + cntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + assigns.length + '人）</span>' : '';
+          var GRADE_ORDER_T = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+          assigns.sort(function(a, b) {
+            var sa = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; }) || {};
+            var sb = _students.find(function(st){ return st.id===b.studentId||st.name===b.studentName; }) || {};
+            var ra = lessonRankCommon_(sa, a.type, todayIso, kt, cr, null);
+            var rb = lessonRankCommon_(sb, b.type, todayIso, kt, cr, null);
+            if (ra !== rb) return ra - rb;
+            return GRADE_ORDER_T.indexOf(sa.grade||'') - GRADE_ORDER_T.indexOf(sb.grade||'');
+          });
           var chips = assigns.map(function(a) {
             var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
-            return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: a.id });
+            return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: a.id, assignType: a.type });
           }).join('');
           komaBlocksHtml += '<div class="koma-block">' +
             '<div class="koma-time">🎓 ' + esc(kt) + countHtml + '</div>' +
