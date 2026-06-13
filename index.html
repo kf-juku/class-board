@@ -2959,14 +2959,21 @@ function buildWeekGrid(days, todayIso) {
             }
             return false;
           };
-          return lessonRankCommon_(s, assignType, dateIso, komaT, cr_, matchFn);
+          var r = lessonRankCommon_(s, assignType, dateIso, komaT, cr_, matchFn);
+          // CA専業生が講習モードの通常コマ枠で来る場合（assignType=undefined）は塾扱い(rank=2)
+          if (r === 0 && assignType === undefined) r = 2;
+          return r;
         }
         // normalChips の生徒をオブジェクト化
-        var kAssignNames = kAssigns.map(function(a){ return a.studentId || a.studentName; });
+        // kAssigns に含まれる生徒のid/name両方を重複チェック用に収集
+        var kAssignIds   = kAssigns.map(function(a){ return a.studentId; }).filter(Boolean);
+        var kAssignNms   = kAssigns.map(function(a){ return a.studentName; }).filter(Boolean);
         var normalStudentsK = ss.filter(function(s){
           if (!isNormalKomaInKoushu_(s, kt)) return false;
           // kAssignObjs に既にいる生徒は除外（重複防止）
-          return !kAssignNames.some(function(n){ return n === s.id || n === s.name; });
+          if (s.id   && kAssignIds.indexOf(s.id)     >= 0) return false;
+          if (s.name && kAssignNms.indexOf(s.name)   >= 0) return false;
+          return true;
         }).map(function(s){ return { s: s, assignType: undefined }; });
         // 講習割付の生徒をオブジェクト化
         var kAssigns = _koushuAssignments.filter(function(a) {
