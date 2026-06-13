@@ -2886,6 +2886,14 @@ function buildWeekGrid(days, todayIso) {
         var tpG = getActiveTestPeriod_();
         if ((tpG.komaFrames || []).indexOf(kt) >= 0 || testAssignCount_(cr, kt, iso) > 0) crHasKoma = true;
       }
+      // 講習モード：講習コマ枠 or その日の割付があるセルはグレーアウトしない（2026-06-13）
+      if (!crHasKoma && isKoushuModeActive() && !getActiveTestPeriod_() && isDateInViewPeriod_(iso)) {
+        var kpG = getActiveKoushuPeriod();
+        if ((kpG && (kpG.komaFrames || []).indexOf(kt) >= 0) ||
+            _koushuAssignments.some(function(a){ return a.date === iso && a.classroom === cr && a.komaTime === kt; })) {
+          crHasKoma = true;
+        }
+      }
       if (!crHasKoma) {
         // この教室にこのコマ設定がない → グレーアウトセル
         return '<div class="wg-cell wg-cell-no-koma' + todayCls + emptyCls + '"></div>';
