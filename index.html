@@ -1302,7 +1302,11 @@ function testAssignPopupBadges_(s, forcePeriod) {
     return '<span style="display:inline-block;font-size:10px;background:' + bg + ';color:' + col + ';border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb;white-space:nowrap">' + esc(label.trim()) + '【' + tag + '】</span>';
   }).join('');
   var listTitle = tp.type === 'test' ? 'テスト対策の予定' : '講習の予定';
-  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="display:flex;flex-direction:column;gap:2px">' + badges + '</div></div>';
+  // 川上さん指示(2026-06-14)：講習コマ登録状況のポップオーバーは7件以上で2列カラム化（縦長で見づらいため）
+  var listStyle = list.length >= 7
+    ? 'display:grid;grid-template-columns:1fr 1fr;gap:2px 6px;align-items:start'
+    : 'display:flex;flex-direction:column;gap:2px';
+  return '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">' + listTitle + '</div><div style="' + listStyle + '">' + badges + '</div></div>';
 }
 
 function testAssignChips_(cr, kt, dateIso, youbi) {
@@ -1666,7 +1670,7 @@ function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn)
       return k.time===subRec.komaTime && (!k.classroom||k.classroom===classroom);
     });
     var isEnshuuSub = origKoma && (origKoma.satType==='enshuu'||origKoma.satType==='hira');
-    if (isCaOnly)      return 1; // CA振替
+    // 川上さん指示(2026-06-14)：講習コマに来た子はCA/塾で区別しない。CA振替(rank=1)分岐は撤去
     if (isEnshuuSub)   return 5; // 演習回振替
     return 3;                     // 通常振替
   }
@@ -1676,7 +1680,7 @@ function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn)
     return 7;                               // 講習
   }
   // 通常コマ生徒（assignTypeなし = normalStudentsK）
-  // CA専業生はkomaのclassroom設定によらずCA通常として扱う
+  // 川上さん指示(2026-06-14)：通常コマで表示される子はCAが先(rank=0)→塾(rank=2)。この区別は「残す」と明言済み
   if (isCaOnly) return 0; // CA通常
   var koma = matchFn ? (s.komas||[]).find(matchFn) : null;
   if (!koma) return 2;  // komaが見つからなくても通常塾として扱う
@@ -1771,6 +1775,7 @@ function getKomasForClassroom(classroom) {
 function isNormalKomaInKoushu_(s, kt) {
   var grade = s.grade || '';
   var isElem = grade.indexOf('小') === 0;
+  // 仕様(機能仕様書12-1)：CA専業生は講習期間中も通常コマをそのまま維持表示する。この判定用のisCaOnlyは残す（並び順区別とは別物）
   var isCaOnly = s.attrCa && !s.attrJuku;
   // 英検コマは学年問わず通常表示（kt省略時はfalse）
   var isEiken = kt ? (s.komas || []).some(function(k){ return k.satType === 'eiken' && k.time === kt; }) : false;
@@ -1782,11 +1787,8 @@ function isNormalKomaInKoushu_(s, kt) {
  * 学年・名前・欠席バッジだけ表示。土曜演習等のコマ種別バッジは出さない。
  */
 function koushuChipHtml(s, opts) {
-  // CA専業生：講習期間中に通常コマ（塾扱い）で来る場合はバッジなし・koushuチップで表示
-  // opts.skipCaDelegate=true の場合は委譲しない（CAバッジを付けない）
-  if (s.attrCa && !s.attrJuku && !opts.skipCaDelegate) {
-    return studentChipHtml(s, opts);
-  }
+  // 川上さん指示(2026-06-14)：講習コマに登録された子は全員「講習」扱い。CA/塾で区別しCAバッジを出す委譲ロジックは撤去
+  // （旧コードはCA専業生をstudentChipHtmlに委譲しCAバッジを付けていた→skipCaDelegateで打ち消す後付けパッチも不要になり撤去）
   var name = s.name || '';
   var grade = s.grade || '';
   var todayIso = opts.dateStr || '';
@@ -2143,9 +2145,8 @@ function renderToday() {
           return true;
         });
         var chips = ss.map(function(s) {
-          var isCaOnlyS = s.attrCa && !s.attrJuku;
-          if (isCaOnlyS) return koushuChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso, skipCaDelegate:true});
-          return studentChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso});
+          // 川上さん指示(2026-06-14)：通常コマ生はCA/塾で区別しない。週間グリッド(3033行付近)と対称に studentChipHtml で統一描画
+          return studentChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso, koushuNormalMode:true});
         }).join('');
         komaBlocksHtml += '<div class="koma-block">' +
           '<div class="koma-time">' + esc(kt) + ' <span style="font-size:10px;color:#6b7280">（通常）</span></div>' +
@@ -3025,8 +3026,8 @@ function buildWeekGrid(days, todayIso) {
             return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso });
           }
           if (obj.assignId !== undefined) {
-            // 講習割付生徒（CA専業・小学生含む）は塾の講習として扱う → CAバッジなし・講習バッジ
-            return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType, skipCaDelegate: true });
+            // 川上さん指示(2026-06-14)：講習コマに登録された子は全員「講習」扱い。CA/塾で区別しない（CAバッジなし・講習バッジ）
+            return koushuChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, assignId: obj.assignId, assignType: obj.assignType });
           }
           // 通常コマ生徒（小学生・CA兼塾生・英検）：そのコマ種別でバッジを出す
           // komaTimeはそのコマの時間だが、生徒のkomaと一致しない場合attrで判断
