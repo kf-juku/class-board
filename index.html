@@ -491,6 +491,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .absence-btn:hover { background:#fee2e2; border-color:#fca5a5; color:#dc2626; }
 .absence-btn-chain { background:#ede9fe; border-color:#a78bfa; color:#7c3aed; }
 .absence-btn-chain:hover { background:#ddd6fe; }
+.cb-sub-jump:hover { filter: brightness(0.92); text-decoration: underline; }
+.abs-card-highlight { animation: absCardFlash 2.2s ease-out; box-shadow: 0 0 0 2px #f59e0b; }
+@keyframes absCardFlash { 0% { box-shadow: 0 0 0 3px #f59e0b; background:#fffbeb; } 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); } }
 /* 欠席・振替タブ */
 .absence-list { display:flex; flex-direction:column; gap:12px; padding:16px 0; }
 .absence-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
@@ -2071,16 +2074,14 @@ function studentChipHtml(s, opts) {
       // 欠席済→さらに欠席（振替の連鎖）
       absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\')" title="この振替をさらに欠席処理">↩</button>';
     } else if (subRec) {
-      // 元コマ種別を判定
-      var _subOrigKoma = (s.komas || []).find(function(k) {
-        if (!k.classroom || k.classroom !== subRec.classroom) return false;
-        return k.time === subRec.komaTime;
-      });
-      var _subIsEnshuu = _subOrigKoma && (_subOrigKoma.satType === 'enshuu' || _subOrigKoma.satType === 'hira');
-      absenceBadge = _subIsEnshuu
-        ? '<span class="badge" style="font-size:10px;background:#dcfce7;color:#16a34a;margin-left:2px">⚡振替（演習回）</span>'
-        : '<span class="badge" style="font-size:10px;background:#0ea5e9;color:#fff;margin-left:2px">⚡振替（通常）</span>';
-      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\')" title="欠席を記録">欠</button>';
+      // ① 川上さん指示(2026-06-14)：振替の子のカードは「欠」ボタンを出さず、
+      //   ⚡振替バッジをクリックで振替タブの該当カード（振替日編集）へ飛ばす。
+      //   バッジ種別は元コマから 通常/演習回/CA を判定（②の振替タブと同じ subKomaType_ 基準）。
+      var _subType = subKomaType_(subRec, s);
+      absenceBadge = '<span class="badge cb-sub-jump" style="font-size:10px;background:' + _subType.bg + ';color:' + _subType.fg + ';margin-left:2px;cursor:pointer" '
+        + 'onclick="event.stopPropagation();gotoSubstituteEdit_(\'' + (subRec.id||'') + '\')" '
+        + 'title="クリックで振替日の編集へ">⚡振替（' + _subType.label + '）</span>';
+      // 「欠」ボタンは出さない（振替の子は振替日修正が主操作のため）
     } else {
       absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\')" title="欠席を記録">欠</button>';
     }
@@ -4640,6 +4641,45 @@ function normalizeAbsenceRecord_(r) {
 }
 
 
+// 振替元コマの種別を判定して表示用ラベル・色を返す（① 時間割バッジ／② 振替タブ共通）。
+// 判定基準：元コマの koma.id が ca_ 始まり→CA、satType が enshuu/hira→演習回、それ以外→通常。
+// 川上さん指示(2026-06-14)：生徒の属性ではなく「来ているコマの種類」で判定する。
+function subKomaType_(rec, studentObj) {
+  var s = studentObj;
+  if (!s) {
+    s = (_students || []).find(function(x){ return x.name === rec.studentName; });
+  }
+  var origKoma = null;
+  if (s && s.komas) {
+    origKoma = s.komas.find(function(k) {
+      return k.classroom === rec.classroom && k.time === rec.komaTime;
+    });
+  }
+  if (origKoma && (origKoma.id || '').indexOf('ca_') === 0) {
+    return { label: 'CA', bg: '#f3e8ff', fg: '#7c3aed' };
+  }
+  if (origKoma && (origKoma.satType === 'enshuu' || origKoma.satType === 'hira')) {
+    return { label: '演習回', bg: '#dcfce7', fg: '#16a34a' };
+  }
+  return { label: '通常', bg: '#0ea5e9', fg: '#ffffff' };
+}
+
+// ① 振替バッジから「振替日編集」へ飛ぶ：振替タブへ切替→該当カードまでスクロール＆ハイライト。
+function gotoSubstituteEdit_(recordId) {
+  switchTab('absence');
+  // renderAbsence 完了後にDOMが出来るので少し待ってからスクロール
+  setTimeout(function() {
+    var uid = 'sub_' + (recordId || '').replace(/[^a-z0-9]/gi, '_');
+    var card = document.getElementById('abs-card-' + uid);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('abs-card-highlight');
+    setTimeout(function(){ card.classList.remove('abs-card-highlight'); }, 2200);
+    var dateInput = document.getElementById('sub-date-' + uid);
+    if (dateInput) { try { dateInput.focus(); } catch(e){} }
+  }, 60);
+}
+
 function renderAbsence() {
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var todayIso = getTodayStr();
@@ -4663,16 +4703,13 @@ function renderAbsence() {
   var scheduled = (_absenceRecords || []).filter(function(r) {
     return r.status === 'scheduled'; // 振替日確定済み
   });
-  // 振替済み（直近30日）
-  var done30 = (_absenceRecords || []).filter(function(r) {
-    var d30 = new Date(); d30.setDate(d30.getDate() - 30);
-    return (r.status === 'substituted' || r.status === 'done') &&
-      r.absenceDate >= isoDate(d30);
-  });
-
   function cardHtml(r) {
+    var uid = 'sub_' + (r.id || '').replace(/[^a-z0-9]/gi,'_'); // ② 該当カード強調・①からのジャンプ用
     var statusBadge = '';
     var cardCls = 'absence-card';
+    // ② 川上さん指示(2026-06-14)：各カードに元コマ種別バッジ（通常/演習回/CA）。subKomaType_ で①と同基準。
+    var _ct = subKomaType_(r);
+    var typeBadge = '<span class="badge" style="font-size:10px;background:' + _ct.bg + ';color:' + _ct.fg + ';padding:1px 6px;border-radius:4px;margin-left:2px">' + _ct.label + '</span>';
     if (r.status === 'absent') {
       statusBadge = '<span class="ac-badge ac-badge-red">振替待ち</span>';
       cardCls += ' ac-waiting';
@@ -4693,7 +4730,6 @@ function renderAbsence() {
     // 振替設定UI（振替待ちのみ）
     var setSubHtml = '';
     if (r.status === 'absent' || r.status === 'scheduled') { // 両方とも変更可
-      var uid = 'sub_' + (r.id || '').replace(/[^a-z0-9]/gi,'_');
       setSubHtml = '<div class="ac-set-sub" id="set-sub-' + uid + '">' +
         '<input type="date" id="sub-date-' + uid + '" value="' + esc(r.substituteDate||'') + '" style="width:130px" />' +
         '<select id="sub-koma-' + uid + '">' +
@@ -4707,9 +4743,10 @@ function renderAbsence() {
         '<button class="btn-secondary btn-sm" onclick="cancelAbsence(\'' + (r.id||'') + '\')">キャンセル</button>' +
       '</div>';
     }
-    return '<div class="' + cardCls + '">' +
+    return '<div class="' + cardCls + '" id="abs-card-' + uid + '">' +
       '<div class="ac-header">' +
         '<span class="ac-name">' + esc(r.studentName) + '</span>' +
+        typeBadge +
         statusBadge +
         (r.absenceDate ? '<span class="ac-detail">欠席日：' + esc(r.absenceDate) + ' ' + esc(r.komaTime||'') + ' ' + esc(r.classroom||'') + '</span>' : '') +
       '</div>' +
@@ -4719,14 +4756,34 @@ function renderAbsence() {
     '</div>';
   }
 
-  var activeRecords = waiting.concat(scheduled); // 振替待ち＋振替確定（まだ来塾前）
+  // ② 川上さん指示(2026-06-14)：振替日が過ぎた未確認(scheduled かつ振替日<今日)は折りたたみに分離。
+  //   substituteDate が無い scheduled は通常の対応中に残す（過去判定できないため）。
+  var scheduledPast = scheduled.filter(function(r){ return r.substituteDate && r.substituteDate < todayIso; });
+  var scheduledCurrent = scheduled.filter(function(r){ return !(r.substituteDate && r.substituteDate < todayIso); });
+
+  // 川上さん指示(2026-06-15)：振替待ち(absent)で欠席日から30日以上経過したものは
+  //   「振替日未定のまま1か月経過」として別の折りたたみに分離（放置案件を閉じる）。
+  //   開けば振替確定できる（カードのUIは現行のまま）。欠席日が無いものは対応中に残す。
+  var d30 = new Date(); d30.setDate(d30.getDate() - 30);
+  var iso30 = isoDate(d30);
+  var waitingStale  = waiting.filter(function(r){ return r.absenceDate && r.absenceDate < iso30; });
+  var waitingActive = waiting.filter(function(r){ return !(r.absenceDate && r.absenceDate < iso30); });
+
+  var activeRecords = waitingActive.concat(scheduledCurrent); // 振替待ち(直近)＋振替確定(振替日がこれから)
   var waitingHtml = activeRecords.length
     ? activeRecords.map(cardHtml).join('')
     : '<div class="absence-empty">対応が必要な欠席はありません ✓</div>';
 
-  var doneHtml = done30.length
-    ? '<details style="margin-top:16px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none">過去30日の振替済み（' + done30.length + '件）</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">' + done30.map(cardHtml).join('') + '</div></details>'
+  // 振替日が過ぎた未確認（来塾済みか未確認のまま）の折りたたみ
+  var pastHtml = scheduledPast.length
+    ? '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none">⏳ 振替日が過ぎた未確認（' + scheduledPast.length + '件）</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">' + scheduledPast.map(cardHtml).join('') + '</div></details>'
     : '';
+
+  // 振替日未定のまま欠席日から1か月経過（放置案件）の折りたたみ
+  var staleHtml = waitingStale.length
+    ? '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none">⚠️ 振替日未定のまま1か月経過（' + waitingStale.length + '件）</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">' + waitingStale.map(cardHtml).join('') + '</div></details>'
+    : '';
+
 
   var helpHtml = '<span class="cb-help"><span class="cb-help-icon">?</span>' +
     '<span class="cb-help-body">【欠席ボタン】本日・今週タブの生徒名横の「欠」ボタンで欠席を記録します。<br><br>【振替待ちリスト】欠席登録した生徒が一覧に表示されます。振替日時が決まったら「振替確定」で登録してください。<br><br>【連鎖欠席】振替予定の生徒がさらに欠席した場合は「↩」ボタンで連鎖欠席を記録できます。<br><br>【アラート】本日振替予定の生徒がいる場合は画面上部に表示されます。</span>' +
@@ -4738,9 +4795,10 @@ function renderAbsence() {
       '<button class="btn-secondary btn-sm" style="margin-left:auto" onclick="reloadAbsence()">🔄 更新</button>' +
     '</div>' +
     alertHtml +
-    '<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--crimson)">対応中（振替待ち ' + waiting.length + '件 / 振替確定 ' + scheduled.length + '件）</div>' +
+    '<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--crimson)">対応中（振替待ち ' + waitingActive.length + '件 / 振替確定 ' + scheduledCurrent.length + '件）</div>' +
     '<div class="absence-list">' + waitingHtml + '</div>' +
-    doneHtml;
+    pastHtml +
+    staleHtml;
 }
 
 function getAllKomaOptions(selected) {
@@ -4882,46 +4940,26 @@ function submitAbsence(mode) {
     if (_currentTab === 'absence') renderAbsence();
     else renderCurrent();
 
-    // GAS保存
+    // GAS保存（成功してレコードIDが確定してから振替タスクを作る）
+    // 振替タスクIDは 'sub_'+レコードID（方式B）。アポ確定でも振替タブ確定でも
+    // 同じID規則・同じ生成関数(rebuildSubstituteTask_)に一本化し、後からの編集で
+    // 古いタスクを確実に消せるようにする（2026-06-14 川上さん指示）。
     callGas(studentUrl, { action: 'saveAbsenceRecord', record: record }, function(res) {
       if (res && res.success && res.id) {
         var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
         if (idx >= 0) _absenceRecords[idx].id = res.id;
+        record.id = res.id;
+        // 振替タスクを作成（カテゴリ「振替」・授業外。GカレはGAS側saveTaskが自動登録）
+        if (taskUrl) {
+          if (subDate && subTime && subCr) miniToast('振替タスクをGカレにも登録しました 📅');
+          rebuildSubstituteTask_(record, { status: 'absent' });
+        }
       } else {
         _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
         miniToast('⚠️ 欠席登録に失敗しました');
         renderCurrent();
       }
     }, 'POST');
-
-    // タスク登録（振替カテゴリ・授業外）
-    if (taskUrl) {
-      var taskTitle = '振替' + courseLabel + '：' + d.studentName + '（' + subDate + ' ' + subTime + '）';
-      var newTask = {
-        id:        'cb_' + Date.now(),
-        title:     taskTitle,
-        memo:      absTaskMemo_(d, memo),
-        dueDate:   subDate,
-        dueTime:   subTime,
-        taskType:  '授業外',
-        classroom: subCr,
-        assignee:  getUserName(),
-        status:    'todo',
-        category:  '振替',
-        issueId:   '',
-        createdBy: getUserName()
-      };
-      _tasks.push(newTask);
-      var willGcal = CB_GCAL_AUTO_CATEGORIES.indexOf('振替') !== -1 && subDate && subTime && subCr;
-      if (willGcal) miniToast('振替タスクをGカレにも登録しました 📅');
-      callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
-        if (!res || !res.success) {
-          _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
-        } else if (willGcal) {
-          pushCbTaskToGcal(newTask, taskUrl);
-        }
-      }, 'POST');
-    }
 
   } else {
     // ===== アポ未定ルート =====
@@ -4978,11 +5016,13 @@ function submitAbsence(mode) {
       };
       _tasks.push(newTask);
       var willGcalB = CB_GCAL_AUTO_CATEGORIES.indexOf('生徒対応') !== -1 && dateB && timeB && crB;
+      // 完全一本化(2026-06-14)：GカレはGAS側saveTaskが自動作成。直接登録はしない（二重防止）。
       callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
         if (!res || !res.success) {
           _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
-        } else if (willGcalB) {
-          pushCbTaskToGcal(newTask, taskUrl);
+        } else if (res.gcalEventId) {
+          var cur = _tasks.find(function(x){ return x.id === newTask.id; });
+          if (cur) { cur.gcalEventId = res.gcalEventId; cur.gcalCalId = res.gcalCalId || ''; }
         }
       }, 'POST');
     }
@@ -5037,7 +5077,58 @@ function saveSubstitute(recordId, uid) {
       rec.substituteDate = prev.substituteDate; rec.substituteKomaTime = prev.substituteKomaTime; rec.substituteClassroom = prev.substituteClassroom; rec.status = prev.status;
       miniToast('⚠️ 振替確定に失敗しました');
       renderAbsence();
+      return;
     }
+    // 振替タスクの作り直し（方式B 2026-06-14 川上さん指示）：
+    //   タスクID = 'sub_' + 欠席レコードID（規則導出）。編集時は同じIDの旧タスクを
+    //   deleteTask（GAS側がGカレも削除）してから新タスクを saveTask（GASがGカレ自動登録）。
+    //   これで「振替日を変えたら古いタスク・Gカレが消えて新しいのが作られる」を実現。
+    rebuildSubstituteTask_(rec, prev);
+  }, 'POST');
+}
+
+// 振替タスクを作り直す（古いタスクを削除→新タスクを作成）。saveSubstitute から呼ぶ。
+// rec: 更新後の欠席振替レコード（substituteDate/KomaTime/Classroom が新しい値）
+// prev: 編集前の値（再編集判定用。初回確定なら prev.status は 'absent'）
+function rebuildSubstituteTask_(rec, prev) {
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!taskUrl) return;
+  var subTaskId = 'sub_' + (rec.id || '');  // 方式B：欠席レコードIDから規則導出
+
+  // 旧タスク削除（再編集＝既にscheduledだった場合のみ。初回確定は削除不要だが、
+  // 同IDで二重作成を防ぐため常に削除を先に試みる。存在しなくてもGAS側は成功扱い）。
+  callGas(taskUrl, { action: 'deleteTask', id: subTaskId }, function(){
+    // ローカルからも除去
+    _tasks = (_tasks || []).filter(function(x){ return x.id !== subTaskId; });
+
+    // 新タスク作成（カテゴリ「振替」固定・授業外）
+    var subTime = (rec.substituteKomaTime || '').split('〜')[0] || '';
+    var course  = rec.absenceCourse || '';
+    var courseLabel = course ? '（' + course + '）' : '';
+    var newTask = {
+      id:        subTaskId,
+      title:     '振替' + courseLabel + '：' + rec.studentName + '（' + rec.substituteDate + ' ' + subTime + '）',
+      memo:      '',
+      dueDate:   rec.substituteDate,
+      dueTime:   subTime,
+      taskType:  '授業外',
+      classroom: rec.substituteClassroom || '',
+      assignee:  getUserName(),
+      status:    'todo',
+      category:  '振替',
+      issueId:   '',
+      createdBy: getUserName()
+    };
+    _tasks.push(newTask);
+    callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res2){
+      if (!res2 || !res2.success) {
+        _tasks = _tasks.filter(function(x){ return x.id !== subTaskId; });
+        miniToast('⚠️ 振替タスクの作成に失敗しました');
+      } else if (res2.gcalEventId) {
+        var cur = _tasks.find(function(x){ return x.id === subTaskId; });
+        if (cur) { cur.gcalEventId = res2.gcalEventId; cur.gcalCalId = res2.gcalCalId || ''; }
+      }
+    }, 'POST');
   }, 'POST');
 }
 
@@ -5057,6 +5148,16 @@ function cancelAbsence(recordId) {
       rec.status = prev;
       miniToast('⚠️ キャンセルに失敗しました');
       renderAbsence();
+      return;
+    }
+    // 川上さん指示(2026-06-15)：振替をキャンセルしたら紐づく振替タスク(sub_+ID)も
+    // 消す。GAS側deleteTaskがGカレ予定も削除する（方式B・一本化のため整合）。
+    var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+    if (taskUrl) {
+      var subTaskId = 'sub_' + (rec.id || '');
+      callGas(taskUrl, { action: 'deleteTask', id: subTaskId }, function(){
+        _tasks = (_tasks || []).filter(function(x){ return x.id !== subTaskId; });
+      }, 'POST');
     }
   }, 'POST');
 }
@@ -7337,6 +7438,10 @@ function submitQuickAdd(uid, classroom, taskType) {
   renderCurrent();
 
   // 裏でGAS送信（saveTask）
+  // 完全一本化(2026-06-14 川上さん指示)：GカレはTask Manager GAS側のsaveTaskが
+  // 条件判定して自動で作成する。ClassBoardから createCalendarEvent を直接叩かない
+  // （叩くと saveTask の自動作成と二重になり振替イベントが重複していた）。
+  // レスポンスの gcalEventId/gcalCalId をローカルに書き戻す。
   callGas(url, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
     if (!res || !res.success) {
       _tasks = _tasks.filter(function(x) { return x.id !== newTask.id; });
@@ -7344,49 +7449,11 @@ function submitQuickAdd(uid, classroom, taskType) {
       renderCurrent();
       return;
     }
-    // Gカレ登録（saveTask 成功後に実行）
-    if (willGcal) {
-      pushCbTaskToGcal(newTask, url);
+    if (res.gcalEventId) {
+      var cur = _tasks.find(function(x) { return x.id === newTask.id; });
+      if (cur) { cur.gcalEventId = res.gcalEventId; cur.gcalCalId = res.gcalCalId || ''; }
     }
   }, 'POST');
-}
-
-// ClassBoard からGカレに登録する関数
-function pushCbTaskToGcal(task, taskUrl) {
-  // dueTime がない場合は登録しない
-  if (!task.dueTime) return;
-  // 既にGカレ登録済みの場合は重複登録しない
-  if (task.gcalEventId) return;
-  // gcal_settings のマッピングを使うため、Task Manager GAS に createCalendarEvent を呼ぶ
-  // classroom → calendarId のマッピングはTask Manager側のgcal_settingsに依存
-  // まずgcal_settingsを取得してから登録する
-  callGas(taskUrl, { action: 'getGcalSettings' }, function(res) {
-    if (!res || !res.classMappings) return;
-    var mappings = res.classMappings;
-    // exportOn:true かつ classroom が一致するマッピングを探す
-    var m = null;
-    for (var i = 0; i < mappings.length; i++) {
-      if (mappings[i].exportOn && mappings[i].classroom === task.classroom) {
-        m = mappings[i]; break;
-      }
-    }
-    if (!m) return; // マッピングなし → 登録しない
-    callGas(taskUrl, {
-      action:     'createCalendarEvent',
-      calendarId: m.calId,
-      title:      task.title,
-      dueDate:    task.dueDate,
-      dueTime:    task.dueTime,
-      memo:       task.memo || ''
-    }, function(gcalRes) {
-      if (gcalRes && gcalRes.gcalEventId) {
-        // gcalEventId をタスクに書き戻してGASに同期
-        task.gcalEventId = gcalRes.gcalEventId;
-        task.gcalCalId   = m.calId;
-        callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(task) }, null, 'POST');
-      }
-    });
-  });
 }
 
 // ========== A-5：自動持越し処理 ==========
