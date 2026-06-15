@@ -3921,6 +3921,8 @@ function submitAddTest() {
       closeModal('modal-add-test');
       miniToast('保存しました ✓');
       callGas(url, { action: 'getSchoolTasks' }, function(r) {
+        // 川上さん指摘(2026-06-15)：保存後の再取得結果を_schoolTasksに代入し忘れ→編集が画面に反映されなかった。他機能(testRecords/schoolEvents)と同じく代入してから再描画する
+        if (r && r.success && r.tasks) { _schoolTasks = r.tasks; }
         renderSchool();
         if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
       });
