@@ -1480,9 +1480,21 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!el) { _tt.style.display = 'none'; return; }
     _tt.textContent = el.getAttribute('data-tooltip');
     _tt.style.display = 'block';
+    // カスタムバッジは要素の真上に固定表示（小さくマウス追従だと位置がずれるため・2026-06-17）
+    if (el.closest('.cb-custom-badge')) {
+      var r = el.getBoundingClientRect();
+      var bx = r.left, by = r.top - 6 - _tt.offsetHeight;
+      if (by < 4) by = r.bottom + 6;
+      if (bx + 290 > window.innerWidth) bx = window.innerWidth - 294;
+      if (bx < 4) bx = 4;
+      _tt.style.left = bx + 'px';
+      _tt.style.top  = by + 'px';
+    }
   });
   document.addEventListener('mousemove', function(e) {
     if (_tt.style.display === 'none') return;
+    // カスタムバッジのツールチップは要素基準で固定済み。マウス追従させない（位置ずれ防止）
+    if (e.target.closest('.cb-custom-badge')) return;
     var x = e.clientX + 12, y = e.clientY + 12;
     if (x + 290 > window.innerWidth) x = e.clientX - 290;
     if (y + 80 > window.innerHeight) y = e.clientY - 50;
