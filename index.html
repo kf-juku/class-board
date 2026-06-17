@@ -8040,7 +8040,7 @@ function buildMatrixCard_(g) {
   });
 
   var gid = lists[0].id;
-  var isOpen = _mxOpenState[gid] !== false; // デフォルト開
+  var isOpen = _mxOpenState[gid] === true; // デフォルト閉じ（川上さん指示2026-06-17：本日タブのチェックリストは閉じた状態で出す）
   var totalDone = 0, totalAll = 0;
   lists.forEach(function(cl) {
     totalAll += (cl.items || []).length;
@@ -8929,7 +8929,9 @@ function rerenderCurrentTab() {
       hidePopup(tPop);
     }
 
-    if (sChip) {
+    // カスタムバッジ上ではチップ本体ポップアップを出さない（バッジ詳細と二重表示を防ぐ・2026-06-17）
+    var onCustomBadge = !!e.target.closest('.cb-custom-badge');
+    if (sChip && !onCustomBadge) {
       var sPopHtml = sChip.getAttribute('data-popup');
       if (!sPopHtml) {
         var sInner = sChip.querySelector('.s-popup');
@@ -8954,7 +8956,7 @@ function rerenderCurrentTab() {
       else hidePopup(tPop);
     }
     if (sPop.style.display === 'block') {
-      if (e.target.closest('.student-chip')) placePopup(sPop, e.clientX, e.clientY);
+      if (e.target.closest('.student-chip') && !e.target.closest('.cb-custom-badge')) placePopup(sPop, e.clientX, e.clientY);
       else hidePopup(sPop);
     }
     if (hPop.style.display === 'block') {
