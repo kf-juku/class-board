@@ -90,6 +90,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 /* カスタムバッジ（手動・2026-06-17）。授業種別バッジの右横に並べる。詳細はホバー/タップ */
 .cb-custom-badge { display:inline-flex; align-items:center; width:14px; height:14px; margin-left:2px; vertical-align:middle; flex-shrink:0; cursor:help; }
 .cb-custom-badge svg { display:block; width:14px; height:14px; }
+/* 指導方針あり：カード右下のコーナーマーク（クロフネ赤・控えめ・ホバーは従来通りカード全体・2026-06-17）*/
+.cb-policy-corner { position:absolute; right:0; bottom:0; width:0; height:0; border-style:solid; border-width:0 0 14px 14px; border-color:transparent transparent var(--crimson) transparent; pointer-events:none; }
+@media print { .cb-policy-corner { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 @media print { .cb-custom-badge { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 
 .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
@@ -1994,7 +1997,8 @@ function koushuChipHtml(s, opts) {
   var draggableAttr = assignId ? ' draggable="true"' : '';
   var isElem = grade && grade.indexOf('小') === 0;
   var colorCls = isElem ? ' koushu-chip-elem' : ' koushu-chip-juku';
-  return '<div class="student-chip koushu-chip' + colorCls + '"' + assignIdAttr + draggableAttr + dataPopup + clickAttr + ' style="cursor:pointer;position:relative;padding-right:' + (assignId ? '18px' : '5px') + '">' +
+  var koushuPolicyCorner = s.policy ? '<span class="cb-policy-corner"></span>' : '';  // 指導方針あり（2026-06-17）
+  return '<div class="student-chip koushu-chip' + colorCls + '"' + assignIdAttr + draggableAttr + dataPopup + clickAttr + ' style="cursor:pointer;position:relative;overflow:hidden;padding-right:' + (assignId ? '18px' : '5px') + '">' + koushuPolicyCorner +
     absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name) + remainBadge + deleteBtn + '</div>';
 }
 
@@ -2264,7 +2268,8 @@ function studentChipHtml(s, opts) {
       tpClickAttr = ' onclick="openKoushuStudentEdit(\'' + esc(s.id || s.name) + '\',\'' + esc(s.name) + '\',\'' + tpc.id + '\')" style="cursor:pointer"';
     }
   }
-  return '<div class="student-chip' + chipAbsentCls + '"' + tpClickAttr + '>' +
+  var policyCorner = s.policy ? '<span class="cb-policy-corner"></span>' : '';  // 指導方針あり（2026-06-17）
+  return '<div class="student-chip' + chipAbsentCls + '"' + tpClickAttr + ' style="position:relative;overflow:hidden">' + policyCorner +
     '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">' +
     absBtn +
     '<span class="s-name">' + esc(s.name) + '</span>' + testBadgeHtml +
