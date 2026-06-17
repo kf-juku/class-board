@@ -87,6 +87,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .btn-danger:hover { background: #b91c1c; }
 
 /* バッジ */
+/* カスタムバッジ（手動・2026-06-17）。授業種別バッジの右横に並べる。詳細はホバー/タップ */
+.cb-custom-badge { display:inline-flex; align-items:center; width:14px; height:14px; margin-left:2px; vertical-align:middle; flex-shrink:0; cursor:help; }
+.cb-custom-badge svg { display:block; width:14px; height:14px; }
+@media print { .cb-custom-badge { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+
 .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .badge-red { background: var(--crimson-light); color: var(--crimson); }
 .badge-blue { background: #eff6ff; color: #2563eb; }
@@ -931,6 +936,68 @@ tr.mx-done-row td { background: #f0fdf4; }
 </div>
 
 
+<!-- カスタムバッジ 作成/編集モーダル（2026-06-17）-->
+<div class="modal-overlay" id="modal-custom-badge">
+  <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <span id="cb-modal-title">カスタムバッジを作成</span>
+      <span class="modal-close" onclick="closeModal('modal-custom-badge')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">マーク</label>
+        <div id="cb-mark-picker" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px">詳細（カードのバッジにカーソル／タップで表示）</label>
+        <input type="text" id="cb-detail-input" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box" placeholder="例：送迎あり 17時お迎え" />
+      </div>
+      <div style="margin-bottom:6px">
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">対象者を絞り込む</label>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">種別</div>
+        <div class="cl-filter-row" id="cb-filter-type">
+          <span class="cl-filter-chip" data-val="塾">塾</span>
+          <span class="cl-filter-chip" data-val="CA">CA</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">教室</div>
+        <div class="cl-filter-row" id="cb-filter-cr">
+          <span class="cl-filter-chip" data-val="北久里浜">北久里浜</span>
+          <span class="cl-filter-chip" data-val="久里浜">久里浜</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">中学校</div>
+        <div class="cl-filter-row" id="cb-filter-school"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">学年</div>
+        <div class="cl-filter-row" id="cb-filter-grade">
+          <span class="cl-filter-chip" data-val="小1">小1</span>
+          <span class="cl-filter-chip" data-val="小2">小2</span>
+          <span class="cl-filter-chip" data-val="小3">小3</span>
+          <span class="cl-filter-chip" data-val="小4">小4</span>
+          <span class="cl-filter-chip" data-val="小5">小5</span>
+          <span class="cl-filter-chip" data-val="小6">小6</span>
+          <span class="cl-filter-chip" data-val="中1">中1</span>
+          <span class="cl-filter-chip" data-val="中2">中2</span>
+          <span class="cl-filter-chip" data-val="中3">中3</span>
+          <span class="cl-filter-chip" data-val="高1">高1</span>
+          <span class="cl-filter-chip" data-val="高2">高2</span>
+          <span class="cl-filter-chip" data-val="高3">高3</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <button class="btn-secondary btn-sm" onclick="cbSelectAll(true)">全選択</button>
+        <button class="btn-secondary btn-sm" onclick="cbSelectAll(false)">全解除</button>
+        <span id="cb-selected-count" style="margin-left:auto;font-size:12px;color:var(--text-muted);align-self:center"></span>
+      </div>
+      <div class="cl-student-list" id="cb-student-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" style="color:#ef4444;border-color:#ef4444;margin-right:auto" id="cb-delete-btn" onclick="deleteCustomBadgeFromModal()">削除</button>
+      <button class="btn-secondary" onclick="closeModal('modal-custom-badge')">キャンセル</button>
+      <button class="btn-primary" onclick="submitCustomBadge()"><span id="cb-submit-label">作成</span></button>
+    </div>
+  </div>
+</div>
+
+
 <!-- 欠席登録モーダル -->
 <div class="modal-overlay" id="modal-absence" onclick="if(event.target===this)closeModal('modal-absence')">
   <div class="modal" style="max-width:380px">
@@ -1190,6 +1257,7 @@ var _tasks = [];
 var _taskAssignees = []; // タスクマネージャーGASから取得した担当者マスター
 var _pendingDeleteIds = {}; // 削除中のタスクID一時保持（競合状態対策）
 var _checklists = [];
+var _customBadges = [];  // 川上さん指示(2026-06-17)：手動カスタムバッジ。会員管理GASのカスタムバッジシートから取得（社員間同期）
 var _schoolInfo = [];
 var _schoolTasks = [];
 var _testRecords = [];
@@ -1424,6 +1492,21 @@ window.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('mouseout', function(e) {
     if (!e.target.closest('[data-tooltip]')) _tt.style.display = 'none';
   });
+  // スマホ・タブレット：data-tooltip要素をタップで詳細を出す（PCホバーと併用・2026-06-17）。
+  // 要素の上に吹き出しを出し、別の場所をタップしたら閉じる。
+  document.addEventListener('touchstart', function(e) {
+    var el = e.target.closest('[data-tooltip]');
+    if (!el) { _tt.style.display = 'none'; return; }
+    _tt.textContent = el.getAttribute('data-tooltip');
+    _tt.style.display = 'block';
+    var r = el.getBoundingClientRect();
+    var x = r.left, y = r.top - 8 - _tt.offsetHeight;
+    if (y < 4) y = r.bottom + 8;            // 上に出ないなら下に
+    if (x + 290 > window.innerWidth) x = window.innerWidth - 294;
+    if (x < 4) x = 4;
+    _tt.style.left = x + 'px';
+    _tt.style.top  = y + 'px';
+  }, { passive: true });
 });
 
 function loadAll() {
@@ -1500,6 +1583,14 @@ function loadAll() {
     callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
       if (res && res.success && res.records) {
         _absenceRecords = res.records.map(normalizeAbsenceRecord_);
+      }
+      done();
+    });
+    pending++;
+    callGas(studentUrl, { action: 'getCustomBadges' }, function(res) {
+      if (res && res.success && res.badges) {
+        _customBadges = res.badges;
+        rebuildCustomBadgeIndex_();
       }
       done();
     });
@@ -1892,7 +1983,65 @@ function koushuChipHtml(s, opts) {
   var isElem = grade && grade.indexOf('小') === 0;
   var colorCls = isElem ? ' koushu-chip-elem' : ' koushu-chip-juku';
   return '<div class="student-chip koushu-chip' + colorCls + '"' + assignIdAttr + draggableAttr + dataPopup + clickAttr + ' style="cursor:pointer;position:relative;padding-right:' + (assignId ? '18px' : '5px') + '">' +
-    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + remainBadge + deleteBtn + '</div>';
+    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name) + remainBadge + deleteBtn + '</div>';
+}
+
+// =====================================================
+// カスタムバッジ（手動バッジ）2026-06-17
+// 川上さん指示：自動付与バッジとは別に、設定で「マーク（15種SVG）＋詳細＋対象生徒」を
+// 登録し、全タブ・全授業で生徒カードに常時表示（授業種別バッジ→名前→学年→カスタムバッジの順）。
+// 1人複数可。対象生徒は「名前」で紐づける（既存の振替・チェックリストと同じ方式）。
+// 詳細はPC=ホバー／タッチ=タップで吹き出し表示（既存 data-tooltip 機構に乗せる）。
+// =====================================================
+
+// マーク15種（id→SVG）。教科5（英数国理社）＋汎用10。
+var CUSTOM_BADGE_MARKS = [
+  { id: 'eng',     label: '英',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="2" y="2" width="20" height="20" rx="5" fill="#378ADD"/><text x="12" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">英</text></svg>' },
+  { id: 'math',    label: '数',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="2" y="2" width="20" height="20" rx="5" fill="#E24B4A"/><text x="12" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">数</text></svg>' },
+  { id: 'jpn',     label: '国',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="2" y="2" width="20" height="20" rx="5" fill="#EF9F27"/><text x="12" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">国</text></svg>' },
+  { id: 'sci',     label: '理',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="2" y="2" width="20" height="20" rx="5" fill="#639922"/><text x="12" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">理</text></svg>' },
+  { id: 'soc',     label: '社',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="2" y="2" width="20" height="20" rx="5" fill="#7F77DD"/><text x="12" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="sans-serif">社</text></svg>' },
+  { id: 'star',    label: '星',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 3l2.5 5.6 6.1.6-4.6 4 1.4 6-5.4-3.2L6.1 19.2l1.4-6L2.9 9.2l6.1-.6z" fill="#EF9F27"/></svg>' },
+  { id: 'bookmark',label: 'しおり', svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M6 3h12v18l-6-4-6 4z" fill="#7F77DD"/></svg>' },
+  { id: 'flag',    label: '旗',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M6 3v18" stroke="#5F5E5A" stroke-width="2" stroke-linecap="round"/><path d="M6 4h11l-2.2 3.5L17 11H6z" fill="#1D9E75"/></svg>' },
+  { id: 'pinflag', label: 'ピン旗', svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M10 3h7l-2 4 2 4h-7v9" fill="none" stroke="#378ADD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+  { id: 'bell',    label: 'ベル',   svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z" fill="#D85A30"/><path d="M10 19a2 2 0 0 0 4 0" fill="none" stroke="#D85A30" stroke-width="1.6" stroke-linecap="round"/></svg>' },
+  { id: 'book',    label: '本',     svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M5 4h8a3 3 0 0 1 3 3v13a3 3 0 0 0-3-2H5z" fill="#185FA5"/><path d="M19 4h-2a3 3 0 0 0-3 3v13a3 3 0 0 1 3-2h2z" fill="#85B7EB"/></svg>' },
+  { id: 'bolt',    label: '稲妻',   svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M13 2L4 14h6l-1 8 9-12h-6z" fill="#BA7517"/></svg>' },
+  { id: 'ring',    label: 'リング', svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><circle cx="12" cy="12" r="8" fill="none" stroke="#D4537E" stroke-width="3.2"/></svg>' },
+  { id: 'square',  label: '四角',   svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="5" y="5" width="14" height="14" rx="3" fill="#7F77DD"/></svg>' },
+  { id: 'diamond', label: 'ひし形', svg: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="6.5" y="6.5" width="11" height="11" rx="2" transform="rotate(45 12 12)" fill="#1D9E75"/></svg>' }
+];
+function customBadgeMarkById_(id) {
+  for (var i = 0; i < CUSTOM_BADGE_MARKS.length; i++) {
+    if (CUSTOM_BADGE_MARKS[i].id === id) return CUSTOM_BADGE_MARKS[i];
+  }
+  return null;
+}
+
+// 名前→[バッジ,...] の索引。_customBadges 取得・更新のたびに作り直す。
+var _customBadgeIndex = {};
+function rebuildCustomBadgeIndex_() {
+  _customBadgeIndex = {};
+  (_customBadges || []).forEach(function(b) {
+    (b.studentNames || []).forEach(function(nm) {
+      var key = String(nm);
+      if (!_customBadgeIndex[key]) _customBadgeIndex[key] = [];
+      _customBadgeIndex[key].push(b);
+    });
+  });
+}
+
+// 生徒カードに差し込むカスタムバッジHTML（複数可）。詳細は data-tooltip でホバー/タップ表示。
+function customBadgesHtml_(studentName) {
+  var list = _customBadgeIndex[String(studentName)] || [];
+  if (!list.length) return '';
+  return list.map(function(b) {
+    var mk = customBadgeMarkById_(b.mark);
+    if (!mk) return '';
+    var tip = b.detail ? b.detail : mk.label;
+    return '<span class="cb-custom-badge" data-tooltip="' + esc(tip) + '" aria-label="' + esc(tip) + '">' + mk.svg + '</span>';
+  }).join('');
 }
 
 function studentChipHtml(s, opts) {
@@ -1993,6 +2142,7 @@ function studentChipHtml(s, opts) {
   }
   var badges = '';
   badges += lessonLabel;
+  badges += customBadgesHtml_(s.name);  // カスタムバッジ（授業種別の右横・2026-06-17）
 
   // ポップアップ：よみ・コース・全通塾コマ・部活・指導方針（学年・学校はチップ本体に表示するため除外）
   var popup = '';
@@ -5167,6 +5317,223 @@ function cancelAbsence(recordId) {
 // =====================================================
 // 設定タブ
 // =====================================================
+// =====================================================
+// カスタムバッジ 設定UI（2026-06-17）
+// バッジ単位で管理：1件作り、その中で対象生徒を絞り込み＋チェックで追加・削除。
+// 対象生徒は「名前」で保持（既存の振替・チェックリストと同じ方式）。
+// 保存先は会員管理GAS「カスタムバッジ」シート（社員間同期）。
+// =====================================================
+var _cbEditingId = null;  // 編集中バッジID（新規はnull）
+
+// 設定タブのカード（バッジ一覧＋新規ボタン）
+function renderCustomBadgeSettingCard_() {
+  return '<div class="card" style="margin-bottom:12px"><div class="card-body" style="padding:12px 16px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+    '<span style="font-weight:700;font-size:13px">\U0001F3F7️ カスタムバッジ' +
+    '<span class="gs-help"><span class="gs-help-icon">?</span>' +
+    '<span class="gs-help-body">自動で付くバッジ（塾・CA・振替など）とは別に、手動で付けるバッジです。<br>マークと詳細を決め、対象の生徒を選んで登録します。<br>登録した生徒には全タブ・全授業の生徒カードにバッジが付き、カーソル／タップで詳細が出ます。<br>社員間で同期します。</span></span></span>' +
+    '<button class="btn-primary btn-sm" style="margin-left:auto" onclick="openCustomBadgeModal()">+ バッジを作成</button>' +
+    '</div>' +
+    '<div id="cb-setting-list"></div>' +
+    '</div></div>';
+}
+
+// バッジ一覧描画（カード内）
+function renderCustomBadgeList_() {
+  var el = document.getElementById('cb-setting-list');
+  if (!el) return;
+  if (!_customBadges || !_customBadges.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#9ca3af;padding:8px 0">まだバッジがありません。「+ バッジを作成」から登録してください。</div>';
+    return;
+  }
+  el.innerHTML = _customBadges.map(function(b) {
+    var mk = customBadgeMarkById_(b.mark);
+    var icon = mk ? '<span style="display:inline-flex;width:18px;height:18px;flex-shrink:0">' + mk.svg + '</span>' : '';
+    var cnt = (b.studentNames || []).length;
+    return '<div onclick="openCustomBadgeModal(\'' + esc(b.id) + '\')" style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:0.5px solid var(--border);cursor:pointer;font-size:13px">' +
+      icon +
+      '<span style="flex:1;min-width:0">' + esc(b.detail || (mk ? mk.label : '')) + '</span>' +
+      '<span style="font-size:11px;color:var(--text-muted);flex-shrink:0">' + cnt + '名</span>' +
+      '<span style="font-size:11px;color:#4f46e5;flex-shrink:0">編集</span>' +
+      '</div>';
+  }).join('');
+}
+
+// モーダルを開く（idありで編集、なしで新規）
+function openCustomBadgeModal(badgeId) {
+  _cbEditingId = badgeId || null;
+  var badge = badgeId ? (_customBadges || []).find(function(b){ return b.id === badgeId; }) : null;
+  document.getElementById('cb-modal-title').textContent = badge ? 'カスタムバッジを編集' : 'カスタムバッジを作成';
+  document.getElementById('cb-submit-label').textContent = badge ? '保存' : '作成';
+  document.getElementById('cb-delete-btn').style.display = badge ? '' : 'none';
+
+  // マーク選択ピッカー描画
+  var picker = document.getElementById('cb-mark-picker');
+  var selMark = badge ? badge.mark : CUSTOM_BADGE_MARKS[0].id;
+  picker.innerHTML = CUSTOM_BADGE_MARKS.map(function(m) {
+    return '<span class="cb-mark-opt" data-mark="' + m.id + '" title="' + esc(m.label) + '" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:2px solid ' + (m.id === selMark ? '#4f46e5' : '#e5e7eb') + ';border-radius:8px;cursor:pointer;background:' + (m.id === selMark ? '#eef2ff' : '#fff') + '"><span style="width:20px;height:20px;display:inline-flex">' + m.svg + '</span></span>';
+  }).join('');
+  picker.querySelectorAll('.cb-mark-opt').forEach(function(opt) {
+    opt.onclick = function() {
+      picker.querySelectorAll('.cb-mark-opt').forEach(function(o){ o.style.borderColor='#e5e7eb'; o.style.background='#fff'; });
+      opt.style.borderColor='#4f46e5'; opt.style.background='#eef2ff';
+      picker.dataset.selected = opt.dataset.mark;
+    };
+  });
+  picker.dataset.selected = selMark;
+
+  document.getElementById('cb-detail-input').value = badge ? (badge.detail || '') : '';
+
+  // フィルタ初期化
+  ['cb-filter-type','cb-filter-cr','cb-filter-grade'].forEach(function(id) {
+    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c){ c.classList.remove('active'); });
+  });
+  // 中学校フィルタを動的生成
+  var schoolSet = {};
+  (_students || []).forEach(function(s) {
+    if (s.status === '在籍' && s.school && /中/.test(s.school)) schoolSet[s.school] = true;
+  });
+  document.getElementById('cb-filter-school').innerHTML = Object.keys(schoolSet).sort().map(function(sc){
+    return '<span class="cl-filter-chip" data-val="' + esc(sc) + '">' + esc(sc) + '</span>';
+  }).join('');
+  ['cb-filter-type','cb-filter-cr','cb-filter-grade','cb-filter-school'].forEach(function(id) {
+    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
+      c.onclick = function() { c.classList.toggle('active'); renderCbStudentList(); };
+    });
+  });
+  // 編集時の選択済み生徒名を保持しておく
+  renderCbStudentList._preselect = badge ? (badge.studentNames || []) : null;
+  renderCbStudentList();
+  openModal('modal-custom-badge');
+}
+
+// 生徒リスト描画（チェックリストの絞り込みロジックと同じ）
+function renderCbStudentList() {
+  var types   = getCbChips('cb-filter-type');
+  var crs     = getCbChips('cb-filter-cr');
+  var grades  = getCbChips('cb-filter-grade');
+  var schools = getCbChips('cb-filter-school');
+  var preselect = renderCbStudentList._preselect;  // 編集時の既存対象（null=新規）
+
+  var filtered = (_students || []).filter(function(s) {
+    if (s.status !== '在籍') return false;
+    if (types.length > 0) {
+      var matchType = false;
+      if (types.indexOf('塾') !== -1 && s.attrJuku) matchType = true;
+      if (types.indexOf('CA') !== -1 && s.attrCa) matchType = true;
+      if (!matchType) return false;
+    }
+    if (crs.length > 0 && crs.indexOf(s.classroom || '') === -1) return false;
+    if (grades.length > 0 && grades.indexOf(s.grade || '') === -1) return false;
+    if (schools.length > 0 && schools.indexOf(s.school || '') === -1) return false;
+    return true;
+  });
+
+  var listEl = document.getElementById('cb-student-list');
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center">条件に合う生徒がいません</div>';
+    updateCbSelectedCount();
+    return;
+  }
+  listEl.innerHTML = filtered.map(function(s) {
+    var crList = s.classroom || '';
+    // 編集モードでは既存対象にチェック。新規はデフォルト未チェック（絞り込んで意図的に選ぶ）。
+    var checked = preselect ? (preselect.indexOf(s.name) !== -1 ? ' checked' : '') : '';
+    return '<label class="cl-student-item">' +
+      '<input type="checkbox" class="cb-s-check" data-name="' + esc(s.name) + '"' + checked + '>' +
+      '<span>' + esc(s.name) + '</span>' +
+      '<span style="font-size:11px;color:#9ca3af;margin-left:4px">' + esc(s.grade||'') + ' ' + esc(crList) + '</span>' +
+      '</label>';
+  }).join('');
+  listEl.querySelectorAll('.cb-s-check').forEach(function(cb){ cb.addEventListener('change', updateCbSelectedCount); });
+  updateCbSelectedCount();
+}
+
+function getCbChips(containerId) {
+  var arr = [];
+  document.getElementById(containerId).querySelectorAll('.cl-filter-chip.active').forEach(function(c){ arr.push(c.dataset.val); });
+  return arr;
+}
+function updateCbSelectedCount() {
+  var n = document.getElementById('cb-student-list').querySelectorAll('.cb-s-check:checked').length;
+  document.getElementById('cb-selected-count').textContent = n + '名選択中';
+}
+function cbSelectAll(flag) {
+  document.getElementById('cb-student-list').querySelectorAll('.cb-s-check').forEach(function(cb){ cb.checked = flag; });
+  updateCbSelectedCount();
+}
+
+// 保存（新規・編集兼用）
+// 注意：絞り込みで表示中の生徒しかチェック欄に出ないため、編集時は
+//   「今表示中のチェック結果」だけでなく「絞り込みで隠れている既存対象」も保持する。
+function submitCustomBadge() {
+  var mark = document.getElementById('cb-mark-picker').dataset.selected || CUSTOM_BADGE_MARKS[0].id;
+  var detail = document.getElementById('cb-detail-input').value.trim();
+
+  // 画面に出ている生徒の選択状態を集計
+  var shownNames = [];
+  var checkedNames = [];
+  document.getElementById('cb-student-list').querySelectorAll('.cb-s-check').forEach(function(cb) {
+    shownNames.push(cb.dataset.name);
+    if (cb.checked) checkedNames.push(cb.dataset.name);
+  });
+
+  // 既存対象のうち、今画面に出ていない（絞り込みで隠れている）名前は維持する
+  var names = checkedNames.slice();
+  var existing = _cbEditingId ? ((_customBadges.find(function(b){return b.id===_cbEditingId;})||{}).studentNames || []) : [];
+  existing.forEach(function(nm) {
+    if (shownNames.indexOf(nm) === -1 && names.indexOf(nm) === -1) names.push(nm);
+  });
+
+  if (names.length === 0) {
+    if (!confirm('対象の生徒が0名です。このまま保存しますか？（誰にもバッジが付きません）')) return;
+  }
+
+  var badge = { id: _cbEditingId || '', mark: mark, detail: detail, studentNames: names };
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('⚠️ 生徒マスタGAS URLが未設定です'); return; }
+
+  callGas(url, { action: 'saveCustomBadge', badge: JSON.stringify(badge) }, function(res) {
+    if (res && res.success) {
+      // ローカル反映（楽観的UI）
+      if (_cbEditingId) {
+        var idx = _customBadges.findIndex(function(b){ return b.id === _cbEditingId; });
+        if (idx >= 0) { _customBadges[idx].mark = mark; _customBadges[idx].detail = detail; _customBadges[idx].studentNames = names; }
+      } else {
+        _customBadges.push({ id: res.id, mark: mark, detail: detail, studentNames: names });
+      }
+      rebuildCustomBadgeIndex_();
+      renderCustomBadgeList_();
+      renderCurrent();
+      closeModal('modal-custom-badge');
+      miniToast('✅ バッジを保存しました');
+    } else {
+      miniToast('⚠️ 保存に失敗しました');
+    }
+  }, 'POST');
+}
+
+// 削除（編集モーダルから）
+function deleteCustomBadgeFromModal() {
+  if (!_cbEditingId) { closeModal('modal-custom-badge'); return; }
+  if (!confirm('このバッジを削除しますか？対象生徒全員からバッジが外れます。')) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('⚠️ 生徒マスタGAS URLが未設定です'); return; }
+  var delId = _cbEditingId;
+  callGas(url, { action: 'deleteCustomBadge', badgeId: delId }, function(res) {
+    if (res && res.success) {
+      _customBadges = _customBadges.filter(function(b){ return b.id !== delId; });
+      rebuildCustomBadgeIndex_();
+      renderCustomBadgeList_();
+      renderCurrent();
+      closeModal('modal-custom-badge');
+      miniToast('✅ バッジを削除しました');
+    } else {
+      miniToast('⚠️ 削除に失敗しました');
+    }
+  }, 'POST');
+}
+
 function renderSettings() {
   var su = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var tu = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
@@ -5198,7 +5565,9 @@ function renderSettings() {
     '</div>' +
     '</div></div>' +
     renderKoushuSettingCard_() +
+    renderCustomBadgeSettingCard_() +
     '</div>';
+  renderCustomBadgeList_();
 }
 
 
