@@ -1936,11 +1936,12 @@ function koushuChipHtml(s, opts) {
   var isTestP = !!(activePeriod && activePeriod.type === 'test');
   if (activePeriod && opts.assignType !== 'jishu') {
     var goal = (activePeriod.gradeGoals || {})[grade] || 0;
-    var registered = _koushuAssignments.filter(function(a) {
+    // 川上さん指示(2026-06-19)：二重レコード対策。日付×コマでユニーク化して数える
+    var registered = kseUniqueCount_(_koushuAssignments.filter(function(a) {
       if (a.periodId !== activePeriod.id || !(a.studentId === s.id || a.studentName === name)) return false;
       if (isTestP) return a.type === 'taisaku'; // テスト対策：対策コマのみカウント（自習は別）
       return true;
-    }).length;
+    }));
     var remain = goal - registered;
     if (goal > 0) {
       var remainCls = remain <= 0 ? ' style="background:#dcfce7;color:#166534"'
@@ -1953,11 +1954,12 @@ function koushuChipHtml(s, opts) {
   var popHtml = '';
   if (activePeriod) {
     var goal = (activePeriod.gradeGoals || {})[grade] || 0;
-    var registered2 = _koushuAssignments.filter(function(a) {
+    // 川上さん指示(2026-06-19)：二重レコード対策。日付×コマでユニーク化して数える
+    var registered2 = kseUniqueCount_(_koushuAssignments.filter(function(a) {
       if (a.periodId !== activePeriod.id || !(a.studentId === s.id || a.studentName === name)) return false;
       if (isTestP) return a.type === 'taisaku';
       return true;
-    }).length;
+    }));
     var remain2 = goal > 0 ? (goal - registered2) : null;
     // 1行で「登録X / 目標Y / 残りZ」
     var remainColor = remain2 <= 0 ? '#059669' : remain2 <= 3 ? '#854d0e' : '#dc2626';
@@ -6293,10 +6295,17 @@ function renderKoushuSummaryUI_(period) {
   var countMap = {};
   var jishuMap = {};
   var nameMap  = {};
+  // 川上さん指示(2026-06-19)：二重レコード対策。生徒ごと×種別ごとに日付×コマでユニーク化して数える
+  var _seenCount = {}; // sid|date|koma（対策・通常用）
+  var _seenJishu = {}; // sid|date|koma（自習用）
   _koushuAssignments.filter(function(a){ return a.periodId === period.id; }).forEach(function(a) {
     if (!(a.studentId in countMap)) { countMap[a.studentId] = 0; jishuMap[a.studentId] = 0; nameMap[a.studentId] = a.studentName; }
-    if (isTestS && a.type === 'jishu') jishuMap[a.studentId]++;
-    else countMap[a.studentId]++;
+    var dk = a.studentId + '|' + a.date + '|' + a.komaTime;
+    if (isTestS && a.type === 'jishu') {
+      if (!_seenJishu[dk]) { _seenJishu[dk] = true; jishuMap[a.studentId]++; }
+    } else {
+      if (!_seenCount[dk]) { _seenCount[dk] = true; countMap[a.studentId]++; }
+    }
   });
 
   var gradeGoals = period.gradeGoals || {};
@@ -6578,6 +6587,18 @@ function deleteKoushuAssignmentOne(assignId, studentName, dateStr, komaTime) {
 /**
  * 生徒の講習登録コマ一覧モーダルを開く（編集・新規追加）
  */
+// 川上さん指示(2026-06-19)：講習回数の二重カウント対策。
+// assigns配列に同一(date|komaTime)の重複レコードが混入してもカウントが狂わないよう、
+// 日付×コマでユニーク化してから数える。typeFilterを渡すとそのtypeのみ対象。
+function kseUniqueCount_(assigns, typeFilter) {
+  var seen = {};
+  assigns.forEach(function(a) {
+    if (typeFilter && a.type !== typeFilter) return;
+    seen[a.date + '|' + a.komaTime] = true;
+  });
+  return Object.keys(seen).length;
+}
+
 function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
   if (!period) return;
@@ -6691,8 +6712,8 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
   var kseGoal       = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
   var kseRegistered = period.type === 'test'
-    ? assigns.filter(function(a){ return a.type === 'taisaku'; }).length
-    : assigns.length;
+    ? kseUniqueCount_(assigns, 'taisaku')
+    : kseUniqueCount_(assigns);
   var kseRemain     = kseGoal > 0 ? kseGoal - kseRegistered : null;
   var kseColor      = kseRemain === null ? '#6b7280' : kseRemain <= 0 ? '#059669' : kseRemain <= 3 ? '#d97706' : '#dc2626';
   var kseCountHtml  = '<span id="kse-count-badge" style="font-size:12px;font-weight:400;margin-left:10px;color:' + kseColor + '">' +
@@ -7001,8 +7022,8 @@ function kseUpdateCountBadge(studentId, studentName, periodId) {
   var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
   var kseGoal       = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
   var kseRegistered = period.type === 'test'
-    ? assigns.filter(function(a){ return a.type === 'taisaku'; }).length
-    : assigns.length;
+    ? kseUniqueCount_(assigns, 'taisaku')
+    : kseUniqueCount_(assigns);
   var kseRemain     = kseGoal > 0 ? kseGoal - kseRegistered : null;
   var kseColor      = kseRemain === null ? '#6b7280' : kseRemain <= 0 ? '#059669' : kseRemain <= 3 ? '#d97706' : '#dc2626';
   var badge = document.getElementById('kse-count-badge');
@@ -7237,11 +7258,12 @@ function renderBulkStudentList() {
   list.innerHTML = filtered.map(function(s) {
     var registered = 0; var goal = 0; var countBadge = '';
     if (activePeriodForBulk) {
-      registered = _koushuAssignments.filter(function(a){
+      // 川上さん指示(2026-06-19)：二重レコード対策。日付×コマでユニーク化して数える
+      registered = kseUniqueCount_(_koushuAssignments.filter(function(a){
         if (a.periodId !== activePeriodForBulk.id || !(a.studentId === s.id || a.studentName === s.name)) return false;
         if (activePeriodForBulk.type === 'test') return a.type === 'taisaku';
         return true;
-      }).length;
+      }));
       goal = (activePeriodForBulk.gradeGoals || {})[s.grade] || 0;
       var remainColor = goal > 0 ? (registered >= goal ? '#059669' : registered >= goal * 0.7 ? '#d97706' : '#dc2626') : '#6b7280';
       countBadge = '<span style="font-size:11px;color:' + remainColor + ';margin-left:auto;flex-shrink:0">' +
