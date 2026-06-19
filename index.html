@@ -6522,20 +6522,22 @@ function openKoushuBulkAssign(periodId) {
     '<span style="font-weight:700;font-size:14px">&#128197; 日付・コマを選択</span>' +
     '<span style="font-size:12px;color:var(--text-muted)">選択した生徒 × チェックしたセルを一括追加</span>' +
     '</div>' +
+    // 川上さん指示(2026-06-19)：登録先教室セレクトは講習・test両方で表示。
+    //   区分(対策/自習)ラジオはtestのみ。デフォルト=各生徒の所属教室、固定選択でその教室に一律登録。
+    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--border);background:#fffbeb">' +
     (period.type === 'test'
-      ? '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--border);background:#fffbeb">' +
-        '<span style="font-size:12px;font-weight:700">区分：</span>' +
+      ? '<span style="font-size:12px;font-weight:700">区分：</span>' +
         '<label style="font-size:12px;cursor:pointer"><input type="radio" name="bulk-type" value="taisaku" checked> 📝 対策</label>' +
-        '<label style="font-size:12px;cursor:pointer"><input type="radio" name="bulk-type" value="jishu"> 📖 自習</label>' +
-        '<span style="font-size:12px;font-weight:700;margin-left:8px">登録先教室：</span>' +
-        '<select id="bulk-cr-target" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:4px">' +
-        '<option value="">各生徒の所属教室</option>' +
-        '<option value="北久里浜">北久里浜に固定</option>' +
-        '<option value="久里浜">久里浜に固定</option>' +
-        '</select>' +
-        '<span style="font-size:11px;color:var(--text-muted)">通常は変更不要</span>' +
-        '</div>'
+        '<label style="font-size:12px;cursor:pointer"><input type="radio" name="bulk-type" value="jishu"> 📖 自習</label>'
       : '') +
+    '<span style="font-size:12px;font-weight:700' + (period.type === 'test' ? ';margin-left:8px' : '') + '">登録先教室：</span>' +
+    '<select id="bulk-cr-target" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:4px">' +
+    '<option value="">各生徒の所属教室</option>' +
+    '<option value="北久里浜">北久里浜に固定</option>' +
+    '<option value="久里浜">久里浜に固定</option>' +
+    '</select>' +
+    '<span style="font-size:11px;color:var(--text-muted)">所属と違う教室に来る子は固定を選ぶ</span>' +
+    '</div>' +
     '<div id="bulk-cal-wrap" style="flex:1;overflow:auto;padding:12px 14px">' + buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) + '</div>' +
     '<div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--bg,#fff);display:flex;gap:8px;align-items:center">' +
     '<span id="bulk-cal-count" style="font-size:12px;color:var(--text-muted);flex:1">0セル選択中</span>' +
@@ -7371,7 +7373,8 @@ function submitKoushuBulkAssign(periodId) {
   var isTestB = !!(periodB && periodB.type === 'test');
   var bulkTypeSel = document.querySelector('input[name="bulk-type"]:checked');
   var bulkType  = isTestB ? (bulkTypeSel ? bulkTypeSel.value : 'taisaku') : 'normal';
-  var bulkCrFix = isTestB ? ((document.getElementById('bulk-cr-target') || {}).value || '') : '';
+  // 川上さん指示(2026-06-19)：講習でも教室セレクトを反映（isTestB条件を外す）
+  var bulkCrFix = (document.getElementById('bulk-cr-target') || {}).value || '';
 
   var assignments = [], conflicts = [];
   studentEls.forEach(function(el) {
@@ -7398,7 +7401,7 @@ function submitKoushuBulkAssign(periodId) {
   miniToast('登録中... ' + assignments.length + '件');
   callGas(url, { action: 'bulkSaveKoushuAssignments', assignments: assignments }, function(res) {
     if (res && res.success) {
-      miniToast('登録完了 ✓ 追加:' + res.added + '件 スキップ:' + res.skipped + '件');
+      miniToast('登録完了 ✓ 追加:' + res.added + '件' + (res.updated ? ' 教室更新:' + res.updated + '件' : '') + ' スキップ:' + res.skipped + '件');
       callGas(url, { action: 'getKoushuAssignments', periodId: periodId }, function(r) {
         _koushuAssignments = (r && r.success) ? r.assignments : [];
         if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
