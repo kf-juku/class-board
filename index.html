@@ -2749,18 +2749,20 @@ function alertBannersHtml(todayStudents, todayIso) {
 
   // 種別ごとのカラー定義
   //  type: { normal: {bg,border,text,leftBorder}, urgent: {...} }
+  // 川上さん指示(2026-06-19)：本文は黒字で読みやすく。緊急度は背景色と左ボーダーで表す。
+  //   学校・学年・残り日数の強調はラベル側の<strong>で行う（残7日以内は残日数を赤太字）。
   var COLORS = {
     task: {
-      normal: {bg:'#fff7ed', border:'#fed7aa', text:'#92400e', left:'#f97316'},
-      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#991b1b', left:'#ef4444'}
+      normal: {bg:'#fff7ed', border:'#fed7aa', text:'#1f2937', left:'#f97316'},
+      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#1f2937', left:'#ef4444'}
     },
     test: {
-      normal: {bg:'#fff1f2', border:'#fecdd3', text:'#9f1239', left:'#e11d48'},
-      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#991b1b', left:'#ef4444'}
+      normal: {bg:'#fff1f2', border:'#fecdd3', text:'#1f2937', left:'#e11d48'},
+      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#1f2937', left:'#ef4444'}
     },
     event: {
-      normal: {bg:'#eff6ff', border:'#bfdbfe', text:'#1e40af', left:'#3b82f6'},
-      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#991b1b', left:'#ef4444'}
+      normal: {bg:'#eff6ff', border:'#bfdbfe', text:'#1f2937', left:'#3b82f6'},
+      urgent: {bg:'#fef2f2', border:'#fca5a5', text:'#1f2937', left:'#ef4444'}
     }
   };
 
@@ -2811,8 +2813,8 @@ function alertBannersHtml(todayStudents, todayIso) {
     var namesAttr = JSON.stringify(matched.map(function(s) { return s.name; })).replace(/"/g, '&quot;');
     var dateLabel = (function(d){ var dt=new Date(d); return isNaN(dt)?d:isoDate(dt); })(task.dueDate) + '（残' + diff + '日）';
     var popup = makePopup(SVG.task, esc(task.school) + (task.grade ? ' ' + task.grade : '') + '：' + (task.taskName||''), dateLabel, matched, 'task');
-    var label = esc(task.school) + (task.grade ? ' ' + esc(task.grade) + '生' : '')
-      + '：<strong>' + esc(task.taskName||'') + '</strong> まで残<strong>' + diff + '日</strong>';
+    var label = '<strong>' + esc(task.school) + (task.grade ? ' ' + esc(task.grade) + '生' : '') + '</strong>'
+      + '：' + esc(task.taskName||'') + ' まで<strong' + (diff <= 7 ? ' style="color:#b91c1c"' : '') + '>残' + diff + '日</strong>';
     var clData = { title: (task.taskName||''), memo: (task.materials||''), school: (task.school||''), grade: (task.grade||''), dueDate: (task.dueDate||'') };
     var editData = { taskId: (task.taskId||''), taskName: (task.taskName||''), school: (task.school||''), grade: (task.grade||''), dueDate: (task.dueDate||'') };
     banners.push(makeBanner('task', SVG.task, label, diff, matched.length, popup, namesAttr, clData, editData));
@@ -2835,7 +2837,7 @@ function alertBannersHtml(todayStudents, todayIso) {
     var namesAttr = JSON.stringify(matched.map(function(s) { return s.name; })).replace(/"/g, '&quot;');
     var dateLabel = (function(d){ var dt=new Date(d); return isNaN(dt)?d:isoDate(dt); })(rec.testDate) + '（残' + diff + '日）';
     var popup = makePopup(SVG.test, rec.school + ' ' + rec.grade + '：' + rec.testName, dateLabel, matched, 'test');
-    var label = esc(rec.school) + ' ' + esc(rec.grade) + '：<strong>' + esc(rec.testName) + '</strong> まで残<strong>' + diff + '日</strong>';
+    var label = '<strong>' + esc(rec.school) + ' ' + esc(rec.grade) + '</strong>：' + esc(rec.testName) + ' まで<strong' + (diff <= 7 ? ' style="color:#b91c1c"' : '') + '>残' + diff + '日</strong>';
     banners.push(makeBanner('test', SVG.test, label, diff, matched.length, popup, namesAttr));
   });
 
@@ -2855,8 +2857,8 @@ function alertBannersHtml(todayStudents, todayIso) {
     var evEnd   = fmtDate(ev.eventEndDate);
     var dateLabel = evStart + (evEnd ? ' 〜 ' + evEnd : '') + '（残' + diff + '日）';
     var popup = makePopup(SVG.event, ev.school + (ev.grade ? ' ' + ev.grade : '') + '：' + ev.eventName, dateLabel, matched, 'event');
-    var label = esc(ev.school) + (ev.grade ? ' ' + esc(ev.grade) : '')
-      + '：<strong>' + esc(ev.eventName) + '</strong> まで残<strong>' + diff + '日</strong>';
+    var label = '<strong>' + esc(ev.school) + (ev.grade ? ' ' + esc(ev.grade) : '') + '</strong>'
+      + '：' + esc(ev.eventName) + ' まで<strong' + (diff <= 7 ? ' style="color:#b91c1c"' : '') + '>残' + diff + '日</strong>';
     banners.push(makeBanner('event', SVG.event, label, diff, matched.length, popup, namesAttr));
   });
 
