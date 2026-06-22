@@ -94,6 +94,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cb-policy-corner { position:absolute; right:0; bottom:0; width:0; height:0; border-style:solid; border-width:0 0 14px 14px; border-color:transparent transparent var(--crimson) transparent; pointer-events:none; }
 @media print { .cb-policy-corner { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 @media print { .cb-custom-badge { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+.cb-leave-badge { display:inline-block; font-size:10px; font-weight:700; line-height:1.4; padding:1px 6px; margin-left:3px; border-radius:6px; background:#fbeaf0; color:#99355a; white-space:nowrap; vertical-align:middle; }
+.cb-leave-last { display:inline-block; font-size:10px; font-weight:700; line-height:1.4; padding:1px 6px; margin-left:3px; border-radius:6px; background:#fcebeb; color:#a32d2d; white-space:nowrap; vertical-align:middle; }
+@media print { .cb-leave-badge, .cb-leave-last { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 
 .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .badge-red { background: var(--crimson-light); color: var(--crimson); }
@@ -2001,7 +2004,7 @@ function koushuChipHtml(s, opts) {
   var colorCls = isElem ? ' koushu-chip-elem' : ' koushu-chip-juku';
   var koushuPolicyCorner = s.policy ? '<span class="cb-policy-corner"></span>' : '';  // 指導方針あり（2026-06-17）
   return '<div class="student-chip koushu-chip' + colorCls + '"' + assignIdAttr + draggableAttr + dataPopup + clickAttr + ' style="cursor:pointer;position:relative;overflow:hidden;padding-right:' + (assignId ? '18px' : '5px') + '">' + koushuPolicyCorner +
-    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name) + remainBadge + deleteBtn + '</div>';
+    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name) + leaveBadgeHtml_(s, opts && opts.dateStr) + remainBadge + deleteBtn + '</div>';
 }
 
 // =====================================================
@@ -2060,6 +2063,66 @@ function customBadgesHtml_(studentName) {
     var tip = b.detail ? b.detail : mk.label;
     return '<span class="cb-custom-badge" data-tooltip="' + esc(tip) + '" aria-label="' + esc(tip) + '">' + mk.svg + '</span>';
   }).join('');
+}
+
+// ===== 退会予定の表示（川上さん指示 2026-06-22）=====
+// 会員管理の退会予定日（jukuLeave=塾 / caLeave=CA の早い方）を使い、
+// 在籍中かつ退会予定日が今日以降の生徒に「●月いっぱい」を出す。
+// 退会予定月内で通常授業＋演習回の最後に来る日には「授業ラスト」を併記する。
+// ラスト日の計算対象：通常コマ＋演習回（enshuu/hira）。オンライン・受験特訓・英検・振替・講習・テスト対策は計算に含めない（川上さん指示）。表示自体は全モードで行う。
+function leaveInfo_(s) {
+  if (!s) return null;
+  if (s.status === '退会' || s.status === '休会') return null;
+  var jl = (s.jukuLeave || '').trim();
+  var cl = (s.caLeave   || '').trim();
+  var ld = '';
+  if (jl && cl) ld = (jl <= cl) ? jl : cl;
+  else          ld = jl || cl;
+  if (!ld) return null;
+  var d = new Date(ld + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  var today = new Date(isoDate(new Date()) + 'T00:00:00');
+  if (d < today) return null;
+  return { leaveDate: ld, month: d.getMonth() + 1, year: d.getFullYear() };
+}
+function lastLessonDateInMonth_(s, year, month) {
+  var komas = s.komas || [];
+  var lessonYoubis = {};
+  komas.forEach(function(k) {
+    if (k.online) return;
+    if (k.satType === 'juken' || k.satType === 'eiken') return;
+    var yb = k.youbi || '';
+    if (!yb && k.satType === 'hira' && k.hiraKoma) {
+      var hv = k.hiraKoma; if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
+      yb = hv.charAt(0);
+    }
+    if (yb) lessonYoubis[yb] = true;
+  });
+  var keys = Object.keys(lessonYoubis);
+  if (!keys.length) return '';
+  var info = leaveInfo_(s);
+  var leaveISO = info ? info.leaveDate : '';
+  var last = new Date(year, month, 0);
+  var leaveD = leaveISO ? new Date(leaveISO + 'T00:00:00') : last;
+  var limit = (leaveD < last) ? leaveD : last;
+  for (var day = limit.getDate(); day >= 1; day--) {
+    var dt = new Date(year, month - 1, day);
+    var yb = '日月火水木金土'[dt.getDay()];
+    if (lessonYoubis[yb]) return isoDate(dt);
+  }
+  return '';
+}
+function leaveBadgeHtml_(s, dateStr) {
+  var info = leaveInfo_(s);
+  if (!info) return '';
+  var html = '<span class="cb-leave-badge" title="退会予定">' + info.month + '月いっぱい</span>';
+  if (dateStr) {
+    var lastDate = lastLessonDateInMonth_(s, info.year, info.month);
+    if (lastDate && lastDate === dateStr) {
+      html += '<span class="cb-leave-last" title="この月で最後の授業日">授業ラスト</span>';
+    }
+  }
+  return html;
 }
 
 function studentChipHtml(s, opts) {
@@ -2276,6 +2339,7 @@ function studentChipHtml(s, opts) {
     absBtn +
     '<span class="s-name">' + esc(s.name) + '</span>' + testBadgeHtml +
     absenceBadge +
+    leaveBadgeHtml_(s, opts && opts.dateStr) +
     (badges ? '<span class="s-badges" style="margin-left:auto">' + badges + '</span>' : '') +
     '</div>' +
     ((s.grade || s.school) ? '<span class="s-sub">' + esc(s.grade || '') + (s.school ? '・' + esc(s.school) : '') + '</span>' : '') +
