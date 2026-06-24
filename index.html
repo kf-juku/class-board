@@ -941,6 +941,37 @@ tr.mx-done-row td { background: #f0fdf4; }
   </div>
 </div>
 
+<!-- チェックリスト統合確認モーダル（3択・2026-06-24）-->
+<div class="modal-overlay" id="modal-cl-merge">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span>チェックリストの作成方法</span>
+      <span class="modal-close" onclick="closeModal('modal-cl-merge')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </div>
+    <div class="modal-body">
+      <p id="cl-merge-msg" style="font-size:13px;color:var(--text-muted);line-height:1.6;margin:0 0 14px"></p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn-primary" style="text-align:left;padding:11px 14px" onclick="clMergeChoice('merge')">統合する<br><span style="font-size:11px;font-weight:400;opacity:0.85">既存の表にまとめる（おすすめ）</span></button>
+        <button class="btn-secondary" style="text-align:left;padding:11px 14px" onclick="clMergeChoice('independent')">独立して作成<br><span style="font-size:11px;color:var(--text-muted)">統合せず単独のチェックリストにする</span></button>
+        <button class="btn-secondary" style="text-align:left;padding:11px 14px;color:#6b7280" onclick="clMergeChoice('cancel')">キャンセル<br><span style="font-size:11px;color:var(--text-muted)">チェックリスト自体を作成しない</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- カスタムバッジ「全員を見る」モーダル（2026-06-24）：そのバッジの対象全員（来ない子含む）を学年順で一覧 -->
+<div class="modal-overlay" id="modal-cb-all" onclick="if(event.target===this)closeModal('modal-cb-all')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span id="cb-all-title">バッジの対象生徒</span>
+      <span class="modal-close" onclick="closeModal('modal-cb-all')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </div>
+    <div class="modal-body">
+      <div id="cb-all-body"></div>
+    </div>
+  </div>
+</div>
+
 
 <!-- カスタムバッジ 作成/編集モーダル（2026-06-17）-->
 <div class="modal-overlay" id="modal-custom-badge">
@@ -1481,42 +1512,8 @@ window.addEventListener('DOMContentLoaded', function() {
   var _tt = document.createElement('div');
   _tt.id = 'cb-tooltip';
   document.body.appendChild(_tt);
-  document.addEventListener('mouseover', function(e) {
-    var el = e.target.closest('[data-tooltip]');
-    if (!el) { _tt.style.display = 'none'; return; }
-    _tt.textContent = el.getAttribute('data-tooltip');
-    _tt.style.display = 'block';
-    // カスタムバッジは要素の真上に固定表示（小さくマウス追従だと位置がずれるため・2026-06-17）
-    if (el.closest('.cb-custom-badge')) {
-      var r = el.getBoundingClientRect();
-      var bx = r.left, by = r.top - 6 - _tt.offsetHeight;
-      if (by < 4) by = r.bottom + 6;
-      if (bx + 290 > window.innerWidth) bx = window.innerWidth - 294;
-      if (bx < 4) bx = 4;
-      _tt.style.left = bx + 'px';
-      _tt.style.top  = by + 'px';
-    }
-  });
-  document.addEventListener('mousemove', function(e) {
-    if (_tt.style.display === 'none') return;
-    // カスタムバッジのツールチップは要素基準で固定済み。マウス追従させない（位置ずれ防止）
-    if (e.target.closest('.cb-custom-badge')) return;
-    var x = e.clientX + 12, y = e.clientY + 12;
-    if (x + 290 > window.innerWidth) x = e.clientX - 290;
-    if (y + 80 > window.innerHeight) y = e.clientY - 50;
-    _tt.style.left = x + 'px';
-    _tt.style.top  = y + 'px';
-  });
-  document.addEventListener('mouseout', function(e) {
-    if (!e.target.closest('[data-tooltip]')) _tt.style.display = 'none';
-  });
-  // スマホ・タブレット：data-tooltip要素をタップで詳細を出す（PCホバーと併用・2026-06-17）。
-  // 要素の上に吹き出しを出し、別の場所をタップしたら閉じる。
-  document.addEventListener('touchstart', function(e) {
-    var el = e.target.closest('[data-tooltip]');
-    if (!el) { _tt.style.display = 'none'; return; }
-    _tt.textContent = el.getAttribute('data-tooltip');
-    _tt.style.display = 'block';
+  // 要素の真上に固定配置（カスタムバッジ用）
+  function _placeFixedAbove(el) {
     var r = el.getBoundingClientRect();
     var x = r.left, y = r.top - 8 - _tt.offsetHeight;
     if (y < 4) y = r.bottom + 8;            // 上に出ないなら下に
@@ -1524,6 +1521,67 @@ window.addEventListener('DOMContentLoaded', function() {
     if (x < 4) x = 4;
     _tt.style.left = x + 'px';
     _tt.style.top  = y + 'px';
+  }
+  // カスタムバッジ吹き出しを描く（その日その教室の同バッジの子＋全員を見るボタン・2026-06-24）
+  function _showCbBadgeTip(badge) {
+    var html = cbBadgeTooltipHtml_(badge.getAttribute('data-cb-bid'), badge.getAttribute('data-cb-date'), badge.getAttribute('data-cb-cr'));
+    if (!html) { _tt.style.display = 'none'; return; }
+    _tt.innerHTML = html;
+    _tt.style.pointerEvents = 'auto';   // 中の「全員を見る」ボタンを押せるように
+    _tt.style.display = 'block';
+    _placeFixedAbove(badge);
+  }
+  function _showPlainTip(el) {
+    _tt.textContent = el.getAttribute('data-tooltip');
+    _tt.style.pointerEvents = 'none';
+    _tt.style.display = 'block';
+  }
+  document.addEventListener('mouseover', function(e) {
+    var badge = e.target.closest('.cb-custom-badge');
+    if (badge) { _showCbBadgeTip(badge); return; }
+    var el = e.target.closest('[data-tooltip]');
+    if (!el) {
+      // 吹き出し自身の上に乗ったときは消さない（ボタンを押せるように）
+      if (e.target.closest('#cb-tooltip')) return;
+      _tt.style.display = 'none'; _tt.style.pointerEvents = 'none'; return;
+    }
+    _showPlainTip(el);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (_tt.style.display === 'none') return;
+    // カスタムバッジ／吹き出し本体の上では固定表示のまま（追従させない）
+    if (e.target.closest('.cb-custom-badge') || e.target.closest('#cb-tooltip')) return;
+    // 通常のツールチップ（ヘルプ等）はマウス追従
+    if (!e.target.closest('[data-tooltip]')) { _tt.style.display = 'none'; return; }
+    var x = e.clientX + 12, y = e.clientY + 12;
+    if (x + 290 > window.innerWidth) x = e.clientX - 290;
+    if (y + 80 > window.innerHeight) y = e.clientY - 50;
+    _tt.style.left = x + 'px';
+    _tt.style.top  = y + 'px';
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (e.target.closest('.cb-custom-badge') || e.target.closest('[data-tooltip]') || e.target.closest('#cb-tooltip')) return;
+    _tt.style.display = 'none'; _tt.style.pointerEvents = 'none';
+  });
+  // PC：カスタムバッジ本体をクリックしたら全員モーダルを直接開く（川上さん指示2026-06-24）
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#cb-tooltip')) return; // 吹き出し内のボタンは自前のonclickで処理
+    var badge = e.target.closest('.cb-custom-badge');
+    if (!badge) return;
+    e.preventDefault(); e.stopPropagation();
+    var bid = badge.getAttribute('data-cb-bid');
+    if (bid) openCustomBadgeAll(bid);
+  });
+  // スマホ・タブレット：タップで詳細を出す（PCホバーと併用・2026-06-17 / バッジは動的吹き出し2026-06-24）。
+  document.addEventListener('touchstart', function(e) {
+    var badge = e.target.closest('.cb-custom-badge');
+    if (badge) { _showCbBadgeTip(badge); return; }
+    // 吹き出し内の「全員を見る」ボタンタップはそのまま通す（閉じない）
+    if (e.target.closest('#cb-tooltip')) return;
+    var el = e.target.closest('[data-tooltip]');
+    if (!el) { _tt.style.display = 'none'; _tt.style.pointerEvents = 'none'; return; }
+    _showPlainTip(el);
+    _placeFixedAbove(el);
   }, { passive: true });
 });
 
@@ -2004,7 +2062,7 @@ function koushuChipHtml(s, opts) {
   var colorCls = isElem ? ' koushu-chip-elem' : ' koushu-chip-juku';
   var koushuPolicyCorner = s.policy ? '<span class="cb-policy-corner"></span>' : '';  // 指導方針あり（2026-06-17）
   return '<div class="student-chip koushu-chip' + colorCls + '"' + assignIdAttr + draggableAttr + dataPopup + clickAttr + ' style="cursor:pointer;position:relative;overflow:hidden;padding-right:' + (assignId ? '18px' : '5px') + '">' + koushuPolicyCorner +
-    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name) + leaveBadgeHtml_(s, opts && opts.dateStr) + remainBadge + deleteBtn + '</div>';
+    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name, opts) + leaveBadgeHtml_(s, opts && opts.dateStr) + remainBadge + deleteBtn + '</div>';
 }
 
 // =====================================================
@@ -2053,16 +2111,119 @@ function rebuildCustomBadgeIndex_() {
   });
 }
 
-// 生徒カードに差し込むカスタムバッジHTML（複数可）。詳細は data-tooltip でホバー/タップ表示。
-function customBadgesHtml_(studentName) {
+// 指定日・指定教室に実際に来る生徒名のSetを返す（生徒マスタの所属ではなく「その日来る教室」で判定・川上さん指示2026-06-24）。
+// 通常コマ生はgetStudentsForKomaを全コマ枠で集約。講習・テスト対策の割付（_koushuAssignments）も同日・同教室分を加える。
+function studentsAttendingOnDate_(dateStr, classroom) {
+  var set = {};
+  if (!dateStr || !classroom) return set;
+  var d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return set;
+  var youbi = YOUBI_MAP[d.getDay()];
+  // 通常コマ・演習回・英検・土曜等（getStudentsForKomaが退会休会を除外済み）
+  getKomasForClassroom(classroom).forEach(function(kt) {
+    getStudentsForKoma(classroom, youbi, kt).forEach(function(s) { set[String(s.name)] = true; });
+  });
+  // 講習・テスト対策の割付（その日・その教室に登録されている子）
+  (_koushuAssignments || []).forEach(function(a) {
+    if (a.date === dateStr && a.classroom === classroom && a.studentName) set[String(a.studentName)] = true;
+  });
+  return set;
+}
+
+// 学年順インデックス（小1→高3）。並べ替えに使う。
+var CB_GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+function cbGradeRank_(g) { var i = CB_GRADE_ORDER.indexOf(g || ''); return i >= 0 ? i : 99; }
+
+// 生徒カードに差し込むカスタムバッジHTML（複数可）。
+// ホバー/タップで「その日その教室に来る、同じバッジの子（名前＋学年・本人含む）」を吹き出し表示する（川上さん指示2026-06-24）。
+// 動的計算に必要な バッジID・日付・教室 を data-cb-* で持たせる。表示はcb-tooltipのホバー/タップ機構が動的に組む。
+function customBadgesHtml_(studentName, opts) {
   var list = _customBadgeIndex[String(studentName)] || [];
   if (!list.length) return '';
+  var dateStr = (opts && opts.dateStr) ? opts.dateStr : '';
+  var cr      = (opts && opts.classroom) ? opts.classroom : '';
   return list.map(function(b) {
     var mk = customBadgeMarkById_(b.mark);
     if (!mk) return '';
     var tip = b.detail ? b.detail : mk.label;
-    return '<span class="cb-custom-badge" data-tooltip="' + esc(tip) + '" aria-label="' + esc(tip) + '">' + mk.svg + '</span>';
+    return '<span class="cb-custom-badge" data-cb-badge="1"'
+      + ' data-cb-bid="' + esc(b.id || '') + '"'
+      + ' data-cb-date="' + esc(dateStr) + '"'
+      + ' data-cb-cr="' + esc(cr) + '"'
+      + ' aria-label="' + esc(tip) + '">' + mk.svg + '</span>';
   }).join('');
+}
+
+// バッジ吹き出しの中身HTMLを動的に組む（その日その教室に来る同バッジの子・本人含む・学年順）。
+function cbBadgeTooltipHtml_(bid, dateStr, cr) {
+  var b = null;
+  (_customBadges || []).forEach(function(x) { if (String(x.id) === String(bid)) b = x; });
+  if (!b) return '';
+  var mk = customBadgeMarkById_(b.mark);
+  var title = b.detail ? b.detail : (mk ? mk.label : 'バッジ');
+  var attend = studentsAttendingOnDate_(dateStr, cr);
+  var names = (b.studentNames || []).filter(function(nm){ return attend[String(nm)]; });
+  // 名前→学年（_students から引く）
+  var gradeOf = {};
+  (_students || []).forEach(function(s){ if (s && s.name && gradeOf[s.name] === undefined) gradeOf[s.name] = s.grade || ''; });
+  names.sort(function(a, c){
+    var gr = cbGradeRank_(gradeOf[a]) - cbGradeRank_(gradeOf[c]);
+    if (gr !== 0) return gr;
+    return String(a).localeCompare(String(c), 'ja');
+  });
+  var head = '<div style="font-weight:700;font-size:12px;margin-bottom:5px">' + esc(title) + '</div>';
+  var body;
+  if (!names.length) {
+    body = '<div style="font-size:11px;color:#cbd5e1">今日この教室に来る同じバッジの子はいません</div>';
+  } else {
+    body = '<div style="display:flex;flex-direction:column;gap:2px">' + names.map(function(nm){
+      var g = gradeOf[nm] || '';
+      return '<div style="font-size:12px;white-space:nowrap">' + esc(nm)
+        + (g ? ' <span style="font-size:10px;color:#cbd5e1">' + esc(g) + '</span>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  // スマホ・タブレット用「全員を見る」ボタン（吹き出し内に置く。PCはバッジクリックでモーダル直行）。
+  var allBtn = '<div style="margin-top:7px"><button type="button" class="cb-all-btn" onclick="event.stopPropagation();openCustomBadgeAll(\'' + esc(String(b.id)) + '\')" '
+    + 'style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #64748b;background:#334155;color:#fff;cursor:pointer">全員を見る</button></div>';
+  return head + body + allBtn;
+}
+
+// 「全員を見る」モーダルを開く（そのバッジの対象全員・来ない子含む・学年順・名前＋学年）。
+function openCustomBadgeAll(bid) {
+  var b = null;
+  (_customBadges || []).forEach(function(x) { if (String(x.id) === String(bid)) b = x; });
+  if (!b) return;
+  var mk = customBadgeMarkById_(b.mark);
+  var title = b.detail ? b.detail : (mk ? mk.label : 'バッジ');
+  var gradeOf = {};
+  (_students || []).forEach(function(s){ if (s && s.name && gradeOf[s.name] === undefined) gradeOf[s.name] = s.grade || ''; });
+  var names = (b.studentNames || []).slice();
+  names.sort(function(a, c){
+    var gr = cbGradeRank_(gradeOf[a]) - cbGradeRank_(gradeOf[c]);
+    if (gr !== 0) return gr;
+    return String(a).localeCompare(String(c), 'ja');
+  });
+  var head = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+    + '<span style="display:inline-flex;width:18px;height:18px">' + (mk ? mk.svg : '') + '</span>'
+    + '<span style="font-weight:700;font-size:14px">' + esc(title) + '</span>'
+    + '<span style="font-size:11px;color:var(--text-muted)">全' + names.length + '名</span></div>';
+  var body;
+  if (!names.length) {
+    body = '<div style="font-size:12px;color:var(--text-muted)">対象生徒がいません</div>';
+  } else {
+    body = '<div style="display:flex;flex-direction:column;gap:3px;max-height:55vh;overflow-y:auto">' + names.map(function(nm){
+      var g = gradeOf[nm] || '';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;background:#f1f5f9">'
+        + '<span style="font-size:13px">' + esc(nm) + '</span>'
+        + (g ? '<span style="font-size:11px;color:#64748b">' + esc(g) + '</span>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  document.getElementById('cb-all-title').textContent = 'バッジの対象生徒';
+  document.getElementById('cb-all-body').innerHTML = head + body;
+  // 吹き出しは閉じる
+  var tt = document.getElementById('cb-tooltip');
+  if (tt) { tt.style.display = 'none'; tt.style.pointerEvents = 'none'; }
+  openModal('modal-cb-all');
 }
 
 // ===== 退会予定の表示（川上さん指示 2026-06-22）=====
@@ -2223,7 +2384,7 @@ function studentChipHtml(s, opts) {
   }
   var badges = '';
   badges += lessonLabel;
-  badges += customBadgesHtml_(s.name);  // カスタムバッジ（授業種別の右横・2026-06-17）
+  badges += customBadgesHtml_(s.name, opts);  // カスタムバッジ（授業種別の右横・2026-06-17）
 
   // ポップアップ：よみ・コース・全通塾コマ・部活・指導方針（学年・学校はチップ本体に表示するため除外）
   var popup = '';
@@ -8791,11 +8952,13 @@ function submitChecklist() {
   }
 
   // ── 新規モード ──
-  closeModal('modal-add-checklist');
-  var now = Date.now();
-  titles.forEach(function(title, i) {
-    var cl = {
-      id: 'cl_' + (now + i),
+  // 川上さん指示(2026-06-24)：旧confirm（OK=統合/キャンセル=独立）が「キャンセル=作成しない」に
+  //  見えて誤解を生んだため、3択モーダル（統合する/独立して作成/キャンセル=作らない）に変更。
+  //  対象生徒は全タイトル共通なので統合候補も共通。候補があれば3択を1回出し、選択を全タイトルに適用する。
+  var nowTs = Date.now();
+  var pending = titles.map(function(title, i) {
+    return {
+      id: 'cl_' + (nowTs + i),
       title: title,
       startDate: startDate,
       memo: memo,
@@ -8805,12 +8968,48 @@ function submitChecklist() {
       }),
       createdAt: isoDate(new Date())
     };
-    // 統合の自動判定→確認ポップ（2026-06-12：80%条件に該当したら聞く。いいえ＝独立リスト）
-    var mt = mxFindMergeTarget_(cl);
-    if (mt) {
-      var okMerge = confirm('「' + cl.title + '」は対象メンバーの' + mt.ratio + '%が「' + mt.names + '」と重なっています。\n\n1つの表に統合しますか？\n\nOK＝統合する\nキャンセル＝独立したチェックリストにする');
-      if (!okMerge) cl.noMerge = true;
+  });
+  // 統合候補は対象メンバーで決まる＝全タイトル共通。代表1件で判定する。
+  var mt = mxFindMergeTarget_(pending[0]);
+  if (mt) {
+    var msgEl = document.getElementById('cl-merge-msg');
+    if (msgEl) {
+      msgEl.innerHTML = '対象メンバーの<b>' + mt.ratio + '%</b>が「' + esc(mt.names) + '」と重なっています。どう作成しますか？';
     }
+    // 選択を待って doCreateChecklists_ を呼ぶ（noMergeは選択で決定）
+    _clMergePending = { pending: pending, taskUrl: taskUrl, count: titles.length };
+    openModal('modal-cl-merge');
+    return;
+  }
+  // 統合候補なし＝そのまま作成
+  closeModal('modal-add-checklist');
+  doCreateChecklists_(pending, false, taskUrl);
+  miniToast(titles.length + '件のチェックリストを作成しました ✓');
+}
+
+// 3択モーダルの選択ハンドラ（2026-06-24）
+var _clMergePending = null;
+function clMergeChoice(choice) {
+  closeModal('modal-cl-merge');
+  if (choice === 'cancel') {
+    // チェックリスト自体を作成しない（作成モーダルは開いたまま＝やり直せる）
+    _clMergePending = null;
+    miniToast('作成をキャンセルしました');
+    return;
+  }
+  if (!_clMergePending) return;
+  var p = _clMergePending;
+  _clMergePending = null;
+  closeModal('modal-add-checklist');
+  // merge=統合する（noMerge=false） / independent=独立して作成（noMerge=true）
+  doCreateChecklists_(p.pending, choice === 'independent', p.taskUrl);
+  miniToast(p.count + '件のチェックリストを作成しました ✓');
+}
+
+// チェックリストを実際に作成・保存する（3択の選択後・候補なし即時の共用 2026-06-24）
+function doCreateChecklists_(pending, noMerge, taskUrl) {
+  pending.forEach(function(cl) {
+    if (noMerge) cl.noMerge = true;
     _checklists.push(cl);
     if (taskUrl) {
       callGas(taskUrl, { action: 'saveChecklist', checklist: JSON.stringify(cl) }, function(res) {
@@ -8819,7 +9018,6 @@ function submitChecklist() {
     }
   });
   rerenderCurrentTab();
-  miniToast(titles.length + '件のチェックリストを作成しました ✓');
 }
 
 // ── 詳細モーダルを開く ──
