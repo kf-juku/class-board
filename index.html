@@ -2303,26 +2303,32 @@ function openCustomBadgeAll(bid) {
       + '教室を判定できない子は表示していません（' + unclassified.length + '名）：'
       + unclassified.map(function(nm){ return esc(nm); }).join('、') + '</div>';
   }
-  function colHtml_(label, arr){
+  // 列を教室色で塗る（川上さん指示2026-06-24）。時間割の教室ブロックと同配色：
+  // 列の背景＝薄い教室色（--kitakurihama-bg/--kurihama-bg）＋枠、見出し帯＝濃い教室色（header）、
+  // 生徒カードは白（時間割の生徒カードと同じ）。cr は '北久里浜' or '久里浜'。
+  function colHtml_(label, arr, cr){
+    var bgVar  = cr === '北久里浜' ? 'var(--kitakurihama-bg)'     : 'var(--kurihama-bg)';
+    var bdVar  = cr === '北久里浜' ? 'var(--kitakurihama-border)' : 'var(--kurihama-border)';
+    var hdVar  = cr === '北久里浜' ? 'var(--kitakurihama-header)' : 'var(--kurihama-header)';
     var rows = arr.length
       ? arr.map(function(nm){
           var g = gradeOf[nm] || '';
-          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;background:#f1f5f9">'
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 9px;border-radius:6px;background:#fff;border:0.5px solid #dde3ec">'
             + '<span style="font-size:13px">' + esc(nm) + '</span>'
             + (g ? '<span style="font-size:11px;color:#64748b">' + esc(g) + '</span>' : '') + '</div>';
         }).join('')
-      : '<div style="font-size:11px;color:var(--text-muted);padding:5px 8px">なし</div>';
-    return '<div style="flex:1;min-width:0">'
-      + '<div style="font-weight:700;font-size:12px;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid var(--border)">'
-      + esc(label) + ' <span style="font-weight:400;color:var(--text-muted)">' + arr.length + '名</span></div>'
-      + '<div style="display:flex;flex-direction:column;gap:3px">' + rows + '</div></div>';
+      : '<div style="font-size:11px;color:var(--text-muted);padding:6px 9px">なし</div>';
+    return '<div style="flex:1;min-width:0;background:' + bgVar + ';border:0.5px solid ' + bdVar + ';border-radius:8px;overflow:hidden">'
+      + '<div style="font-weight:500;font-size:12px;padding:6px 10px;background:' + hdVar + ';color:#fff">'
+      + '🏫 ' + esc(label) + ' <span style="font-weight:400;opacity:.85">' + arr.length + '名</span></div>'
+      + '<div style="display:flex;flex-direction:column;gap:5px;padding:8px">' + rows + '</div></div>';
   }
   var body;
   if (!shownCount && !unclassified.length) {
     body = '<div style="font-size:12px;color:var(--text-muted)">対象生徒がいません</div>';
   } else {
     body = note + '<div style="display:flex;gap:12px;max-height:55vh;overflow-y:auto">'
-      + colHtml_('北久里浜', colKita) + colHtml_('久里浜', colKuri) + '</div>';
+      + colHtml_('北久里浜', colKita, '北久里浜') + colHtml_('久里浜', colKuri, '久里浜') + '</div>';
   }
   document.getElementById('cb-all-title').textContent = 'バッジの対象生徒';
   document.getElementById('cb-all-body').innerHTML = head + body;
