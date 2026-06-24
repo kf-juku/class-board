@@ -7014,71 +7014,119 @@ function kseSave(studentId, studentName, periodId) {
   var saveBtn = document.getElementById('kse-save-btn');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中...'; }
 
-  var queue = [];
-  // 削除→更新→追加の順で直列処理
-  toDelete.forEach(function(item) { queue.push({ type: 'delete', item: item }); });
-  toUpdate.forEach(function(item) { queue.push({ type: 'add',    item: item }); }); // saveKoushuAssignmentはid付きで更新になる
-  toAdd.forEach(function(item)    { queue.push({ type: 'add',    item: item }); });
-
-  var total  = queue.length;
+  // 川上さん指示(2026-06-24)：1名のコマ修正(kseSave)が1セル=1往復の直列で重かった
+  //  （特に「⇒全」で1行まとめてON）。追加はbulkSaveで1往復、削除はbulkDeleteで1往復にまとめる。
+  //  種別・教室変更(toUpdate)は今回スコープ外＝従来通りsaveKoushuAssignmentの直列で温存する。
+  var total  = toAdd.length + toDelete.length + toUpdate.length;
   var errors = [];
 
-  function processNext(idx) {
-    if (idx >= queue.length) {
-      // 全完了
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
-      if (errors.length > 0) {
-        miniToast('一部エラー: ' + errors[0]);
-      } else {
-        miniToast('保存しました (' + total + '件)');
-        if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
-      }
-      return;
-    }
-    var entry = queue[idx];
-    if (entry.type === 'delete') {
-      var item = entry.item;
-      callGas(url, { action: 'deleteKoushuAssignment', assignmentId: item.aid }, function(res) {
-        var notFound = res && res.error && res.error.indexOf('見つかりません') >= 0;
-        if ((res && res.success) || notFound) {
-          _koushuAssignments = _koushuAssignments.filter(function(a){ return a.id !== item.aid; });
-          item.btn.dataset.aid = '';
-        } else {
-          errors.push('削除失敗: ' + (res && res.error ? res.error : '不明'));
-          item.btn.classList.add('kse-cell-on');
-          item.btn.innerHTML = '&#10003;';
-        }
-        processNext(idx + 1);
-      }, 'POST');
+  // 全完了時の後処理：手元データで先に再描画し、裏で1回だけ最新を取り直す（案1折衷）。
+  //  別の社員が別の子・別コマを直した分も、保存のあと静かに反映される。
+  function finishKseSave() {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+    if (errors.length > 0) {
+      miniToast('一部エラー: ' + errors[0]);
     } else {
-      var item = entry.item;
-      callGas(url, { action: 'saveKoushuAssignment', assignment: item.data }, function(res) {
-        if (res && res.success) {
-          var savedId = (res.assignment && res.assignment.id) || res.id || '';
-          var wasUpdate = !!item.data.id; // 既存行の更新（2026-06-10）
-          item.data.id = savedId;
-          item.btn.dataset.aid = savedId;
-          if (wasUpdate) {
-            var ex = _koushuAssignments.find(function(a){ return a.id === savedId; });
-            if (ex) { ex.classroom = item.data.classroom; ex.type = item.data.type; }
-            item.btn.dataset.atype = item.data.type;
-            item.btn.dataset.acr = item.data.classroom;
-            delete item.btn.dataset.modtype;
-            delete item.btn.dataset.modcr;
-          } else {
-            _koushuAssignments.push(item.data);
-          }
-        } else {
-          errors.push('保存失敗: ' + (res && res.error ? res.error : '不明'));
-          item.btn.classList.remove('kse-cell-on');
-          item.btn.innerHTML = '';
+      miniToast('保存しました (' + total + '件)');
+    }
+    // 手元データで先に再描画（速い）
+    if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
+    // 裏で最新を取り直して差分を反映（他端末の変更を取り込む）
+    //  ※必ず「今画面に表示中の期間(window.__koushuDataPid)」で取り直す。
+    //   モーダルの期間と表示中期間が違う場合に、表示中データを別期間で全置換しないため
+    //   フォールバックは設けず、表示中期間があるときだけ実行する（川上さん指示2026-06-24）。
+    var pidForReload = window.__koushuDataPid || '';
+    if (pidForReload) {
+      callGas(url, { action: 'getKoushuAssignments', periodId: pidForReload }, function(r) {
+        if (r && r.success && r.assignments) {
+          _koushuAssignments = r.assignments;
+          window.__koushuDataPid = pidForReload;
+          if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
         }
-        processNext(idx + 1);
       }, 'POST');
     }
   }
 
-  processNext(0);
+  // ステップ1：削除（OFFにしたセル）を一括1往復
+  function stepDelete(next) {
+    if (toDelete.length === 0) { next(); return; }
+    var delIds = toDelete.map(function(item){ return item.aid; });
+    callGas(url, { action: 'bulkDeleteKoushuAssignments', ids: delIds }, function(res) {
+      if (res && res.success) {
+        var delSet = {};
+        toDelete.forEach(function(item) {
+          delSet[item.aid] = true;
+          item.btn.dataset.aid = '';
+        });
+        _koushuAssignments = _koushuAssignments.filter(function(a){ return !delSet[a.id]; });
+      } else {
+        errors.push('削除失敗: ' + (res && res.error ? res.error : '不明'));
+        // 失敗時はUIを元（ON）に戻す
+        toDelete.forEach(function(item) {
+          item.btn.classList.add('kse-cell-on');
+          item.btn.innerHTML = '&#10003;';
+        });
+      }
+      next();
+    }, 'POST');
+  }
+
+  // ステップ2：追加（ONにした新規セル）を一括1往復。
+  //  bulkSaveは正しいidを個別返却しないため、保存後にgetで取り直してidを確定させる。
+  function stepAdd(next) {
+    if (toAdd.length === 0) { next(); return; }
+    var addData = toAdd.map(function(item){ return item.data; });
+    callGas(url, { action: 'bulkSaveKoushuAssignments', assignments: addData }, function(res) {
+      if (res && res.success) {
+        // 手元には仮データを入れておく（finishKseSaveの裏取得で正しいidに置き換わる）
+        toAdd.forEach(function(item) { _koushuAssignments.push(item.data); });
+      } else {
+        errors.push('保存失敗: ' + (res && res.error ? res.error : '不明'));
+        toAdd.forEach(function(item) {
+          item.btn.classList.remove('kse-cell-on');
+          item.btn.innerHTML = '';
+        });
+      }
+      next();
+    }, 'POST');
+  }
+
+  // ステップ3：種別・教室変更（toUpdate）＝従来通り直列で温存（今回スコープ外）
+  function stepUpdate(next) {
+    if (toUpdate.length === 0) { next(); return; }
+    var ui = 0;
+    function nextUpdate() {
+      if (ui >= toUpdate.length) { next(); return; }
+      var item = toUpdate[ui];
+      callGas(url, { action: 'saveKoushuAssignment', assignment: item.data }, function(res) {
+        if (res && res.success) {
+          var savedId = (res.assignment && res.assignment.id) || res.id || '';
+          item.data.id = savedId;
+          item.btn.dataset.aid = savedId;
+          var ex = _koushuAssignments.find(function(a){ return a.id === savedId; });
+          if (ex) { ex.classroom = item.data.classroom; ex.type = item.data.type; }
+          item.btn.dataset.atype = item.data.type;
+          item.btn.dataset.acr = item.data.classroom;
+          delete item.btn.dataset.modtype;
+          delete item.btn.dataset.modcr;
+        } else {
+          errors.push('更新失敗: ' + (res && res.error ? res.error : '不明'));
+        }
+        ui++;
+        nextUpdate();
+      }, 'POST');
+    }
+    nextUpdate();
+  }
+
+  // 削除 → 更新 → 追加 → 後処理
+  stepDelete(function() {
+    stepUpdate(function() {
+      stepAdd(function() {
+        finishKseSave();
+      });
+    });
+  });
 }
 
 function kseUpdateCountBadge(studentId, studentName, periodId) {
