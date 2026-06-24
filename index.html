@@ -7848,6 +7848,14 @@ function miniToast(msg) {
   setTimeout(function() { el.classList.remove('show'); }, 2500);
 }
 
+// 長め（5秒）トースト。未来開始チェックリストの告知など、少し読ませたいとき用（2026-06-24）。
+function miniToastLong_(msg) {
+  var el = document.getElementById('mini-toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._longT);
+  el._longT = setTimeout(function() { el.classList.remove('show'); }, 5000);
+}
+
 function showLoading(show) {
   var el = document.getElementById('loading-overlay');
   el.classList[show ? 'add' : 'remove']('show');
@@ -8984,7 +8992,6 @@ function submitChecklist() {
   // 統合候補なし＝そのまま作成
   closeModal('modal-add-checklist');
   doCreateChecklists_(pending, false, taskUrl);
-  miniToast(titles.length + '件のチェックリストを作成しました ✓');
 }
 
 // 3択モーダルの選択ハンドラ（2026-06-24）
@@ -9003,7 +9010,6 @@ function clMergeChoice(choice) {
   closeModal('modal-add-checklist');
   // merge=統合する（noMerge=false） / independent=独立して作成（noMerge=true）
   doCreateChecklists_(p.pending, choice === 'independent', p.taskUrl);
-  miniToast(p.count + '件のチェックリストを作成しました ✓');
 }
 
 // チェックリストを実際に作成・保存する（3択の選択後・候補なし即時の共用 2026-06-24）
@@ -9018,6 +9024,29 @@ function doCreateChecklists_(pending, noMerge, taskUrl) {
     }
   });
   rerenderCurrentTab();
+  // 完了トーストを一本化（2026-06-24）：未来開始があればその告知（5秒）を優先、
+  // なければ通常の「N件作成しました」（2.5秒）。同じ#mini-toastの上書き競合を避けるためここで出す。
+  if (!notifyFutureStart_(pending)) {
+    miniToast((pending || []).length + '件のチェックリストを作成しました ✓');
+  }
+}
+
+// pending のうち開始日が今日より先のものがあれば、●月●日から表示される旨を告知する。
+function notifyFutureStart_(pending) {
+  var todayIso = isoDate(new Date());
+  // startDate はフルISO（複製時）と日付のみ（日付ピッカー）が混在しうるので先頭10文字で比較
+  function dOnly(v) { return String(v || '').slice(0, 10); }
+  var future = (pending || []).filter(function(cl) { return dOnly(cl.startDate) > todayIso; });
+  if (!future.length) return false;
+  // 一番早い未来開始日でまとめて告知（複数件あっても文言は最小限に）
+  var earliest = future.map(function(cl) { return dOnly(cl.startDate); }).sort()[0];
+  var d = new Date(earliest + 'T00:00:00');
+  var md = isNaN(d.getTime()) ? earliest : (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  var head = future.length === 1
+    ? '「' + future[0].title + '」は'
+    : future.length + '件のチェックリストは';
+  miniToastLong_(head + ' ' + md + ' 開始のため、今日の画面にはまだ表示されません（その日になると自動で表示されます）');
+  return true;
 }
 
 // ── 詳細モーダルを開く ──
