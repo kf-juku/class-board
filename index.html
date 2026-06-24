@@ -1599,14 +1599,19 @@ window.addEventListener('DOMContentLoaded', function() {
     _tt.style.display = 'none'; _tt.style.pointerEvents = 'none';
   });
   // PC：カスタムバッジ本体をクリックしたら全員モーダルを直接開く（川上さん指示2026-06-24）
+  // 川上さん指示(2026-06-24)：講習/テストモードでは親チップに onclick="openKoushuStudentEdit" が
+  // インラインで付いており、バッジクリックがバブリングして「コマ変更画面」も同時に開いてしまう。
+  // これを防ぐため capture フェーズで登録し、親のインライン onclick に到達する前に伝播を止める。
   document.addEventListener('click', function(e) {
     if (e.target.closest('#cb-tooltip')) return; // 吹き出し内のボタンは自前のonclickで処理
     var badge = e.target.closest('.cb-custom-badge');
     if (!badge) return;
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation(); // 親チップのインライン onclick（コマ変更）を発火させない
     var bid = badge.getAttribute('data-cb-bid');
     if (bid) openCustomBadgeAll(bid);
-  });
+  }, true);
   // スマホ・タブレット：タップで詳細を出す（PCホバーと併用・2026-06-17 / バッジは動的吹き出し2026-06-24）。
   document.addEventListener('touchstart', function(e) {
     var badge = e.target.closest('.cb-custom-badge');
@@ -2148,6 +2153,29 @@ function rebuildCustomBadgeIndex_() {
 
 // 指定日・指定教室に実際に来る生徒名のSetを返す（生徒マスタの所属ではなく「その日来る教室」で判定・川上さん指示2026-06-24）。
 // 通常コマ生はgetStudentsForKomaを全コマ枠で集約。講習・テスト対策の割付（_koushuAssignments）も同日・同教室分を加える。
+// その生徒が、指定の曜日×時間×教室の該当コマ枠で「オンライン以外のコマ」を持つか判定する。
+// 川上さん指示(2026-06-24)：オンライン以外（塾・演習回・英検・受験特訓・CA）は全部「教室に実際に来る子」。
+// オンライン受講だけの子のみ「その日その教室に来る子」から除外する。
+// getStudentsForKoma と同じ matchesKoma 判定で該当コマを絞り、その中に online!==true が1つでもあればtrue。
+function attendsFaceToFace_(s, classroom, youbi, komaTime) {
+  if (!s || !s.komas) return false;
+  return s.komas.some(function(k) {
+    if (k.online === true) return false;          // オンラインは対象外
+    if (k.satType === 'juken') return false;      // 受験特訓は相乗り専用ブロックで別表示（getStudentsForKomaも除外）
+    // 通常コマ・オンライン・演習回(enshuu)・英検・土曜：youbi+timeで判定（matchesKomaと同じ）
+    if (k.satType !== 'hira') {
+      if (k.youbi !== youbi || k.time !== komaTime) return false;
+      if (k.classroom) return k.classroom === classroom;
+      if (k.satType) return getMainClassroom(s) === classroom; // 教室未設定の土曜系は主所属で判定
+      return true; // 教室未設定の通常コマ（旧データ等）は通す
+    }
+    // hira（平日演習回・旧形式）
+    var hv = k.hiraKoma || '';
+    if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
+    return hv === (youbi + komaTime);
+  });
+}
+
 function studentsAttendingOnDate_(dateStr, classroom) {
   var set = {};
   if (!dateStr || !classroom) return set;
@@ -2155,8 +2183,13 @@ function studentsAttendingOnDate_(dateStr, classroom) {
   if (isNaN(d.getTime())) return set;
   var youbi = YOUBI_MAP[d.getDay()];
   // 通常コマ・演習回・英検・土曜等（getStudentsForKomaが退会休会を除外済み）
+  // 川上さん指示(2026-06-24)：オンライン受講は「その日その教室に来る子」の対象外。
+  // getStudentsForKoma はオンラインコマでも生徒を返すため、その生徒が該当コマ枠で
+  // 「オンライン以外（対面）のコマ」を持つ場合のみカウントする。
   getKomasForClassroom(classroom).forEach(function(kt) {
-    getStudentsForKoma(classroom, youbi, kt).forEach(function(s) { set[String(s.name)] = true; });
+    getStudentsForKoma(classroom, youbi, kt).forEach(function(s) {
+      if (attendsFaceToFace_(s, classroom, youbi, kt)) set[String(s.name)] = true;
+    });
   });
   // 講習・テスト対策の割付（その日・その教室に登録されている子）
   (_koushuAssignments || []).forEach(function(a) {
@@ -2230,28 +2263,66 @@ function openCustomBadgeAll(bid) {
   if (!b) return;
   var mk = customBadgeMarkById_(b.mark);
   var title = b.detail ? b.detail : (mk ? mk.label : 'バッジ');
-  var gradeOf = {};
-  (_students || []).forEach(function(s){ if (s && s.name && gradeOf[s.name] === undefined) gradeOf[s.name] = s.grade || ''; });
-  var names = (b.studentNames || []).slice();
-  names.sort(function(a, c){
-    var gr = cbGradeRank_(gradeOf[a]) - cbGradeRank_(gradeOf[c]);
-    if (gr !== 0) return gr;
-    return String(a).localeCompare(String(c), 'ja');
+  // 名前→学年・名前→主所属教室（生徒マスタから引く）
+  var gradeOf = {}, stuOf = {};
+  (_students || []).forEach(function(s){
+    if (s && s.name) {
+      if (gradeOf[s.name] === undefined) gradeOf[s.name] = s.grade || '';
+      if (stuOf[s.name] === undefined) stuOf[s.name] = s;
+    }
   });
+  // 川上さん指示(2026-06-24)：左列=北久里浜・右列=久里浜の2列に分ける。
+  // 振り分けは getMainClassroom（通常コマの教室最頻値）。どちらにも判定できない子は
+  // モーダルに出さず、注記でその子がいることだけ知らせる。
+  var colKita = [], colKuri = [], unclassified = [];
+  (b.studentNames || []).forEach(function(nm){
+    var s = stuOf[nm];
+    var cr = s ? getMainClassroom(s) : null;
+    if (cr === '北久里浜') colKita.push(nm);
+    else if (cr === '久里浜') colKuri.push(nm);
+    else unclassified.push(nm);
+  });
+  function sortNames_(arr){
+    arr.sort(function(a, c){
+      var gr = cbGradeRank_(gradeOf[a]) - cbGradeRank_(gradeOf[c]);
+      if (gr !== 0) return gr;
+      return String(a).localeCompare(String(c), 'ja');
+    });
+    return arr;
+  }
+  sortNames_(colKita); sortNames_(colKuri);
+  var shownCount = colKita.length + colKuri.length;
   var head = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
     + '<span style="display:inline-flex;width:18px;height:18px">' + (mk ? mk.svg : '') + '</span>'
     + '<span style="font-weight:700;font-size:14px">' + esc(title) + '</span>'
-    + '<span style="font-size:11px;color:var(--text-muted)">全' + names.length + '名</span></div>';
+    + '<span style="font-size:11px;color:var(--text-muted)">全' + shownCount + '名</span></div>';
+  // 教室未判定の子がいたら注記（誰が漏れているか分かるように名前も出す）
+  var note = '';
+  if (unclassified.length) {
+    note = '<div style="margin-bottom:8px;padding:6px 8px;border-radius:6px;background:#fff7ed;border:1px solid #fed7aa;font-size:11px;color:#9a3412">'
+      + '教室を判定できない子は表示していません（' + unclassified.length + '名）：'
+      + unclassified.map(function(nm){ return esc(nm); }).join('、') + '</div>';
+  }
+  function colHtml_(label, arr){
+    var rows = arr.length
+      ? arr.map(function(nm){
+          var g = gradeOf[nm] || '';
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;background:#f1f5f9">'
+            + '<span style="font-size:13px">' + esc(nm) + '</span>'
+            + (g ? '<span style="font-size:11px;color:#64748b">' + esc(g) + '</span>' : '') + '</div>';
+        }).join('')
+      : '<div style="font-size:11px;color:var(--text-muted);padding:5px 8px">なし</div>';
+    return '<div style="flex:1;min-width:0">'
+      + '<div style="font-weight:700;font-size:12px;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid var(--border)">'
+      + esc(label) + ' <span style="font-weight:400;color:var(--text-muted)">' + arr.length + '名</span></div>'
+      + '<div style="display:flex;flex-direction:column;gap:3px">' + rows + '</div></div>';
+  }
   var body;
-  if (!names.length) {
+  if (!shownCount && !unclassified.length) {
     body = '<div style="font-size:12px;color:var(--text-muted)">対象生徒がいません</div>';
   } else {
-    body = '<div style="display:flex;flex-direction:column;gap:3px;max-height:55vh;overflow-y:auto">' + names.map(function(nm){
-      var g = gradeOf[nm] || '';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;background:#f1f5f9">'
-        + '<span style="font-size:13px">' + esc(nm) + '</span>'
-        + (g ? '<span style="font-size:11px;color:#64748b">' + esc(g) + '</span>' : '') + '</div>';
-    }).join('') + '</div>';
+    body = note + '<div style="display:flex;gap:12px;max-height:55vh;overflow-y:auto">'
+      + colHtml_('北久里浜', colKita) + colHtml_('久里浜', colKuri) + '</div>';
   }
   document.getElementById('cb-all-title').textContent = 'バッジの対象生徒';
   document.getElementById('cb-all-body').innerHTML = head + body;
