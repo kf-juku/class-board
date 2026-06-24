@@ -678,6 +678,24 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   .task-chip-1line { font-size: 8px !important; padding: 1px 4px !important; }
   .task-chip-1line .t-popup { display: none !important; }
 
+  /* 片教室印刷（print-one-cr）：1教室分は全幅1カラムにして大きく見やすく（2026-06-24） */
+  .today-grid.print-one-cr { grid-template-columns: 1fr !important; }
+  .task-bar.print-one-cr .task-bar-cols { grid-template-columns: 1fr !important; }
+  /* 余裕があるぶん、両教室版より文字・チップを大きめに戻す */
+  .print-one-cr .student-chip,
+  .print-one-cr.today-grid .student-chip { padding: 3px 6px !important; font-size: 12px !important; border-radius: 5px !important; }
+  .print-one-cr .student-chip .s-name,
+  .print-one-cr.today-grid .student-chip .s-name { max-width: 8em !important; }
+  .print-one-cr .student-chip .s-sub,
+  .print-one-cr.today-grid .student-chip .s-sub { font-size: 10px !important; }
+  .print-one-cr .badge,
+  .print-one-cr.today-grid .badge { font-size: 9px !important; padding: 1px 4px !important; }
+  .print-one-cr .koma-time,
+  .print-one-cr.today-grid .koma-time { font-size: 13px !important; }
+  .print-one-cr.task-bar .task-bar-col-header { font-size: 12px !important; }
+  .print-one-cr.task-bar .task-chip-1line { font-size: 11px !important; padding: 2px 6px !important; }
+  .print-one-cr.task-bar .task-bar-section-label { font-size: 10px !important; }
+
   /* 印刷ヘッダー表示 */
   .print-header { display: block !important; }
 }
@@ -855,6 +873,23 @@ tr.mx-done-row td { background: #f0fdf4; }
   </div>
 </div>
 <!-- チェックリスト作成モーダル -->
+<div class="modal-overlay" id="modal-print-choice">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span>印刷する教室を選ぶ</span>
+      <span class="modal-close" onclick="closeModal('modal-print-choice')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">両教室はこれまで通りA4で印刷します。片方の教室だけなら大きく見やすく印刷できます。</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn-primary" style="padding:10px;font-size:14px;text-align:left" onclick="closeModal('modal-print-choice');printA4_()">🖨️ 両教室（A4・これまで通り）</button>
+        <button class="btn-secondary" style="padding:10px;font-size:14px;text-align:left" onclick="closeModal('modal-print-choice');printA4_('北久里浜')">🏫 北久里浜のみ（A4・大きめ）</button>
+        <button class="btn-secondary" style="padding:10px;font-size:14px;text-align:left" onclick="closeModal('modal-print-choice');printA4_('久里浜')">🏫 久里浜のみ（A4・大きめ）</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add-checklist">
   <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
     <div class="modal-header">
@@ -2792,7 +2827,7 @@ function renderToday() {
   document.getElementById('main-content').innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
     '<span></span>' +
-    '<button class="btn-secondary btn-sm" onclick="printA4_()" data-tooltip="A4縦・表裏2ページで印刷します（表面=タスク＋チェックリスト／裏面=時間割。両面印刷で紙1枚）。講習・テスト対策の期間全体は「📄 期間印刷」（B4横・1週=1ページ）を使ってください" style="font-size:12px">🖨️ 印刷</button>' +
+    '<button class="btn-secondary btn-sm" onclick="openPrintChoice_()" data-tooltip="印刷する教室を選びます。両教室（A4・これまで通り）／片方の教室だけ（A4・大きめ）から選べます。講習・テスト対策の期間全体は「📄 期間印刷」（B4横・1週=1ページ）を使ってください" style="font-size:12px">🖨️ 印刷</button>' +
     '</div>' +
     '<div class="print-header">本日の時間割　' + todayLabel + '　' + _currentClassroom + '</div>' +
     alerts +
@@ -3526,8 +3561,12 @@ function buildWeekGrid(days, todayIso) {
 // =====================================================
 // 本日・今週タブのA4印刷（2026-06-12：専用印刷ページ方式。本日=縦・今週=横。
 // 固定サイズページに実測で流し込み、入らない場合はページ構成を自動調整。期間印刷=B4横とは用途が別）
-function printA4_() {
-  buildA4Pages_();
+// 本日タブの印刷ボタン：教室選択モーダルを開く（両教室／片教室・2026-06-24 川上さん指示）
+function openPrintChoice_() { openModal('modal-print-choice'); }
+
+// onlyCr 未指定＝両教室（これまで通り・レイアウト不変）。'北久里浜'/'久里浜' 指定＝その教室だけを大きめに印刷
+function printA4_(onlyCr) {
+  buildA4Pages_(onlyCr || null);
   setTimeout(function() { window.print(); }, 50);
 }
 
@@ -3549,7 +3588,7 @@ window.addEventListener('afterprint', function() {
   if (s0 && s0.parentNode) s0.parentNode.removeChild(s0);
 });
 
-function buildA4Pages_() {
+function buildA4Pages_(onlyCr) {
   var isWeek = !!document.querySelector('.week-grid-wrap');
   var root = document.getElementById('a4-print-root');
   if (!root) return;
@@ -3574,13 +3613,37 @@ function buildA4Pages_() {
     return pg;
   }
   var dateLabel = isoDate(new Date()).replace(/-/g, '/');
-  var titleBase = isWeek ? '今週の時間割（' + _currentClassroom + '）' : '本日 ' + dateLabel;
+  // 片教室印刷（onlyCr）は本日タブ専用。両教室印刷・今週タブは onlyCr なし＝従来通り（2026-06-24 川上さん指示）
+  var onlyOne = (!isWeek && (onlyCr === '北久里浜' || onlyCr === '久里浜'));
+  var titleBase = isWeek ? '今週の時間割（' + _currentClassroom + '）'
+                : onlyOne ? '本日 ' + dateLabel + '　' + onlyCr
+                : '本日 ' + dateLabel;
+
+  // 指定教室だけを残し、もう片方の教室分のブロックを削除する（タスクバー・チェックリスト・時間割の3部品共通）
+  // クローン後に適用するため元画面（両教室表示）には影響しない
+  function pruneToClassroom_(node, cr) {
+    if (!node || !cr) return node;
+    var dropCls = cr === '北久里浜' ? 'kuri' : 'kita'; // 残す教室と反対側を消す
+    // タスクバー：.task-bar-col.col-kita / .col-kuri
+    node.querySelectorAll('.task-bar-col.col-' + dropCls).forEach(function(el){ el.remove(); });
+    // 時間割：.classroom-block.cr-kita / .cr-kuri
+    node.querySelectorAll('.classroom-block.cr-' + dropCls).forEach(function(el){ el.remove(); });
+    // チェックリスト：教室グループ .cl-cr-group.kita / .kuri を削除。両グループ消えて空になったカードは非表示
+    node.querySelectorAll('.cl-cr-group.' + dropCls).forEach(function(el){ el.remove(); });
+    node.querySelectorAll('.cl-card').forEach(function(card){
+      if (!card.querySelector('.cl-cr-group')) card.style.display = 'none';
+    });
+    return node;
+  }
 
   // 部品クローン（チェックリストは展開状態に）
   var taskC = cloneOf('.task-bar');
+  if (onlyOne && taskC) { pruneToClassroom_(taskC, onlyCr); taskC.classList.add('print-one-cr'); }
   var clC   = cloneOf('.cl-zone');
   if (clC) clC.querySelectorAll('.cl-card-body').forEach(function(b) { b.classList.add('open'); });
+  if (onlyOne && clC) pruneToClassroom_(clC, onlyCr);
   var gridC = cloneOf(isWeek ? '.week-grid-wrap' : '.today-grid');
+  if (onlyOne && gridC) { pruneToClassroom_(gridC, onlyCr); gridC.classList.add('print-one-cr'); }
   var extraC = null;
   var gridEl = document.querySelector(isWeek ? '.week-grid-wrap' : '.today-grid');
   if (!isWeek && gridEl && gridEl.nextElementSibling && gridEl.nextElementSibling.tagName === 'DIV' && !gridEl.nextElementSibling.classList.contains('cl-zone')) {
