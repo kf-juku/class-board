@@ -7977,20 +7977,46 @@ function callGas(url, params, callback, method) {
     var qs = Object.keys(params).map(function(k) {
       return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
     }).join('&');
+    // GET（取得系）はリトライしない。失敗しても次の取得で回復するため。
     fetch(url + '?' + qs, { redirect: 'follow' })
       .then(function(r) { return r.json(); })
       .then(callback)
       .catch(function() { callback(null); });
   } else {
-    var fd = new FormData();
-    Object.keys(params).forEach(function(k) {
-      var v = params[k];
-      fd.append(k, (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v);
-    });
-    fetch(url, { method: 'POST', redirect: 'follow', body: fd })
-      .then(function(r) { return r.json(); })
-      .then(callback)
-      .catch(function() { callback(null); });
+    // POST（保存・削除系）は失敗したら2.5秒後に最大2回まで自動リトライする（2026-06-27）。
+    // GASの保存系actionはIDで上書き/重複ガード/entries全置換＝冪等、かつwithLock_(LockService)付きのため
+    // 2回送っても二重登録にならない（会員管理GAS.gsで確認済み）。
+    // locked（同時書き込み待ちタイムアウト）も再送で解消する。
+    // 最終失敗時は従来どおり callback(null) を呼び、各呼び出し側の既存の失敗トーストに委ねる。
+    var _tryPost = function(attempt) {
+      var fd = new FormData();
+      Object.keys(params).forEach(function(k) {
+        var v = params[k];
+        fd.append(k, (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v);
+      });
+      var _retriable = false;                     // この試行が「一時的失敗」か
+      fetch(url, { method: 'POST', redirect: 'follow', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          if (res && res.success) { callback(res); return; }
+          // locked（同時書き込み待ちタイムアウト）だけは再送で解ける→リトライ対象。
+          // それ以外の success:false（ID不存在など恒久的失敗）は再送しても直らないので
+          // 即 callback(res) で返し、呼び出し側に res.error の具体メッセージを出させる。
+          var msg = res && res.error ? String(res.error) : '';
+          if (msg.indexOf('locked') !== -1) { _retriable = true; throw new Error(msg); }
+          callback(res); return;
+        })
+        .catch(function(e) {
+          // ここに来るのは「通信失敗(fetch例外)」または「locked（_retriable=true）」のみ。
+          if (attempt < 2) {                       // 最大2回再送（計3回試行）
+            setTimeout(function() { _tryPost(attempt + 1); }, 2500);
+          } else {
+            console.warn('[GAS] POST最終失敗:', params && params.action, e);
+            callback(null);                        // 既存の失敗ハンドリングに委ねる
+          }
+        });
+    };
+    _tryPost(0);
   }
 }
 
