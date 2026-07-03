@@ -1231,19 +1231,10 @@ tr.mx-done-row td { background: #f0fdf4; }
           <label><input type="checkbox" class="test-grade" value="高3"> 高3</label>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">教科</label>
-        <div class="subj-btns" id="test-subj-btns" style="display:flex;flex-wrap:wrap;gap:6px">
-          <button type="button" class="subj-btn" data-subj="英語" onclick="toggleSubjBtn(this)">英語</button>
-          <button type="button" class="subj-btn" data-subj="数学" onclick="toggleSubjBtn(this)">数学</button>
-          <button type="button" class="subj-btn" data-subj="国語" onclick="toggleSubjBtn(this)">国語</button>
-          <button type="button" class="subj-btn" data-subj="理科" onclick="toggleSubjBtn(this)">理科</button>
-          <button type="button" class="subj-btn" data-subj="社会" onclick="toggleSubjBtn(this)">社会</button>
-          <button type="button" class="subj-btn" data-subj="実技" onclick="toggleSubjBtn(this)">実技</button>
-          <button type="button" class="subj-btn" data-subj="その他" onclick="toggleSubjBtn(this)">その他</button>
-        </div>
+      <div class="form-group"><label class="form-label">日程（教科＋実施日＋タイトル。行を追加すると複数日程を一度に登録できます）</label>
+        <div id="test-rows"></div>
+        <button type="button" id="test-add-row-btn" onclick="addTestRow()" style="background:#fff;border:1px dashed #9ca3af;color:#374151;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;width:100%">＋ 日程を追加</button>
       </div>
-      <div class="form-group"><label class="form-label">タイトル（任意）</label><input class="form-input" id="test-name" placeholder="例：一次方程式の計算" /></div>
-      <div class="form-group"><label class="form-label">実施日</label><input type="date" class="form-input" id="test-start-date" /></div>
       <input type="hidden" id="test-edit-task-id" />
     </div>
     <div class="modal-footer">
@@ -3157,22 +3148,42 @@ function alertBannersHtml(todayStudents, todayIso) {
   }
 
   // ① 小テスト予定タスク
+  // 川上さん指示(2026-07-03)：同じ学校＋学年の小テストは複数教科・複数日程を1バナーにまとめる。
+  // 残日数は各日付に併記。✎編集は日程（レコード）単位。データは従来どおり1日程＝1レコード。
+  var taskGroups = {};
+  var taskGroupOrder = [];
   _schoolTasks.forEach(function(task) {
     if (!task.dueDate) return;
     var diff = Math.ceil((new Date(task.dueDate) - now) / 86400000);
     if (diff < 0 || diff > ALERT_DAYS) return;
+    var key = (task.school || '') + '||' + (task.grade || '');
+    if (!taskGroups[key]) { taskGroups[key] = []; taskGroupOrder.push(key); }
+    taskGroups[key].push({ task: task, diff: diff });
+  });
+  taskGroupOrder.forEach(function(key) {
+    var items = taskGroups[key].sort(function(a, b) { return (a.task.dueDate || '') > (b.task.dueDate || '') ? 1 : -1; });
+    var school = items[0].task.school || '';
+    var grade  = items[0].task.grade || '';
     var matched = todayStudents.filter(function(s) {
-      return s.school === task.school && (!task.grade || task.grade.indexOf(s.grade) >= 0);
+      return s.school === school && (!grade || grade.indexOf(s.grade) >= 0);
     });
     if (!matched.length) return;
     var namesAttr = JSON.stringify(matched.map(function(s) { return s.name; })).replace(/"/g, '&quot;');
-    var dateLabel = (function(d){ var dt=new Date(d); return isNaN(dt)?d:isoDate(dt); })(task.dueDate) + '（残' + diff + '日）';
-    var popup = makePopup(SVG.task, esc(task.school) + (task.grade ? ' ' + task.grade : '') + '：' + (task.taskName||''), dateLabel, matched, 'task');
-    var label = '<strong>' + esc(task.school) + (task.grade ? ' ' + esc(task.grade) + '生' : '') + '</strong>'
-      + '：' + esc(task.taskName||'') + ' まで<strong' + (diff <= 7 ? ' style="color:#b91c1c"' : '') + '>残' + diff + '日</strong>';
-    var clData = { title: (task.taskName||''), memo: (task.materials||''), school: (task.school||''), grade: (task.grade||''), dueDate: (task.dueDate||'') };
-    var editData = { taskId: (task.taskId||''), taskName: (task.taskName||''), school: (task.school||''), grade: (task.grade||''), dueDate: (task.dueDate||'') };
-    banners.push(makeBanner('task', SVG.task, label, diff, matched.length, popup, namesAttr, clData, editData));
+    var parts = items.map(function(it) {
+      var t = it.task;
+      var editData = { taskId: (t.taskId||''), taskName: (t.taskName||''), school: (t.school||''), grade: (t.grade||''), dueDate: (t.dueDate||'') };
+      var pen = '<button onclick="event.stopPropagation();openEditTestModal(' + JSON.stringify(editData).replace(/"/g,'\'') + ')" '
+        + 'title="この日程を編集" style="background:none;border:none;padding:0 2px;cursor:pointer;color:#6b7280">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
+      return '<span style="white-space:nowrap">' + testMd_(t.dueDate) + ' ' + esc(t.taskName || '')
+        + '<strong' + (it.diff <= 7 ? ' style="color:#b91c1c"' : '') + '>（残' + it.diff + '日）</strong>' + pen + '</span>';
+    });
+    var label = '<strong>' + esc(school) + (grade ? ' ' + esc(grade) + '生' : '') + '</strong>：' + parts.join('　');
+    var dateLabel = items.map(function(it) { return testMd_(it.task.dueDate) + ' ' + (it.task.taskName || ''); }).join(' / ');
+    var popup = makePopup(SVG.task, school + (grade ? ' ' + grade : '') + '：小テスト' + items.length + '件', dateLabel, matched, 'task');
+    var near = items[0].task;
+    var clData = { title: (near.taskName||''), memo: (near.materials||''), school: school, grade: grade, dueDate: (near.dueDate||'') };
+    banners.push(makeBanner('task', SVG.task, label, items[0].diff, matched.length, popup, namesAttr, clData, null));
   });
 
   // ② テスト記録DB
@@ -4132,10 +4143,15 @@ function renderSchool() {
       }
 
       // 直近小テスト
+      // 川上さん指示(2026-07-03)：直近日程と同じ学年の今後の日程をまとめて表示
       if (nextTest) {
-        g += '<div class="ssc-row ssc-test" style="display:flex;align-items:center;gap:4px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> ' + esc(nextTest.dueDate || '') + ' ' +
+        var sameGradeTests = upcomingTests.filter(function(t) { return (t.grade || '') === (nextTest.grade || ''); });
+        var testEntries = sameGradeTests.map(function(t) {
+          return '<span style="white-space:nowrap">' + esc(testMd_(t.dueDate)) + ' ' + esc(t.taskName || '') + '</span>';
+        }).join('　');
+        g += '<div class="ssc-row ssc-test" style="display:flex;align-items:flex-start;gap:4px;flex-wrap:wrap"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> ' +
           (nextTest.grade ? '<span class="badge badge-gray" style="font-size:9px">' + esc(nextTest.grade) + '</span> ' : '') +
-          esc(nextTest.taskName || '') + '</div>';
+          testEntries + '</div>';
       }
 
       g += '</div>'; // school-summary-card
@@ -4332,16 +4348,31 @@ function openSchoolDetail(schoolName) {
   html += '</div>';
 
   // ── 小テスト ──
+  // 川上さん指示(2026-07-03)：同じ学年の日程はまとめて1ブロックで表示（削除は日程単位）
   var tests = _schoolTasks.filter(function(t){ return t.school===schoolName; })
     .sort(function(a,b){ return (a.dueDate||'')>(b.dueDate||'')?1:-1; });
   html += '<div class="sdp-section"><div class="sdp-section-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 小テスト</div>';
   if (tests.length) {
+    var _tOrder = ['中1','中2','中3','高1','高2','高3'];
+    var _tByGrade = {}, _tGradeKeys = [];
     tests.forEach(function(t) {
-      html += '<div class="test-item">' +
-        '<button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteTest(this.dataset.id)" data-id="'+esc(t.taskId||'')+'">削除</button>' +
-        '<span style="flex:1;font-size:13px">'+esc(t.dueDate||'')+'　' +
-        (t.grade ? '<span class="badge badge-gray" style="font-size:10px">'+esc(t.grade)+'</span> ' : '') +
-        esc(t.taskName||'')+'</span></div>';
+      var gk = t.grade || '';
+      if (!_tByGrade[gk]) { _tByGrade[gk] = []; _tGradeKeys.push(gk); }
+      _tByGrade[gk].push(t);
+    });
+    _tGradeKeys.sort(function(a, b) {
+      function fi(g) { for (var i = 0; i < _tOrder.length; i++) { if (g.indexOf(_tOrder[i]) === 0) return i; } return 99; }
+      return fi(a) - fi(b);
+    });
+    _tGradeKeys.forEach(function(gk) {
+      html += '<div style="border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;margin-bottom:6px">' +
+        (gk ? '<div style="margin-bottom:4px"><span class="badge badge-gray" style="font-size:10px">' + esc(gk) + '</span></div>' : '');
+      _tByGrade[gk].forEach(function(t) {
+        html += '<div class="test-item">' +
+          '<button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteTest(this.dataset.id)" data-id="'+esc(t.taskId||'')+'">削除</button>' +
+          '<span style="flex:1;font-size:13px">'+esc(t.dueDate||'')+'　'+esc(t.taskName||'')+'</span></div>';
+      });
+      html += '</div>';
     });
   } else { html += '<p style="font-size:12px;color:var(--text-muted)">登録なし</p>'; }
   html += '</div>';
@@ -4419,24 +4450,58 @@ function openAddTestModal(school) {
   // 学校固定時はプルダウンを非表示（学校マスタから呼ぶケース）
   document.getElementById('test-school-group').style.display = school ? 'none' : '';
   document.getElementById('test-edit-task-id').value = '';
-  document.getElementById('test-name').value = '';
-  document.getElementById('test-start-date').value = '';
   document.querySelectorAll('.test-grade').forEach(function(cb) { cb.checked = false; });
-  document.querySelectorAll('#test-subj-btns .subj-btn').forEach(function(b){ b.classList.remove('active'); });
+  // 川上さん指示(2026-07-03)：行追加方式。1行＝教科（複数選択可）＋実施日＋タイトル＝1レコード
+  document.getElementById('test-rows').innerHTML = '';
+  addTestRow();
+  document.getElementById('test-add-row-btn').style.display = '';
   document.getElementById('modal-add-test-title').textContent = school ? 'テスト予定を追加（' + school + '）' : '小テスト追加';
   openModal('modal-add-test');
 }
 
+// 川上さん指示(2026-07-03)：小テスト入力は行追加方式。保存は従来どおり1行＝1レコード（saveSchoolTask・GAS変更なし）
+var QUIZ_SUBJECTS_ = ['英語','数学','国語','理科','社会','実技','その他'];
+
+function testRowHtml_() {
+  var subjBtns = QUIZ_SUBJECTS_.map(function(sub){
+    return '<button type="button" class="subj-btn" data-subj="' + sub + '" onclick="toggleSubjBtn(this)">' + sub + '</button>';
+  }).join('');
+  return '<div class="test-row" style="border:1px solid #e5e7eb;border-radius:6px;padding:8px;margin-bottom:8px;position:relative">' +
+    '<button type="button" onclick="removeTestRow(this)" title="この行を削除" style="position:absolute;top:4px;right:6px;background:none;border:none;color:#9ca3af;font-size:14px;cursor:pointer;line-height:1">×</button>' +
+    '<div class="tr-subj-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;padding-right:16px">' + subjBtns + '</div>' +
+    '<div style="display:flex;gap:6px">' +
+    '<input type="date" class="form-input tr-date" style="flex:0 0 150px">' +
+    '<input class="form-input tr-name" placeholder="タイトル（任意）例：一次方程式の計算" style="flex:1;min-width:0">' +
+    '</div></div>';
+}
+
+function addTestRow() {
+  document.getElementById('test-rows').insertAdjacentHTML('beforeend', testRowHtml_());
+}
+
+function removeTestRow(btn) {
+  var box = document.getElementById('test-rows');
+  var row = btn.closest('.test-row');
+  if (row) row.remove();
+  if (!box.querySelector('.test-row')) addTestRow(); // 最低1行は残す
+}
+
+function testMd_(d) {
+  var dt = new Date(d);
+  return isNaN(dt) ? String(d || '') : (dt.getMonth() + 1) + '/' + dt.getDate();
+}
+
 function openEditTestModal(task) {
-  // 既存タスクデータを流し込んで編集モードで開く
+  // 既存タスクデータを流し込んで編集モードで開く。編集は日程（1レコード）単位なので行は1つだけ・行追加ボタンは隠す
   openAddTestModal(task.school || '');
   document.getElementById('test-school-group').style.display = 'none';
   document.getElementById('test-edit-task-id').value = task.taskId || '';
+  document.getElementById('test-add-row-btn').style.display = 'none';
   document.getElementById('modal-add-test-title').textContent = '小テスト編集（' + (task.school||'') + '）';
+  var row = document.querySelector('#test-rows .test-row');
   // taskName を教科と名前に分解して設定
   var taskName = task.taskName || '';
-  // 教科ボタン: taskNameに含まれるものをアクティブに
-  document.querySelectorAll('#test-subj-btns .subj-btn').forEach(function(b) {
+  row.querySelectorAll('.subj-btn').forEach(function(b) {
     if (taskName.indexOf(b.getAttribute('data-subj')) !== -1) b.classList.add('active');
   });
   // 学年チェック
@@ -4444,44 +4509,59 @@ function openEditTestModal(task) {
   document.querySelectorAll('.test-grade').forEach(function(cb) {
     cb.checked = gradeStr.indexOf(cb.value) !== -1;
   });
-  document.getElementById('test-start-date').value = task.dueDate || '';
+  row.querySelector('.tr-date').value = task.dueDate || '';
   // 名前フィールド：教科を除いた残りを設定
-  var subjParts = Array.from(document.querySelectorAll('#test-subj-btns .subj-btn.active')).map(function(b){ return b.getAttribute('data-subj'); });
+  var subjParts = Array.from(row.querySelectorAll('.subj-btn.active')).map(function(b){ return b.getAttribute('data-subj'); });
   var namePart = taskName;
-  subjParts.forEach(function(s){ namePart = namePart.replace(s, '').replace('　','').trim(); });
-  document.getElementById('test-name').value = namePart;
+  subjParts.forEach(function(sub){ namePart = namePart.replace(sub, '').replace('　','').trim(); });
+  row.querySelector('.tr-name').value = namePart;
 }
 
 function submitAddTest() {
-  miniToast('保存中...');
   var school = document.getElementById('test-target-school').value;
   var taskId = document.getElementById('test-edit-task-id').value;
-  var name   = document.getElementById('test-name').value.trim();
-  var start  = document.getElementById('test-start-date').value;
   var grades = Array.from(document.querySelectorAll('.test-grade:checked')).map(function(cb) { return cb.value; });
-  var subjects = Array.from(document.querySelectorAll('#test-subj-btns .subj-btn.active')).map(function(b){ return b.getAttribute('data-subj'); });
   if (!school) { miniToast('学校を選択してください'); return; }
-  if (!start) { miniToast('実施日を入力してください'); return; }
-  var _tnParts = [];
-  if (subjects.length) _tnParts.push(subjects.join('・'));
-  if (name) _tnParts.push(name);
-  var taskName = _tnParts.join('　') || '小テスト';
-  var task = { school: school, taskName: taskName, grade: grades.join('・'), dueDate: start, status: '対策中', memo: '' };
-  if (taskId) task.taskId = taskId;
+  var rows = Array.from(document.querySelectorAll('#test-rows .test-row'));
+  var tasks = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var date = row.querySelector('.tr-date').value;
+    var name = row.querySelector('.tr-name').value.trim();
+    var subjects = Array.from(row.querySelectorAll('.subj-btn.active')).map(function(b){ return b.getAttribute('data-subj'); });
+    if (!date && !name && !subjects.length) continue; // 完全な空行はスキップ
+    if (!date) { miniToast((i + 1) + '行目の実施日を入力してください'); return; }
+    var _tnParts = [];
+    if (subjects.length) _tnParts.push(subjects.join('・'));
+    if (name) _tnParts.push(name);
+    tasks.push({ school: school, taskName: _tnParts.join('　') || '小テスト', grade: grades.join('・'), dueDate: date, status: '対策中', memo: '' });
+  }
+  if (!tasks.length) { miniToast('実施日を入力してください'); return; }
+  if (taskId) tasks[0].taskId = taskId; // 編集モードは1行のみ
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
-  callGas(url, { action: 'saveSchoolTask', task: JSON.stringify(task) }, function(res) {
-    if (res && res.success) {
+  miniToast('保存中...');
+  // 川上さん指示(2026-07-03)：複数行は1件ずつ直列送信（同時書き込みロック回避。callGasの自動リトライも各件に効く）
+  var idx = 0, failed = 0;
+  function saveNext_() {
+    if (idx >= tasks.length) {
       closeModal('modal-add-test');
-      miniToast('保存しました ✓');
+      miniToast(failed ? '保存エラー（' + failed + '件失敗）' : '保存しました ✓');
       callGas(url, { action: 'getSchoolTasks' }, function(r) {
-        // 川上さん指摘(2026-06-15)：保存後の再取得結果を_schoolTasksに代入し忘れ→編集が画面に反映されなかった。他機能(testRecords/schoolEvents)と同じく代入してから再描画する
+        // 川上さん指摘(2026-06-15)：保存後の再取得結果を_schoolTasksに代入し忘れ→編集が画面に反映されなかった。代入してから再描画する
         if (r && r.success && r.tasks) { _schoolTasks = r.tasks; }
         renderSchool();
         if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
       });
-    } else miniToast('保存エラー');
-  }, 'POST');
+      return;
+    }
+    var t = tasks[idx++];
+    callGas(url, { action: 'saveSchoolTask', task: JSON.stringify(t) }, function(res) {
+      if (!res || !res.success) failed++;
+      saveNext_();
+    }, 'POST');
+  }
+  saveNext_();
 }
 
 function deleteTest(taskId) {
