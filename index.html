@@ -4604,11 +4604,16 @@ function getExamYearOptions() {
 
 function renderExam() {
   var el = document.getElementById('main-content');
+  // 川上さん承認(2026-07-03)：未保存の仮レコード（編集中でないtmp_）は再描画時に自動削除（件数水増し防止）
+  _examStrategies = _examStrategies.filter(function(s) {
+    return String(s.recordId).indexOf('tmp_') !== 0 || s.recordId === _examEditingId;
+  });
   var yearOpts = getExamYearOptions();
   if (_examYearFilter === null) _examYearFilter = String(new Date().getFullYear());
 
   // フィルタ後レコード
   var filtered = _examStrategies.filter(function(s) {
+    if (String(s.recordId).indexOf('tmp_') === 0) return false; // 仮レコードは件数・表に含めない（新規追加枠で別描画）
     var gradeOK   = (_examGradeFilter === 'all') || (s.grade || '').split(',').map(function(g){return g.trim();}).indexOf(_examGradeFilter) !== -1;
     var subjectOK = (_examSubjectFilter === 'all') || s.subject === _examSubjectFilter;
     var yearOK    = !_examYearFilter || (s.years || '').split(',').map(function(y){return y.trim();}).indexOf(_examYearFilter) !== -1;
@@ -4664,6 +4669,20 @@ function renderExam() {
     + '<div style="font-size:15px;font-weight:700">定期テスト対策DB</div>'
     + '<button class="btn-primary btn-sm" onclick="addNewExamCard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 追加</button>'
     + '</div>';
+
+  // 川上さん承認(2026-07-03)：新規追加は表の上に「新規追加」枠として編集カードを直接表示
+  // （表形式では教科・学年が空の仮レコードはどのセルにも描画されないため）
+  if (_examEditingId && String(_examEditingId).indexOf('tmp_') === 0) {
+    var editingTmp = _examStrategies.find(function(x){ return x.recordId === _examEditingId; });
+    if (editingTmp) {
+      html += '<div style="margin-bottom:14px;border:2px dashed #3b82f6;border-radius:8px;padding:8px">'
+        + '<div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px">新規追加</div>'
+        + buildExamCardEdit(editingTmp)
+        + '</div>';
+    } else {
+      _examEditingId = null;
+    }
+  }
 
   // 学年フィルタ
   html += '<div class="sc-grade-tabs" style="margin-bottom:10px">';
@@ -4783,8 +4802,8 @@ function renderExam() {
   });
 
   el.innerHTML = html;
-  // 編集中カードがあれば再展開
-  if (_examEditingId) {
+  // 編集中カードがあれば再展開（tmp_は新規追加枠に編集カードを直接描画済みのため対象外）
+  if (_examEditingId && String(_examEditingId).indexOf('tmp_') !== 0) {
     var el2 = document.querySelector('[data-rid="' + _examEditingId + '"]');
     if (el2) expandExamCard(el2, _examEditingId);
   }
@@ -5100,12 +5119,8 @@ function saveExamCard(rid) {
     if (res && res.success) {
       if (isNew && res.recordId) {
         var s2 = _examStrategies.find(function(x){ return x.recordId === tmpId; });
-        if (s2) {
-          s2.recordId = res.recordId;
-          // DOMのdata-ridも更新
-          var el2 = document.querySelector('.exam-card[data-rid="' + tmpId + '"]');
-          if (el2) el2.dataset.rid = res.recordId;
-        }
+        if (s2) { s2.recordId = res.recordId; }
+        renderExam(); // 新規追加枠から表の該当セルへ移す（川上さん承認2026-07-03）
       }
       miniToast('保存しました');
     } else {
@@ -5119,9 +5134,9 @@ function cancelExamCard(rid) {
   _examEditingId = null;
   var isNew = rid.indexOf('tmp_') === 0;
   if (isNew) {
-    // 新規追加キャンセル：_examStrategiesから削除してカードも消す
+    // 新規追加キャンセル：_examStrategiesから削除して新規追加枠ごと消す（川上さん承認2026-07-03）
     _examStrategies = _examStrategies.filter(function(x){ return x.recordId !== rid; });
-    if (cardEl) cardEl.remove();
+    renderExam();
   } else {
     // 既存レコードのキャンセル：元のデータで閲覧モードに戻す
     var s = _examStrategies.find(function(x){ return x.recordId === rid; });
@@ -5129,19 +5144,28 @@ function cancelExamCard(rid) {
   }
 }
 
-// ＋ 追加：空カードをグリッド先頭に差し込む
+// ＋ 追加：表の上に「新規追加」枠として編集カードを直接表示する
+// 川上さん承認(2026-07-03)：旧実装（グリッド先頭に空カード差し込み→展開）は表形式化後に
+// 空レコードがどのセルにも描画されず無反応になっていたバグの修正
 function addNewExamCard() {
+  // 連打対策：すでに新規追加枠が開いていればそれを使う（複数の仮レコードを作らない）
+  if (_examEditingId && String(_examEditingId).indexOf('tmp_') === 0) {
+    var cur = _examStrategies.find(function(x){ return x.recordId === _examEditingId; });
+    if (cur) {
+      var uEl = document.getElementById('ec-unit-' + _examEditingId);
+      if (uEl) { uEl.focus(); }
+      return;
+    }
+  }
   var tmpId = 'tmp_' + Date.now();
   var newS = { recordId: tmpId, testType: '前期中間', subject: '', unitName: '',
     grade: '', schools: '', content: '', materials: '',
     years: String(new Date().getFullYear()) };
   _examStrategies.unshift(newS);
-  renderExam();
-  // 先頭カードを展開
-  setTimeout(function() {
-    var el = document.querySelector('.exam-card[data-rid="' + tmpId + '"]');
-    if (el) expandExamCard(el, tmpId);
-  }, 0);
+  _examEditingId = tmpId;
+  renderExam(); // renderExamが新規追加枠に編集カードを描画する
+  var unitEl = document.getElementById('ec-unit-' + tmpId);
+  if (unitEl) { unitEl.focus(); }
 }
 
 function deleteExamStrategy(recordId) {
