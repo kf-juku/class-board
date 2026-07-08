@@ -590,7 +590,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 #mini-toast.show { opacity: 1; }
 
 /* ローディング */
-#loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.7); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 12px; pointer-events: none; }
+#loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.7); z-index: 950; align-items: center; justify-content: center; flex-direction: column; gap: 12px; pointer-events: none; }
 #loading-overlay.show { display: flex; pointer-events: auto; }
 .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--crimson); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1238,6 +1238,7 @@ tr.mx-done-row td { background: #f0fdf4; }
       <input type="hidden" id="test-edit-task-id" />
     </div>
     <div class="modal-footer">
+      <button class="btn-danger" id="test-delete-btn" style="display:none;margin-right:auto;padding:7px 16px;font-weight:600" onclick="deleteTestFromModal()">削除</button>
       <button class="btn-secondary" onclick="closeModal('modal-add-test')">キャンセル</button>
       <button class="btn-primary" onclick="submitAddTest()">保存</button>
     </div>
@@ -4459,6 +4460,7 @@ function openAddTestModal(school) {
   // 学校固定時はプルダウンを非表示（学校マスタから呼ぶケース）
   document.getElementById('test-school-group').style.display = school ? 'none' : '';
   document.getElementById('test-edit-task-id').value = '';
+  var _delBtn = document.getElementById('test-delete-btn'); if (_delBtn) _delBtn.style.display = 'none';
   document.querySelectorAll('.test-grade').forEach(function(cb) { cb.checked = false; });
   // 川上さん指示(2026-07-03)：行追加方式。1行＝教科（複数選択可）＋実施日＋タイトル＝1レコード
   document.getElementById('test-rows').innerHTML = '';
@@ -4505,6 +4507,7 @@ function openEditTestModal(task) {
   openAddTestModal(task.school || '');
   document.getElementById('test-school-group').style.display = 'none';
   document.getElementById('test-edit-task-id').value = task.taskId || '';
+  var _delBtn = document.getElementById('test-delete-btn'); if (_delBtn) _delBtn.style.display = '';
   document.getElementById('test-add-row-btn').style.display = 'none';
   document.getElementById('modal-add-test-title').textContent = '小テスト編集（' + (task.school||'') + '）';
   var row = document.querySelector('#test-rows .test-row');
@@ -4571,6 +4574,25 @@ function submitAddTest() {
     }, 'POST');
   }
   saveNext_();
+}
+
+// 川上さん指示(2026-07-09)：時間割バナーの✎編集モーダルから、その小テストを削除できるようにする。
+// 削除は日程（1レコード）単位。deleteSchoolTask（GAS）は動作確認済み。削除後は現タブを再描画してバナーを消す。
+function deleteTestFromModal() {
+  var taskId = document.getElementById('test-edit-task-id').value;
+  if (!taskId) return;
+  if (!confirm('この小テストを削除しますか？')) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  closeModal('modal-add-test');
+  callGas(url, { action: 'deleteSchoolTask', taskId: taskId }, function(res) {
+    if (res && res.success) {
+      _schoolTasks = _schoolTasks.filter(function(t) { return t.taskId !== taskId; });
+      miniToast('削除しました ✓');
+      renderCurrent();
+      if (_currentSchoolDetail) openSchoolDetail(_currentSchoolDetail);
+    } else miniToast('削除エラー');
+  }, 'POST');
 }
 
 function deleteTest(taskId) {
