@@ -3368,8 +3368,17 @@ function buildWeekGrid(days, todayIso) {
         if (komas.indexOf(kf) === -1) komas.push(kf);
       });
     } else if (activePeriodForGrid.startDate <= weekStartIso && weekEndIso <= activePeriodForGrid.endDate) {
-      // 夏期等：週全体が期間内なら講習コマのみに置換
-      komas = activePeriodForGrid.komaFrames.slice();
+      // 夏期等：週全体が期間内。講習コマ枠を基本に、通常コマ(CA/小学生/英検)で来る子がいる実コマ時刻を残す
+      // 川上さん指示(2026-07-08)：以前は komaFrames のみに置換していたため、講習枠と時刻がズレたCAコマ等が消えていた。和集合に変更
+      var _kFrames = activePeriodForGrid.komaFrames.slice();
+      komasAll.forEach(function(kt) {
+        if (_kFrames.indexOf(kt) !== -1) return;
+        var _showsNormal = YOUBIS.some(function(yb) {
+          return getStudentsForKoma(cr, yb, kt).some(function(s){ return isNormalKomaInKoushu_(s, kt); });
+        });
+        if (_showsNormal) _kFrames.push(kt);
+      });
+      komas = _kFrames;
     } else {
       // 夏期等の混在週（期間の前後をまたぐ）：通常コマ＋講習コマの和集合（日付ごとに表示を分けるため 2026-06-10）
       activePeriodForGrid.komaFrames.forEach(function(kf) {
@@ -3483,8 +3492,8 @@ function buildWeekGrid(days, todayIso) {
       // 講習モード：講習コマ枠 or その日の割付があるセルはグレーアウトしない（2026-06-13）
       if (!crHasKoma && isKoushuModeActive() && !getActiveTestPeriod_() && isDateInViewPeriod_(iso)) {
         var kpG = getActiveKoushuPeriod();
-        if ((kpG && (kpG.komaFrames || []).indexOf(kt) >= 0) ||
-            _koushuAssignments.some(function(a){ return a.date === iso && a.classroom === cr && a.komaTime === kt; })) {
+        if ((kpG && (kpG.komaFrames || []).map(normKomaTime_).indexOf(normKomaTime_(kt)) >= 0) ||
+            _koushuAssignments.some(function(a){ return a.date === iso && a.classroom === cr && normKomaTime_(a.komaTime) === normKomaTime_(kt); })) {
           crHasKoma = true;
         }
       }
@@ -3535,7 +3544,7 @@ function buildWeekGrid(days, todayIso) {
         }
         // 講習割付の生徒をオブジェクト化
         var kAssigns = _koushuAssignments.filter(function(a) {
-          if (a.date !== iso || a.classroom !== cr || a.komaTime !== kt) return false;
+          if (a.date !== iso || a.classroom !== cr || normKomaTime_(a.komaTime) !== normKomaTime_(kt)) return false;
           // 川上さん指示(2026-06-14)：退会・休会の生徒は表示しない
           var as = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
           if (as && (as.status === '退会' || as.status === '休会')) return false;
@@ -6401,11 +6410,7 @@ function openKoushuPage(periodId) {
       '<div class="card" id="kp-koma-card" style="margin-bottom:16px"><div class="card-body">' +
       '<div style="font-weight:700;font-size:14px;margin-bottom:10px">⏰ コマ枠</div>' +
       '<div id="kd-koma-list">' +
-      komaFrames.map(function(kf, i) {
-        return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
-          '<input class="form-input" style="max-width:180px" value="' + esc(kf) + '" id="kd-koma-' + i + '" />' +
-          '<button class="btn-danger btn-sm" onclick="this.parentElement.remove()">×</button></div>';
-      }).join('') +
+      komaFrames.map(function(kf){ return komaFrameRowHtml_(kf); }).join('') +
       '</div>' +
       '<button class="btn-sm" onclick="addKoushuKoma()">＋ コマを追加</button>' +
       '</div></div>';
@@ -6506,12 +6511,8 @@ function saveKoushuPage(pageId) {
   if (!name.trim() || !start || !end) { miniToast('期間名・開始日・終了日を入力してください'); return; }
   if (start > end) { miniToast('開始日は終了日より前にしてください'); return; }
 
-  // コマ枠収集
-  var komaFrames = [];
-  document.querySelectorAll('#kd-koma-list input').forEach(function(el) {
-    var v = (el.value || '').trim();
-    if (v) komaFrames.push(v);
-  });
+  // コマ枠収集（.kd-koma-row の 開始/終了 time から HH:MM〜HH:MM を生成）
+  var komaFrames = collectKomaFrames_();
 
   // 学年別目標
   var gradeGoals = {};
@@ -6674,12 +6675,7 @@ function renderKoushuDetailModal_(period) {
   var komaFramesHtml = '<div style="margin-bottom:16px">' +
     '<div style="font-weight:600;font-size:13px;margin-bottom:6px">⏰ コマ枠（使用する時間帯）</div>' +
     '<div id="kd-koma-list">' +
-    (period.komaFrames || KOUSHU_DEFAULT_KOMA_FRAMES).map(function(kf, i) {
-      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' +
-        '<input class="form-input" style="max-width:160px;font-size:13px" value="' + esc(kf) + '" id="kd-koma-' + i + '" />' +
-        '<button class="btn-danger btn-sm" onclick="removeKoushuKoma(' + i + ')">×</button>' +
-        '</div>';
-    }).join('') +
+    (period.komaFrames || KOUSHU_DEFAULT_KOMA_FRAMES).map(function(kf){ return komaFrameRowHtml_(kf); }).join('') +
     '</div>' +
     '<button class="btn-sm" style="margin-top:4px" onclick="addKoushuKoma()">＋ コマを追加</button>' +
     '</div>';
@@ -6825,15 +6821,49 @@ function renderKoushuSummaryUI_(period) {
     '<tbody>' + rows + '</tbody></table></div></div>';
 }
 
+// 講習コマ枠 共通ヘルパー（2026-07-08 川上さん指示：自由入力→時刻ピッカー＋照合正規化）
+function normKomaTime_(t) {
+  return String(t == null ? '' : t)
+    .replace(/[０-９]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+    .replace(/：/g, ':')
+    .replace(/[〜～~\-−ー]/g, '〜')
+    .replace(/\s+/g, '')
+    .trim();
+}
+function padHM_(hm) {
+  var m = String(hm || '').match(/^(\d{1,2}):(\d{2})$/);
+  return m ? (('0' + m[1]).slice(-2) + ':' + m[2]) : (hm || '');
+}
+function parseKomaFrame_(kf) {
+  var parts = normKomaTime_(kf).split('〜');
+  return [padHM_(parts[0] || ''), padHM_(parts[1] || '')];
+}
+function komaFrameRowHtml_(kf) {
+  var p = parseKomaFrame_(kf);
+  return '<div class="kd-koma-row" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+    '<input type="time" class="kd-koma-start" value="' + esc(p[0]) + '" style="max-width:130px;font-size:14px" />' +
+    '<span style="color:#5a6a7e;font-weight:700">〜</span>' +
+    '<input type="time" class="kd-koma-end" value="' + esc(p[1]) + '" style="max-width:130px;font-size:14px" />' +
+    '<button class="btn-danger btn-sm" onclick="this.parentNode.remove()">×</button>' +
+    '</div>';
+}
+function collectKomaFrames_() {
+  var out = [];
+  var list = document.getElementById('kd-koma-list');
+  if (!list) return out;
+  list.querySelectorAll('.kd-koma-row').forEach(function(row) {
+    var st = row.querySelector('.kd-koma-start');
+    var en = row.querySelector('.kd-koma-end');
+    var sv = st ? (st.value || '').trim() : '';
+    var ev = en ? (en.value || '').trim() : '';
+    if (sv && ev) out.push(sv + '〜' + ev);
+  });
+  return out;
+}
 function addKoushuKoma() {
   var list = document.getElementById('kd-koma-list');
   if (!list) return;
-  var idx = list.children.length;
-  var div = document.createElement('div');
-  div.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px';
-  div.innerHTML = '<input class="form-input" style="max-width:160px;font-size:13px" value="" id="kd-koma-' + idx + '" placeholder="HH:MM〜HH:MM" />' +
-    '<button class="btn-danger btn-sm" onclick="this.parentElement.remove()">×</button>';
-  list.appendChild(div);
+  list.insertAdjacentHTML('beforeend', komaFrameRowHtml_(''));
 }
 
 function removeKoushuKoma(idx) {
@@ -6848,23 +6878,8 @@ function saveKoushuDetail(periodId) {
   var period = _koushuPeriods.find(function(p) { return p.id === periodId; });
   if (!period) return;
 
-  // コマ枠収集
-  var komaFrames = [];
-  var komaList = document.getElementById('kd-koma-list');
-  if (komaList) {
-    Array.from(komaList.querySelectorAll('input[type=text], input:not([type])'))
-      .forEach(function(el) {
-        var v = (el.value || '').trim();
-        if (v) komaFrames.push(v);
-      });
-  }
-  // input[id^=kd-koma-] からも収集
-  if (komaFrames.length === 0) {
-    document.querySelectorAll('[id^="kd-koma-"]').forEach(function(el) {
-      var v = (el.value || '').trim();
-      if (v) komaFrames.push(v);
-    });
-  }
+  // コマ枠収集（.kd-koma-row の 開始/終了 time から HH:MM〜HH:MM を生成）
+  var komaFrames = collectKomaFrames_();
 
   // 学年別目標回数収集
   var gradeGoals = {};
