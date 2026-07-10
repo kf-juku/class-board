@@ -836,6 +836,31 @@ tr.mx-done-row td { background: #f0fdf4; }
 .cl-student-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; font-size: 13px; cursor: pointer; }
 .cl-student-item:hover { background: #f5f3ff; }
 .cl-student-item input[type=checkbox] { accent-color: #4f46e5; width: 15px; height: 15px; cursor: pointer; }
+/* ─── 対象選択：2列トランスファー（候補↔選択中）2026-07-10 ─── */
+.tp-wrap { display: flex; gap: 12px; }
+.tp-col { flex: 1; min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; padding: 8px; background: #fff; }
+.tp-col-head { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.tp-search { width: 100%; box-sizing: border-box; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 12px; margin-bottom: 6px; font-family: inherit; }
+.tp-search:focus { outline: none; border-color: #4f46e5; }
+.tp-filter-label { font-size: 10px; font-weight: 700; color: var(--text-muted); margin-bottom: 3px; }
+.tp-cand-bar { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; }
+.tp-cand-count { font-size: 11px; color: var(--text-muted); }
+.tp-list { flex: 1; max-height: 260px; overflow-y: auto; border-top: 1px solid var(--border); padding-top: 4px; }
+.tp-row { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 5px; font-size: 12.5px; }
+.tp-row:hover { background: #f5f3ff; }
+.tp-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-meta { font-size: 10.5px; color: #9ca3af; flex-shrink: 0; }
+.tp-add-btn, .tp-rm-btn { border: none; background: none; cursor: pointer; font-weight: 700; border-radius: 5px; padding: 2px 8px; font-size: 12px; flex-shrink: 0; font-family: inherit; }
+.tp-add-btn { color: #4f46e5; }
+.tp-add-btn:hover { background: #eef2ff; }
+.tp-add-btn.added { color: #9ca3af; cursor: default; font-weight: 500; }
+.tp-rm-btn { color: #ef4444; font-size: 13px; }
+.tp-rm-btn:hover { background: #fef2f2; }
+.tp-sel-count { color: #4f46e5; font-weight: 700; }
+.tp-clear { margin-left: auto; border: none; background: none; color: #9ca3af; font-size: 11px; cursor: pointer; font-family: inherit; }
+.tp-clear:hover { color: #ef4444; }
+.tp-empty { padding: 16px 8px; font-size: 12px; color: #9ca3af; text-align: center; line-height: 1.5; }
+@media (max-width: 700px) { .tp-wrap { flex-direction: column; } .tp-list { max-height: 200px; } }
 /* ── カスタムツールチップ ── */
 #cb-tooltip {
   position: fixed;
@@ -891,7 +916,7 @@ tr.mx-done-row td { background: #f0fdf4; }
 </div>
 
 <div class="modal-overlay" id="modal-add-checklist">
-  <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
+  <div class="modal" style="max-width:none;width:min(96vw,1040px);max-height:90vh;overflow-y:auto">
     <div class="modal-header">
       <span id="cl-modal-title">チェックリストを作成</span>
       <span class="modal-close" onclick="closeModal('modal-add-checklist')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
@@ -917,41 +942,52 @@ tr.mx-done-row td { background: #f0fdf4; }
         <textarea id="cl-new-memo" rows="2" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box;resize:vertical" placeholder="例：配布物：理科プリント3枚"></textarea>
       </div>
       <div style="margin-bottom:6px">
-        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">対象者を絞り込む</label>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">種別</div>
-        <div class="cl-filter-row" id="cl-filter-type">
-          <span class="cl-filter-chip" data-val="塾">塾</span>
-          <span class="cl-filter-chip" data-val="CA">CA</span>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">教室</div>
-        <div class="cl-filter-row" id="cl-filter-cr">
-          <span class="cl-filter-chip" data-val="北久里浜">北久里浜</span>
-          <span class="cl-filter-chip" data-val="久里浜">久里浜</span>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">中学校</div>
-        <div class="cl-filter-row" id="cl-filter-school"></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">学年</div>
-        <div class="cl-filter-row" id="cl-filter-grade">
-          <span class="cl-filter-chip" data-val="小1">小1</span>
-          <span class="cl-filter-chip" data-val="小2">小2</span>
-          <span class="cl-filter-chip" data-val="小3">小3</span>
-          <span class="cl-filter-chip" data-val="小4">小4</span>
-          <span class="cl-filter-chip" data-val="小5">小5</span>
-          <span class="cl-filter-chip" data-val="小6">小6</span>
-          <span class="cl-filter-chip" data-val="中1">中1</span>
-          <span class="cl-filter-chip" data-val="中2">中2</span>
-          <span class="cl-filter-chip" data-val="中3">中3</span>
-          <span class="cl-filter-chip" data-val="高1">高1</span>
-          <span class="cl-filter-chip" data-val="高2">高2</span>
-          <span class="cl-filter-chip" data-val="高3">高3</span>
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">対象者を選ぶ</label>
+        <div class="tp-wrap">
+          <div class="tp-col">
+            <div class="tp-col-head">候補</div>
+            <input class="tp-search" id="cl-tp-search" placeholder="🔍 名前で検索" oninput="tpRenderCand('cl')">
+            <div class="tp-filter-label">種別</div>
+            <div class="cl-filter-row" id="cl-filter-type">
+              <span class="cl-filter-chip" data-val="塾">塾</span>
+              <span class="cl-filter-chip" data-val="CA">CA</span>
+            </div>
+            <div class="tp-filter-label">教室</div>
+            <div class="cl-filter-row" id="cl-filter-cr">
+              <span class="cl-filter-chip" data-val="北久里浜">北久里浜</span>
+              <span class="cl-filter-chip" data-val="久里浜">久里浜</span>
+            </div>
+            <div class="tp-filter-label">中学校</div>
+            <div class="cl-filter-row" id="cl-filter-school"></div>
+            <div class="tp-filter-label">学年</div>
+            <div class="cl-filter-row" id="cl-filter-grade">
+              <span class="cl-filter-chip" data-val="小1">小1</span>
+              <span class="cl-filter-chip" data-val="小2">小2</span>
+              <span class="cl-filter-chip" data-val="小3">小3</span>
+              <span class="cl-filter-chip" data-val="小4">小4</span>
+              <span class="cl-filter-chip" data-val="小5">小5</span>
+              <span class="cl-filter-chip" data-val="小6">小6</span>
+              <span class="cl-filter-chip" data-val="中1">中1</span>
+              <span class="cl-filter-chip" data-val="中2">中2</span>
+              <span class="cl-filter-chip" data-val="中3">中3</span>
+              <span class="cl-filter-chip" data-val="高1">高1</span>
+              <span class="cl-filter-chip" data-val="高2">高2</span>
+              <span class="cl-filter-chip" data-val="高3">高3</span>
+            </div>
+            <div class="tp-cand-bar">
+              <button class="btn-secondary btn-sm" onclick="tpAddAllShown('cl')">表示中をすべて追加</button>
+              <span class="tp-cand-count" id="cl-cand-count"></span>
+            </div>
+            <div class="tp-list" id="cl-cand-list"></div>
+          </div>
+          <div class="tp-col">
+            <div class="tp-col-head">選択中 <span class="tp-sel-count" id="cl-sel-count">0名</span>
+              <button class="tp-clear" onclick="tpClear('cl')">全部外す</button>
+            </div>
+            <div class="tp-list tp-sel-list" id="cl-sel-list"></div>
+          </div>
         </div>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:6px">
-        <button class="btn-secondary btn-sm" onclick="clSelectAll(true)">全選択</button>
-        <button class="btn-secondary btn-sm" onclick="clSelectAll(false)">全解除</button>
-        <span id="cl-selected-count" style="margin-left:auto;font-size:12px;color:var(--text-muted);align-self:center"></span>
-      </div>
-      <div class="cl-student-list" id="cl-student-list"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('modal-add-checklist')">キャンセル</button>
@@ -1010,7 +1046,7 @@ tr.mx-done-row td { background: #f0fdf4; }
 
 <!-- カスタムバッジ 作成/編集モーダル（2026-06-17）-->
 <div class="modal-overlay" id="modal-custom-badge">
-  <div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto">
+  <div class="modal" style="max-width:none;width:min(96vw,1040px);max-height:90vh;overflow-y:auto">
     <div class="modal-header">
       <span id="cb-modal-title">カスタムバッジを作成</span>
       <span class="modal-close" onclick="closeModal('modal-custom-badge')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
@@ -1025,41 +1061,52 @@ tr.mx-done-row td { background: #f0fdf4; }
         <input type="text" id="cb-detail-input" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box" placeholder="例：送迎あり 17時お迎え" />
       </div>
       <div style="margin-bottom:6px">
-        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">対象者を絞り込む</label>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">種別</div>
-        <div class="cl-filter-row" id="cb-filter-type">
-          <span class="cl-filter-chip" data-val="塾">塾</span>
-          <span class="cl-filter-chip" data-val="CA">CA</span>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">教室</div>
-        <div class="cl-filter-row" id="cb-filter-cr">
-          <span class="cl-filter-chip" data-val="北久里浜">北久里浜</span>
-          <span class="cl-filter-chip" data-val="久里浜">久里浜</span>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">中学校</div>
-        <div class="cl-filter-row" id="cb-filter-school"></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">学年</div>
-        <div class="cl-filter-row" id="cb-filter-grade">
-          <span class="cl-filter-chip" data-val="小1">小1</span>
-          <span class="cl-filter-chip" data-val="小2">小2</span>
-          <span class="cl-filter-chip" data-val="小3">小3</span>
-          <span class="cl-filter-chip" data-val="小4">小4</span>
-          <span class="cl-filter-chip" data-val="小5">小5</span>
-          <span class="cl-filter-chip" data-val="小6">小6</span>
-          <span class="cl-filter-chip" data-val="中1">中1</span>
-          <span class="cl-filter-chip" data-val="中2">中2</span>
-          <span class="cl-filter-chip" data-val="中3">中3</span>
-          <span class="cl-filter-chip" data-val="高1">高1</span>
-          <span class="cl-filter-chip" data-val="高2">高2</span>
-          <span class="cl-filter-chip" data-val="高3">高3</span>
+        <label style="font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:6px">対象者を選ぶ</label>
+        <div class="tp-wrap">
+          <div class="tp-col">
+            <div class="tp-col-head">候補</div>
+            <input class="tp-search" id="cb-tp-search" placeholder="🔍 名前で検索" oninput="tpRenderCand('cb')">
+            <div class="tp-filter-label">種別</div>
+            <div class="cl-filter-row" id="cb-filter-type">
+              <span class="cl-filter-chip" data-val="塾">塾</span>
+              <span class="cl-filter-chip" data-val="CA">CA</span>
+            </div>
+            <div class="tp-filter-label">教室</div>
+            <div class="cl-filter-row" id="cb-filter-cr">
+              <span class="cl-filter-chip" data-val="北久里浜">北久里浜</span>
+              <span class="cl-filter-chip" data-val="久里浜">久里浜</span>
+            </div>
+            <div class="tp-filter-label">中学校</div>
+            <div class="cl-filter-row" id="cb-filter-school"></div>
+            <div class="tp-filter-label">学年</div>
+            <div class="cl-filter-row" id="cb-filter-grade">
+              <span class="cl-filter-chip" data-val="小1">小1</span>
+              <span class="cl-filter-chip" data-val="小2">小2</span>
+              <span class="cl-filter-chip" data-val="小3">小3</span>
+              <span class="cl-filter-chip" data-val="小4">小4</span>
+              <span class="cl-filter-chip" data-val="小5">小5</span>
+              <span class="cl-filter-chip" data-val="小6">小6</span>
+              <span class="cl-filter-chip" data-val="中1">中1</span>
+              <span class="cl-filter-chip" data-val="中2">中2</span>
+              <span class="cl-filter-chip" data-val="中3">中3</span>
+              <span class="cl-filter-chip" data-val="高1">高1</span>
+              <span class="cl-filter-chip" data-val="高2">高2</span>
+              <span class="cl-filter-chip" data-val="高3">高3</span>
+            </div>
+            <div class="tp-cand-bar">
+              <button class="btn-secondary btn-sm" onclick="tpAddAllShown('cb')">表示中をすべて追加</button>
+              <span class="tp-cand-count" id="cb-cand-count"></span>
+            </div>
+            <div class="tp-list" id="cb-cand-list"></div>
+          </div>
+          <div class="tp-col">
+            <div class="tp-col-head">選択中 <span class="tp-sel-count" id="cb-sel-count">0名</span>
+              <button class="tp-clear" onclick="tpClear('cb')">全部外す</button>
+            </div>
+            <div class="tp-list tp-sel-list" id="cb-sel-list"></div>
+          </div>
         </div>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:6px">
-        <button class="btn-secondary btn-sm" onclick="cbSelectAll(true)">全選択</button>
-        <button class="btn-secondary btn-sm" onclick="cbSelectAll(false)">全解除</button>
-        <span id="cb-selected-count" style="margin-left:auto;font-size:12px;color:var(--text-muted);align-self:center"></span>
-      </div>
-      <div class="cl-student-list" id="cb-student-list"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" style="color:#ef4444;border-color:#ef4444;margin-right:auto" id="cb-delete-btn" onclick="deleteCustomBadgeFromModal()">削除</button>
@@ -5931,84 +5978,16 @@ function openCustomBadgeModal(badgeId) {
 
   document.getElementById('cb-detail-input').value = badge ? (badge.detail || '') : '';
 
-  // フィルタ初期化
-  ['cb-filter-type','cb-filter-cr','cb-filter-grade'].forEach(function(id) {
-    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c){ c.classList.remove('active'); });
+  // 対象選択（2列トランスファー・編集時は既存名を選択中に復元）
+  tpInit('cb', {
+    idOf: function(s){ return s.name; },
+    preselect: (badge ? (badge.studentNames || []) : []).map(function(nm){ return { name: nm }; })
   });
-  // 中学校フィルタを動的生成
-  var schoolSet = {};
-  (_students || []).forEach(function(s) {
-    if (s.status === '在籍' && s.school && /中/.test(s.school)) schoolSet[s.school] = true;
-  });
-  document.getElementById('cb-filter-school').innerHTML = Object.keys(schoolSet).sort().map(function(sc){
-    return '<span class="cl-filter-chip" data-val="' + esc(sc) + '">' + esc(sc) + '</span>';
-  }).join('');
-  ['cb-filter-type','cb-filter-cr','cb-filter-grade','cb-filter-school'].forEach(function(id) {
-    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
-      c.onclick = function() { c.classList.toggle('active'); renderCbStudentList(); };
-    });
-  });
-  // 編集時の選択済み生徒名を保持しておく
-  renderCbStudentList._preselect = badge ? (badge.studentNames || []) : null;
-  renderCbStudentList();
   openModal('modal-custom-badge');
 }
 
-// 生徒リスト描画（チェックリストの絞り込みロジックと同じ）
-function renderCbStudentList() {
-  var types   = getCbChips('cb-filter-type');
-  var crs     = getCbChips('cb-filter-cr');
-  var grades  = getCbChips('cb-filter-grade');
-  var schools = getCbChips('cb-filter-school');
-  var preselect = renderCbStudentList._preselect;  // 編集時の既存対象（null=新規）
-
-  var filtered = (_students || []).filter(function(s) {
-    if (s.status !== '在籍') return false;
-    if (types.length > 0) {
-      var matchType = false;
-      if (types.indexOf('塾') !== -1 && s.attrJuku) matchType = true;
-      if (types.indexOf('CA') !== -1 && s.attrCa) matchType = true;
-      if (!matchType) return false;
-    }
-    if (crs.length > 0 && crs.indexOf(s.classroom || '') === -1) return false;
-    if (grades.length > 0 && grades.indexOf(s.grade || '') === -1) return false;
-    if (schools.length > 0 && schools.indexOf(s.school || '') === -1) return false;
-    return true;
-  });
-
-  var listEl = document.getElementById('cb-student-list');
-  if (filtered.length === 0) {
-    listEl.innerHTML = '<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center">条件に合う生徒がいません</div>';
-    updateCbSelectedCount();
-    return;
-  }
-  listEl.innerHTML = filtered.map(function(s) {
-    var crList = s.classroom || '';
-    // 編集モードでは既存対象にチェック。新規はデフォルト未チェック（絞り込んで意図的に選ぶ）。
-    var checked = preselect ? (preselect.indexOf(s.name) !== -1 ? ' checked' : '') : '';
-    return '<label class="cl-student-item">' +
-      '<input type="checkbox" class="cb-s-check" data-name="' + esc(s.name) + '"' + checked + '>' +
-      '<span>' + esc(s.name) + '</span>' +
-      '<span style="font-size:11px;color:#9ca3af;margin-left:4px">' + esc(s.grade||'') + ' ' + esc(crList) + '</span>' +
-      '</label>';
-  }).join('');
-  listEl.querySelectorAll('.cb-s-check').forEach(function(cb){ cb.addEventListener('change', updateCbSelectedCount); });
-  updateCbSelectedCount();
-}
-
-function getCbChips(containerId) {
-  var arr = [];
-  document.getElementById(containerId).querySelectorAll('.cl-filter-chip.active').forEach(function(c){ arr.push(c.dataset.val); });
-  return arr;
-}
-function updateCbSelectedCount() {
-  var n = document.getElementById('cb-student-list').querySelectorAll('.cb-s-check:checked').length;
-  document.getElementById('cb-selected-count').textContent = n + '名選択中';
-}
-function cbSelectAll(flag) {
-  document.getElementById('cb-student-list').querySelectorAll('.cb-s-check').forEach(function(cb){ cb.checked = flag; });
-  updateCbSelectedCount();
-}
+// 旧 renderCbStudentList / getCbChips / updateCbSelectedCount / cbSelectAll は
+// 2列トランスファー（tp*）へ統合し廃止（2026-07-10）
 
 // 保存（新規・編集兼用）
 // 注意：絞り込みで表示中の生徒しかチェック欄に出ないため、編集時は
@@ -6017,20 +5996,8 @@ function submitCustomBadge() {
   var mark = document.getElementById('cb-mark-picker').dataset.selected || CUSTOM_BADGE_MARKS[0].id;
   var detail = document.getElementById('cb-detail-input').value.trim();
 
-  // 画面に出ている生徒の選択状態を集計
-  var shownNames = [];
-  var checkedNames = [];
-  document.getElementById('cb-student-list').querySelectorAll('.cb-s-check').forEach(function(cb) {
-    shownNames.push(cb.dataset.name);
-    if (cb.checked) checkedNames.push(cb.dataset.name);
-  });
-
-  // 既存対象のうち、今画面に出ていない（絞り込みで隠れている）名前は維持する
-  var names = checkedNames.slice();
-  var existing = _cbEditingId ? ((_customBadges.find(function(b){return b.id===_cbEditingId;})||{}).studentNames || []) : [];
-  existing.forEach(function(nm) {
-    if (shownNames.indexOf(nm) === -1 && names.indexOf(nm) === -1) names.push(nm);
-  });
+  // 選択中リスト（2列トランスファーの右カラム＝隠れる子がいないので全員ここに揃う）
+  var names = tpSelectedList('cb').map(function(s){ return s.name; });
 
   if (names.length === 0) {
     if (!confirm('対象の生徒が0名です。このまま保存しますか？（誰にもバッジが付きません）')) return;
@@ -9142,6 +9109,174 @@ function openEditChecklistModal(clId) {
   });
 }
 
+// =====================================================
+// 汎用 対象選択ピッカー（2列トランスファー：候補↔選択中）2026-07-10
+// teacher-dashboard-design 原則5準拠。絞り込みは候補（左）だけに効き、選択中（右）は
+// 絞り込みに関係なく常に全員表示する。旧「1列チェックリスト＋絞り込み」を置き換え。
+// prefix 'cl'（チェックリスト）/'cb'（カスタムバッジ）の2箇所で使う。
+// =====================================================
+var _tpState = {}; // prefix -> { sel:{id->obj}, idOf:fn }
+
+function tpInit(prefix, opts) {
+  opts = opts || {};
+  var idOf = opts.idOf || function(s){ return s.uid || s.name; };
+  var sel = {};
+  (opts.preselect || []).forEach(function(o) {
+    if (!o) return;
+    var full = (_students || []).find(function(s){
+      return (o.uid && (s.uid === o.uid)) || (s.name === o.name);
+    });
+    var obj = full ? { uid: full.uid, name: full.name, grade: full.grade, classroom: full.classroom }
+                   : { uid: o.uid, name: o.name, grade: o.grade || '', classroom: o.classroom || '' };
+    sel[idOf(obj)] = obj;
+  });
+  _tpState[prefix] = { sel: sel, idOf: idOf };
+
+  // 中学校チップを動的生成（在籍生徒の学校一覧）
+  var schoolSet = {};
+  (_students || []).forEach(function(s) {
+    if (s.status === '在籍' && s.school && /中/.test(s.school)) schoolSet[s.school] = true;
+  });
+  var schoolEl = document.getElementById(prefix + '-filter-school');
+  if (schoolEl) schoolEl.innerHTML = Object.keys(schoolSet).sort().map(function(sc){
+    return '<span class="cl-filter-chip" data-val="' + esc(sc) + '">' + esc(sc) + '</span>';
+  }).join('');
+
+  // 絞り込みチップ：候補側だけ再描画（選択中には影響しない）
+  [prefix+'-filter-type', prefix+'-filter-cr', prefix+'-filter-grade', prefix+'-filter-school'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.querySelectorAll('.cl-filter-chip').forEach(function(c) {
+      c.classList.remove('active');
+      c.onclick = function() { c.classList.toggle('active'); tpRenderCand(prefix); };
+    });
+  });
+  var srch = document.getElementById(prefix + '-tp-search');
+  if (srch) srch.value = '';
+  tpRenderCand(prefix);
+  tpRenderSel(prefix);
+}
+
+function tpActiveChips(containerId) {
+  var arr = [];
+  var el = document.getElementById(containerId);
+  if (el) el.querySelectorAll('.cl-filter-chip.active').forEach(function(c){ arr.push(c.dataset.val); });
+  return arr;
+}
+
+function tpCandidates(prefix) {
+  var types   = tpActiveChips(prefix + '-filter-type');
+  var crs     = tpActiveChips(prefix + '-filter-cr');
+  var grades  = tpActiveChips(prefix + '-filter-grade');
+  var schools = tpActiveChips(prefix + '-filter-school');
+  var srchEl  = document.getElementById(prefix + '-tp-search');
+  var q = (srchEl ? srchEl.value : '').trim();
+  return (_students || []).filter(function(s) {
+    if (s.status !== '在籍') return false;
+    if (types.length > 0) {
+      var mt = false;
+      if (types.indexOf('塾') !== -1 && s.attrJuku) mt = true;
+      if (types.indexOf('CA') !== -1 && s.attrCa) mt = true;
+      if (!mt) return false;
+    }
+    if (crs.length > 0 && crs.indexOf(s.classroom || '') === -1) return false;
+    if (grades.length > 0 && grades.indexOf(s.grade || '') === -1) return false;
+    if (schools.length > 0 && schools.indexOf(s.school || '') === -1) return false;
+    if (q && (s.name || '').indexOf(q) === -1) return false;
+    return true;
+  }).sort(function(a,b){
+    return cbGradeRank_(a.grade) - cbGradeRank_(b.grade);
+  });
+}
+
+function tpRenderCand(prefix) {
+  var st = _tpState[prefix]; if (!st) return;
+  var list = tpCandidates(prefix);
+  var cntEl = document.getElementById(prefix + '-cand-count');
+  if (cntEl) cntEl.textContent = list.length + '名';
+  var el = document.getElementById(prefix + '-cand-list');
+  if (!el) return;
+  if (list.length === 0) {
+    el.innerHTML = '<div class="tp-empty">条件に合う生徒がいません</div>';
+    el.onclick = null;
+    return;
+  }
+  el.innerHTML = list.map(function(s) {
+    var id = st.idOf(s);
+    var picked = !!st.sel[id];
+    var meta = esc(((s.grade||'') + ' ' + (s.classroom||'')).trim());
+    var btn = picked
+      ? '<span class="tp-add-btn added">追加済</span>'
+      : '<button class="tp-add-btn" data-id="' + esc(id) + '">＋ 追加</button>';
+    return '<div class="tp-row"><span class="tp-name">' + esc(s.name) + '</span>' +
+      '<span class="tp-meta">' + meta + '</span>' + btn + '</div>';
+  }).join('');
+  el.onclick = function(e) {
+    var b = e.target.closest('.tp-add-btn');
+    if (!b || b.classList.contains('added')) return;
+    tpAdd(prefix, b.dataset.id);
+  };
+}
+
+function tpRenderSel(prefix) {
+  var st = _tpState[prefix]; if (!st) return;
+  var arr = Object.keys(st.sel).map(function(k){ return st.sel[k]; }).sort(function(a,b){
+    return cbGradeRank_(a.grade) - cbGradeRank_(b.grade);
+  });
+  var cntEl = document.getElementById(prefix + '-sel-count');
+  if (cntEl) cntEl.textContent = arr.length + '名';
+  var el = document.getElementById(prefix + '-sel-list');
+  if (!el) return;
+  if (arr.length === 0) {
+    el.innerHTML = '<div class="tp-empty">まだ選ばれていません。<br>左の候補から「＋ 追加」で選びます。</div>';
+    el.onclick = null;
+    return;
+  }
+  el.innerHTML = arr.map(function(s) {
+    var id = st.idOf(s);
+    var meta = esc(((s.grade||'') + ' ' + (s.classroom||'')).trim());
+    return '<div class="tp-row"><span class="tp-name">' + esc(s.name) + '</span>' +
+      '<span class="tp-meta">' + meta + '</span>' +
+      '<button class="tp-rm-btn" data-id="' + esc(id) + '" title="外す">✕</button></div>';
+  }).join('');
+  el.onclick = function(e) {
+    var b = e.target.closest('.tp-rm-btn');
+    if (!b) return;
+    tpRemove(prefix, b.dataset.id);
+  };
+}
+
+function tpAdd(prefix, id) {
+  var st = _tpState[prefix]; if (!st || st.sel[id]) return;
+  var s = (_students || []).find(function(x){ return String(st.idOf(x)) === String(id); });
+  if (!s) return;
+  st.sel[id] = { uid: s.uid, name: s.name, grade: s.grade, classroom: s.classroom };
+  tpRenderCand(prefix); tpRenderSel(prefix);
+}
+function tpRemove(prefix, id) {
+  var st = _tpState[prefix]; if (!st) return;
+  delete st.sel[id];
+  tpRenderCand(prefix); tpRenderSel(prefix);
+}
+function tpAddAllShown(prefix) {
+  var st = _tpState[prefix]; if (!st) return;
+  tpCandidates(prefix).forEach(function(s){
+    st.sel[st.idOf(s)] = { uid: s.uid, name: s.name, grade: s.grade, classroom: s.classroom };
+  });
+  tpRenderCand(prefix); tpRenderSel(prefix);
+}
+function tpClear(prefix) {
+  var st = _tpState[prefix]; if (!st) return;
+  st.sel = {};
+  tpRenderCand(prefix); tpRenderSel(prefix);
+}
+function tpSelectedList(prefix) {
+  var st = _tpState[prefix]; if (!st) return [];
+  return Object.keys(st.sel).map(function(k){ return st.sel[k]; }).sort(function(a,b){
+    return cbGradeRank_(a.grade) - cbGradeRank_(b.grade);
+  });
+}
+
 function openAddChecklist() {
   // 編集モードをリセット
   delete document.getElementById('modal-add-checklist').dataset.editId;
@@ -9152,108 +9287,13 @@ function openAddChecklist() {
   tl.innerHTML = '<div class="cl-title-row" style="display:flex;gap:6px;margin-bottom:6px"><input type="text" class="cl-title-input" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box" placeholder="例：保護者連絡済み確認" /></div>';
   document.getElementById('cl-new-memo').value = '';
   document.getElementById('cl-new-date').value = isoDate(new Date());
-  // フィルターチップをすべてOFF（active なし）にリセット
-  ['cl-filter-type','cl-filter-cr','cl-filter-grade'].forEach(function(id) {
-    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
-      c.classList.remove('active');
-    });
-  });
-  // フィルターイベント設定
-  // 中学校フィルタを動的生成（在籍生徒の学校一覧）
-  var schoolSet = {};
-  (_students || []).forEach(function(s) {
-    if (s.status === '在籍' && s.school && /中/.test(s.school)) schoolSet[s.school] = true;
-  });
-  var schoolEl = document.getElementById('cl-filter-school');
-  schoolEl.innerHTML = Object.keys(schoolSet).sort().map(function(sc) {
-    return '<span class="cl-filter-chip" data-val="' + esc(sc) + '">' + esc(sc) + '</span>';
-  }).join('');
-
-  ['cl-filter-type','cl-filter-cr','cl-filter-grade','cl-filter-school'].forEach(function(id) {
-    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
-      c.onclick = function() {
-        c.classList.toggle('active');
-        renderClStudentList();
-      };
-    });
-  });
-  renderClStudentList();
+  // 対象選択（2列トランスファー・新規は空）
+  tpInit('cl', { idOf: function(s){ return s.uid || s.name; }, preselect: [] });
   openModal('modal-add-checklist');
 }
 
-// ── 生徒リスト描画 ──
-function renderClStudentList() {
-  var types   = getActiveChips('cl-filter-type');
-  var crs     = getActiveChips('cl-filter-cr');
-  var grades  = getActiveChips('cl-filter-grade');
-  var schools = getActiveChips('cl-filter-school');
-
-  var filtered = _students.filter(function(s) {
-    if (s.status !== '在籍') return false;
-    // 種別フィルター
-    if (types.length > 0) {
-      var matchType = false;
-      if (types.indexOf('塾') !== -1 && s.attrJuku) matchType = true;
-      if (types.indexOf('CA') !== -1 && s.attrCa) matchType = true;
-      if (!matchType) return false;
-    }
-    // 教室フィルター：s.classroom（所属教室）で判定
-    if (crs.length > 0) {
-      if (crs.indexOf(s.classroom || '') === -1) return false;
-    }
-    // 学年フィルター
-    if (grades.length > 0) {
-      if (grades.indexOf(s.grade || '') === -1) return false;
-    }
-    // 中学校フィルター
-    if (schools.length > 0) {
-      if (schools.indexOf(s.school || '') === -1) return false;
-    }
-    return true;
-  });
-
-  var listEl = document.getElementById('cl-student-list');
-  if (filtered.length === 0) {
-    listEl.innerHTML = '<div style="padding:12px;font-size:12px;color:#9ca3af;text-align:center">条件に合う生徒がいません</div>';
-    document.getElementById('cl-selected-count').textContent = '';
-    return;
-  }
-
-  listEl.innerHTML = filtered.map(function(s) {
-    var crList = s.classroom || '';
-    var chk = renderClStudentList._noCheck ? '' : ' checked';
-    return '<label class="cl-student-item">' +
-      '<input type="checkbox" class="cl-s-check" data-uid="' + (s.uid||s.name) + '" data-name="' + esc(s.name) + '" data-grade="' + esc(s.grade||'') + '" data-cr="' + esc(crList) + '"' + chk + '>' +
-      '<span>' + esc(s.name) + '</span>' +
-      '<span style="font-size:11px;color:#9ca3af;margin-left:4px">' + esc(s.grade||'') + ' ' + esc(crList) + '</span>' +
-      '</label>';
-  }).join('');
-
-  listEl.querySelectorAll('.cl-s-check').forEach(function(cb) {
-    cb.addEventListener('change', updateClSelectedCount);
-  });
-  updateClSelectedCount();
-}
-
-function getActiveChips(containerId) {
-  var arr = [];
-  document.getElementById(containerId).querySelectorAll('.cl-filter-chip.active').forEach(function(c) {
-    arr.push(c.dataset.val);
-  });
-  return arr;
-}
-
-function updateClSelectedCount() {
-  var checked = document.getElementById('cl-student-list').querySelectorAll('.cl-s-check:checked').length;
-  document.getElementById('cl-selected-count').textContent = checked + '名選択中';
-}
-
-function clSelectAll(flag) {
-  document.getElementById('cl-student-list').querySelectorAll('.cl-s-check').forEach(function(cb) {
-    cb.checked = flag;
-  });
-  updateClSelectedCount();
-}
+// 旧 renderClStudentList / getActiveChips / updateClSelectedCount / clSelectAll は
+// 2列トランスファー（tp*）へ統合し廃止（2026-07-10）
 
 // ── チェックリスト保存（新規 / 編集兼用）──
 function submitChecklist() {
@@ -9270,11 +9310,9 @@ function submitChecklist() {
   var startDate = document.getElementById('cl-new-date').value || isoDate(new Date());
   var memo = document.getElementById('cl-new-memo').value.trim();
 
-  // 新規選択生徒リスト
-  var newItems = [];
-  document.getElementById('cl-student-list').querySelectorAll('.cl-s-check:checked').forEach(function(cb) {
-    var firstCr = cb.dataset.cr || '';
-    newItems.push({ uid: cb.dataset.uid, name: cb.dataset.name, grade: cb.dataset.grade, classroom: firstCr });
+  // 選択中リスト（2列トランスファーの右カラム＝隠れる子がいないので全員ここに揃う）
+  var newItems = tpSelectedList('cl').map(function(s) {
+    return { uid: s.uid || s.name, name: s.name, grade: s.grade || '', classroom: s.classroom || '' };
   });
   if (newItems.length === 0) { miniToast('対象者を1名以上選択してください'); return; }
 
@@ -9540,30 +9578,8 @@ function openAddChecklistWithData(data) {
   // 開始日・メモ
   document.getElementById('cl-new-date').value = data.startDate || isoDate(new Date());
   document.getElementById('cl-new-memo').value = data.memo || '';
-  // フィルターOFF
-  ['cl-filter-type','cl-filter-cr','cl-filter-grade'].forEach(function(id) {
-    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) { c.classList.remove('active'); });
-  });
-  // フィルターイベント設定
-  ['cl-filter-type','cl-filter-cr','cl-filter-grade'].forEach(function(id) {
-    document.getElementById(id).querySelectorAll('.cl-filter-chip').forEach(function(c) {
-      c.onclick = function() { c.classList.toggle('active'); renderClStudentList(); };
-    });
-  });
-  // 生徒リスト描画
-  if (data.items && data.items.length > 0) {
-    // preUids指定あり：全員未チェックで描画してからpreUidsのみチェック
-    renderClStudentList._noCheck = true;
-    renderClStudentList();
-    renderClStudentList._noCheck = false;
-    var preUids = data.items.map(function(it){ return it.uid || it.name; });
-    document.getElementById('cl-student-list').querySelectorAll('.cl-s-check').forEach(function(cb) {
-      cb.checked = preUids.indexOf(cb.dataset.uid) !== -1 || preUids.indexOf(cb.dataset.name) !== -1;
-    });
-    updateClSelectedCount();
-  } else {
-    renderClStudentList();
-  }
+  // 対象選択（既存itemsを選択中に復元。絞り込みで隠れないので保持ロジックは不要）
+  tpInit('cl', { idOf: function(s){ return s.uid || s.name; }, preselect: (data.items || []) });
   openModal('modal-add-checklist');
 }
 
