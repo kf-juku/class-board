@@ -1213,10 +1213,10 @@ tr.mx-done-row td { background: #f0fdf4; }
   </div>
 </div>
 
-<!-- モーダル：テスト予定追加 -->
+<!-- モーダル：小テスト追加 -->
 <div class="modal-overlay" id="modal-add-test" onclick="if(event.target===this)closeModal('modal-add-test')">
   <div class="modal">
-    <div class="modal-header"><span id="modal-add-test-title">テスト予定を追加</span><span class="modal-close" onclick="closeModal('modal-add-test')">×</span></div>
+    <div class="modal-header"><span id="modal-add-test-title">小テスト追加</span><span class="modal-close" onclick="closeModal('modal-add-test')">×</span></div>
     <div class="modal-body">
       <div class="form-group" id="test-school-group"><label class="form-label">学校</label>
         <select class="form-input" id="test-target-school"><option value="">-- 学校を選択 --</option></select>
@@ -1474,7 +1474,7 @@ function testAssignCount_(cr, kt, dateIso) {
 
 // トップバーのタイトルエリアを更新（モードバッジ付き）
 function updateTopTitle(tab) {
-  var baseTitles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・テスト予定', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
+  var baseTitles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・小テスト', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
   var baseTitle = baseTitles[tab] || 'Class Board';
   var el = document.getElementById('top-title');
   if (!el) return;
@@ -1803,7 +1803,7 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
   var ni = document.getElementById('nav-' + tab);
   if (ni) ni.classList.add('active');
-  var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・テスト予定', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
+  var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・小テスト', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
   updateTopTitle(tab);
   renderCurrent();
 }
@@ -2452,7 +2452,7 @@ function studentChipHtml(s, opts) {
   if (koma) {
     var komaIsCa = (koma.id || '').indexOf('ca_') === 0;
     if (koma.online) {
-      lessonLabel = '<span class="badge badge-gray" style="font-size:10px">online</span>';
+      lessonLabel = '<span class="badge badge-gray" style="font-size:10px">オンライン</span>';
     } else if (komaIsCa) {
       lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
     } else if (koma.satType === 'eiken') {
@@ -2481,7 +2481,7 @@ function studentChipHtml(s, opts) {
   var _courseName = '';
   if (koma) {
     var _komaIsCa = (koma.id || '').indexOf('ca_') === 0;
-    if (koma.online)             _courseName = 'online';
+    if (koma.online)             _courseName = 'オンライン';
     else if (_komaIsCa)          _courseName = 'CA';
     else if (koma.satType === 'eiken')  _courseName = '英検';
     else if (koma.satType === 'juken')  _courseName = '受験特訓';
@@ -2530,13 +2530,13 @@ function studentChipHtml(s, opts) {
     if (s.komas && s.komas.length > 0) {
       var komaBadges = s.komas.map(function(k) {
         var typeLabel;
-        if (k.online) typeLabel = 'online';
+        if (k.online) typeLabel = 'オンライン';
         else if ((k.id || '').indexOf('ca_') === 0) typeLabel = 'CA';
         else if (k.satType === 'eiken')  typeLabel = '英検';
-        else if (k.satType === 'enshuu') typeLabel = '演習';
-        else if (k.satType === 'sat')    typeLabel = '土曜';
-        else if (k.satType === 'juken')  typeLabel = '受験';
-        else if (k.satType === 'hira')   typeLabel = '演習';
+        else if (k.satType === 'enshuu') typeLabel = '演習回';
+        else if (k.satType === 'sat')    typeLabel = '土曜演習';
+        else if (k.satType === 'juken')  typeLabel = '受験特訓';
+        else if (k.satType === 'hira')   typeLabel = '演習回';
         else typeLabel = '';
         var youbi = k.youbi || '';
         var time  = k.time || (k.hiraKoma || '');
@@ -2579,7 +2579,8 @@ function studentChipHtml(s, opts) {
     });
     if (aRec) {
       if (aRec.status === 'scheduled') {
-        absenceBadge = '<span class="badge badge-red" style="font-size:10px;margin-left:2px">振替待ち</span>';
+        var _subTip = ('振替先：' + (aRec.substituteDate || '') + ' ' + (aRec.substituteKomaTime || '') + ' ' + (aRec.substituteClassroom || '')).replace(/\s+/g,' ').replace(/\s+$/,'');
+        absenceBadge = '<span class="badge" data-tooltip="' + esc(_subTip) + '" style="font-size:10px;margin-left:2px;background:#dbeafe;color:#1d4ed8">振替確定</span>';
       } else if (aRec.status === 'substituted') {
         absenceBadge = '<span class="badge" style="font-size:10px;background:#6366f1;color:#fff;margin-left:2px">振替済</span>';
       } else {
@@ -4466,7 +4467,7 @@ function openAddTestModal(school) {
   document.getElementById('test-rows').innerHTML = '';
   addTestRow();
   document.getElementById('test-add-row-btn').style.display = '';
-  document.getElementById('modal-add-test-title').textContent = school ? 'テスト予定を追加（' + school + '）' : '小テスト追加';
+  document.getElementById('modal-add-test-title').textContent = school ? '小テスト追加（' + school + '）' : '小テスト追加';
   openModal('modal-add-test');
 }
 
@@ -4596,7 +4597,7 @@ function deleteTestFromModal() {
 }
 
 function deleteTest(taskId) {
-  if (!taskId || !confirm('このテスト予定を削除しますか？')) return;
+  if (!taskId || !confirm('この小テストを削除しますか？')) return;
   miniToast('削除中...');
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
@@ -5352,7 +5353,7 @@ function subKomaType_(rec, studentObj) {
   if (origKoma && (origKoma.satType === 'enshuu' || origKoma.satType === 'hira')) {
     return { label: '演習回', bg: '#dcfce7', fg: '#16a34a' };
   }
-  return { label: '通常', bg: '#0ea5e9', fg: '#ffffff' };
+  return { label: '塾', bg: '#0ea5e9', fg: '#ffffff' };
 }
 
 // ① 振替バッジから「振替日編集」へ飛ぶ：振替タブへ切替→該当カードまでスクロール＆ハイライト。
@@ -5402,7 +5403,7 @@ function renderAbsence() {
     var _ct = subKomaType_(r);
     var typeBadge = '<span class="badge" style="font-size:10px;background:' + _ct.bg + ';color:' + _ct.fg + ';padding:1px 6px;border-radius:4px;margin-left:2px">' + _ct.label + '</span>';
     if (r.status === 'absent') {
-      statusBadge = '<span class="ac-badge ac-badge-red">振替待ち</span>';
+      statusBadge = '<span class="ac-badge ac-badge-red">振替日未定</span>';
       cardCls += ' ac-waiting';
     } else if (r.status === 'scheduled') {
       var isPast = r.substituteDate && r.substituteDate < todayIso;
@@ -5477,7 +5478,7 @@ function renderAbsence() {
 
 
   var helpHtml = '<span class="cb-help"><span class="cb-help-icon">?</span>' +
-    '<span class="cb-help-body">【欠席ボタン】本日・今週タブの生徒名横の「欠」ボタンで欠席を記録します。<br><br>【振替待ちリスト】欠席登録した生徒が一覧に表示されます。振替日時が決まったら「振替確定」で登録してください。<br><br>【連鎖欠席】振替予定の生徒がさらに欠席した場合は「↩」ボタンで連鎖欠席を記録できます。<br><br>【アラート】本日振替予定の生徒がいる場合は画面上部に表示されます。</span>' +
+    '<span class="cb-help-body">【欠席ボタン】本日・今週タブの生徒名横の「欠」ボタンで欠席を記録します。<br><br>【振替日未定リスト】欠席登録した生徒が一覧に表示されます。振替日時が決まったら「振替確定」で登録してください。<br><br>【連鎖欠席】振替予定の生徒がさらに欠席した場合は「↩」ボタンで連鎖欠席を記録できます。<br><br>【アラート】本日振替予定の生徒がいる場合は画面上部に表示されます。</span>' +
     '</span>';
 
   document.getElementById('main-content').innerHTML =
@@ -5486,7 +5487,7 @@ function renderAbsence() {
       '<button class="btn-secondary btn-sm" style="margin-left:auto" onclick="reloadAbsence()">🔄 更新</button>' +
     '</div>' +
     alertHtml +
-    '<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--crimson)">対応中（振替待ち ' + waitingActive.length + '件 / 振替確定 ' + scheduledCurrent.length + '件）</div>' +
+    '<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--crimson)">対応中（振替日未定 ' + waitingActive.length + '件 / 振替確定 ' + scheduledCurrent.length + '件）</div>' +
     '<div class="absence-list">' + waitingHtml + '</div>' +
     pastHtml +
     staleHtml;
@@ -6115,7 +6116,7 @@ function renderSettings() {
 // 2026-06-07 追加
 // =====================================================
 
-var KOUSHU_TYPE_LABELS = { summer: '夏期講習', winter: '冬期講習', spring: '春期講習', test: 'テスト対策' };
+var KOUSHU_TYPE_LABELS = { summer: '夏期講習', winter: '冬期講習', spring: '春期講習', test: 'テスト対策期間' };
 
 // 仮デフォルト値（設定タブで変更可能）
 var KOUSHU_DEFAULT_KOMA_FRAMES = [
@@ -6421,7 +6422,7 @@ function openKoushuPage(periodId) {
       '</div>' +
       (isNew ? '<div style="margin-top:10px"><label class="form-label">種別</label>' +
       '<select id="kp-type" class="form-input">' +
-      ['summer:夏期講習','winter:冬期講習','spring:春期講習','test:テスト対策'].map(function(s){ var p=s.split(':'); return '<option value="'+p[0]+'">'+p[1]+'</option>'; }).join('') +
+      ['summer:夏期講習','winter:冬期講習','spring:春期講習','test:テスト対策期間'].map(function(s){ var p=s.split(':'); return '<option value="'+p[0]+'">'+p[1]+'</option>'; }).join('') +
       '</select></div>' +
       '<div id="kp-test-sundays" style="display:none;margin-top:10px;padding:10px;background:#f8fafc;border-radius:6px"></div>' +
       koushuCopyBlockHtml_() : '') +
