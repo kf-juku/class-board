@@ -2579,8 +2579,15 @@ function studentChipHtml(s, opts) {
     });
     if (aRec) {
       if (aRec.status === 'scheduled') {
-        var _subTip = ('振替先：' + (aRec.substituteDate || '') + ' ' + (aRec.substituteKomaTime || '') + ' ' + (aRec.substituteClassroom || '')).replace(/\s+/g,' ').replace(/\s+$/,'');
-        absenceBadge = '<span class="badge" data-tooltip="' + esc(_subTip) + '" style="font-size:10px;margin-left:2px;background:#dbeafe;color:#1d4ed8">振替確定</span>';
+        absenceBadge = '<span class="badge" style="font-size:10px;margin-left:2px;background:#dbeafe;color:#1d4ed8">振替確定</span>';
+        // 振替先（曜日つき）を生徒ポップアップ先頭に集約。別ツールチップを出さず重なりを防ぐ。
+        var _sd = aRec.substituteDate || '';
+        var _syb = '';
+        if (_sd) { var _dp = _sd.split('-'); if (_dp.length === 3) { var _dt = new Date(+_dp[0], (+_dp[1]) - 1, +_dp[2]); if (!isNaN(_dt.getTime())) _syb = '（' + ['日','月','火','水','木','金','土'][_dt.getDay()] + '）'; } }
+        var _subText = ('振替先：' + _sd + _syb + ' ' + (aRec.substituteKomaTime || '') + ' ' + (aRec.substituteClassroom || '')).replace(/\s+/g,' ').replace(/\s+$/,'');
+        var _subRow = '<div class="sp-row" style="margin-bottom:6px;padding-bottom:5px;border-bottom:0.5px solid #e5e7eb"><span style="font-size:12px;color:#1d4ed8;font-weight:700">' + esc(_subText) + '</span></div>';
+        if (popup) { popup = popup.replace('min-width:200px;max-width:280px">', 'min-width:200px;max-width:280px">' + _subRow); }
+        else { popup = '<div class="s-popup" style="min-width:200px;max-width:280px">' + _subRow + '</div>'; }
       } else if (aRec.status === 'substituted') {
         absenceBadge = '<span class="badge" style="font-size:10px;background:#6366f1;color:#fff;margin-left:2px">振替済</span>';
       } else {
