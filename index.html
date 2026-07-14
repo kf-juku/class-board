@@ -727,6 +727,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kp-b-taisaku { background: #fef3c7; color: #92400e; }
 .kp-b-jishu { background: #dcfce7; color: #166534; }
 .kp-b-koushu { background: #ede9fe; color: #5b21b6; }
+.kp-b-furikae { background: #dbeafe; color: #1d4ed8; }
 @media print {
   body.kp-printing > :not(#kp-print-root) { display: none !important; }
   body.kp-printing #kp-print-root { display: block !important; position: static !important; left: 0 !important; top: 0 !important; }
@@ -3988,7 +3989,32 @@ function printKoushuPeriod() {
       return '<th>' + fmtMD(ci.d) + '</th>';
     }).join('');
 
-    var bodyRows = komas.map(function(kt) {
+    // 期間印刷のコマ行を画面(buildWeekGrid 2026-07-08)と揃える：講習コマ枠 ∪ 通常のまま残るコマ(CA/小学生/英検) ∪ 振替来塾のあるコマ（2026-07-14）
+    var weekKomas = komas.slice();
+    if (period.type !== 'test') {
+      getKomasForClassroom(cr).forEach(function(kt) {
+        if (weekKomas.indexOf(kt) !== -1) return;
+        var showNormal = dayInfo.some(function(ci) {
+          if (ci.out || ci.closed) return false;
+          var yb = YOUBI_MAP[ci.d.getDay()];
+          return getStudentsForKoma(cr, yb, kt).some(function(s){ return isNormalKomaInKoushu_(s, kt); });
+        });
+        var showSub = dayInfo.some(function(ci) {
+          if (ci.out || ci.closed) return false;
+          return (_absenceRecords || []).some(function(r) {
+            return r.status === 'scheduled' && r.substituteClassroom === cr &&
+                   r.substituteKomaTime === kt && r.substituteDate === ci.iso;
+          });
+        });
+        if (showNormal || showSub) weekKomas.push(kt);
+      });
+      weekKomas.sort(function(a, b) {
+        var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
+        var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
+        return ta - tb;
+      });
+    }
+    var bodyRows = weekKomas.map(function(kt) {
       var cells = dayInfo.map(function(ci) {
         if (ci.out) return '<td class="kp-closed">—</td>';
         if (ci.closed) return '<td class="kp-closed kp-min">閉校</td>';
@@ -4008,11 +4034,21 @@ function printKoushuPeriod() {
           else if (isNormalKomaInKoushu_(s, '')) badge = 'koushu'; // 通常コマで来ている子の追加受講
           items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge });
         });
+        // 振替来塾（画面と同じ：その日・そのコマ・その教室の振替確定。既出・退会休会は除く）2026-07-14
+        (_absenceRecords || []).forEach(function(r) {
+          if (r.status !== 'scheduled') return;
+          if (r.substituteDate !== iso || r.substituteClassroom !== cr || r.substituteKomaTime !== kt) return;
+          var rs = _students.find(function(st) { return st.name === r.studentName; });
+          if (rs && (rs.status === '退会' || rs.status === '休会')) return;
+          if (items.some(function(it) { return it.name === r.studentName; })) return;
+          items.push({ name: r.studentName, grade: (rs && rs.grade) || '', badge: 'furikae' });
+        });
         if (!items.length) return '<td><span style="color:#ccc">—</span></td>';
         var chips = items.map(function(it) {
           var bdg = it.badge === 'taisaku' ? '<span class="kp-badge kp-b-taisaku">対策</span>'
                   : it.badge === 'jishu'   ? '<span class="kp-badge kp-b-jishu">自習</span>'
-                  : it.badge === 'koushu'  ? '<span class="kp-badge kp-b-koushu">講習</span>' : '';
+                  : it.badge === 'koushu'  ? '<span class="kp-badge kp-b-koushu">講習</span>'
+                  : it.badge === 'furikae' ? '<span class="kp-badge kp-b-furikae">振替</span>' : '';
           return '<span class="kp-stu">' + esc(it.name) + (it.grade ? '<span class="kp-grade">(' + esc(it.grade) + ')</span>' : '') + bdg + '</span>';
         }).join('');
         return '<td><div class="kp-count">計' + items.length + '人</div>' + chips + '</td>';
