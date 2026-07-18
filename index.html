@@ -97,6 +97,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cb-leave-badge { display:inline-block; font-size:10px; font-weight:700; line-height:1.4; padding:1px 6px; margin-left:3px; border-radius:6px; background:#fbeaf0; color:#99355a; white-space:nowrap; vertical-align:middle; }
 .cb-leave-last { display:inline-block; font-size:10px; font-weight:700; line-height:1.4; padding:1px 6px; margin-left:3px; border-radius:6px; background:#fcebeb; color:#a32d2d; white-space:nowrap; vertical-align:middle; }
 @media print { .cb-leave-badge, .cb-leave-last { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+@media print { .cb-koushu-note { display:none !important; } }
 
 .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .badge-red { background: var(--crimson-light); color: var(--crimson); }
@@ -2145,6 +2146,22 @@ function koushuChipHtml(s, opts) {
     absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name, opts) + leaveBadgeHtml_(s, opts && opts.dateStr) + remainBadge + deleteBtn + '</div>';
 }
 
+// 講習期間の見方（時間割の欄外に置くホバー注記・画面のみ／印刷では非表示 2026-07-18）
+// 川上さん指示(2026-07-18)：バッジの意味＝講習期間の表示ルールを欄外に注記しておく。
+function koushuViewNoteHtml_() {
+  if (!(isKoushuModeActive() && getActiveKoushuPeriod())) return '';
+  var p = getActiveKoushuPeriod();
+  var isTest = p.type === 'test';
+  var label = isTest ? 'テスト対策期間の見方' : '講習期間の見方';
+  var body = isTest
+    ? '<b>テスト対策期間の表示ルール</b><br>・対策で来るコマは「対策」バッジ、自習は「自習」バッジで表示します。<br>・振替：欠席の振替で来るコマは「振替」バッジを付けます。'
+    : '<b>講習期間の表示ルール</b><br>・中高生：夏期などの講習中は、通常の塾コマが講習コマに置き換わります。講習で来るコマはバッジなしで表示します。<br>・小学生・CAの子：普段の通常授業はそのまま表示します。それに加えて講習コマにも登録されている場合は「講習」バッジを付けます（＝通常授業とは別の追加受講）。<br>・振替：欠席の振替で来るコマは「振替」バッジを付けます。';
+  return '<span class="cb-help cb-koushu-note" style="margin-left:0;cursor:help">' +
+    '<span style="font-size:12px;color:var(--text-muted);font-weight:600;border-bottom:1px dotted var(--text-muted)">\u24d8 ' + label + '</span>' +
+    '<span class="cb-help-body" style="left:0;top:22px;transform:none;width:340px">' + body + '</span>' +
+    '</span>';
+}
+
 // =====================================================
 // カスタムバッジ（手動バッジ）2026-06-17
 // 川上さん指示：自動付与バッジとは別に、設定で「マーク（15種SVG）＋詳細＋対象生徒」を
@@ -2969,7 +2986,7 @@ function renderToday() {
   var todayLabel = today.getFullYear() + '/' + (today.getMonth()+1) + '/' + today.getDate() + ' （' + ['日','月','火','水','木','金','土'][today.getDay()] + '）';
   document.getElementById('main-content').innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-    '<span></span>' +
+    '<span>' + koushuViewNoteHtml_() + '</span>' +
     '<button class="btn-secondary btn-sm" onclick="openPrintChoice_()" data-tooltip="印刷する教室を選びます。両教室（A4・これまで通り）／片方の教室だけ（A4・大きめ）から選べます。講習・テスト対策の期間全体は「📄 期間印刷」（B4横・1週=1ページ）を使ってください" style="font-size:12px">🖨️ 印刷</button>' +
     '</div>' +
     '<div class="print-header">本日の時間割　' + todayLabel + '　' + _currentClassroom + '</div>' +
@@ -3377,6 +3394,7 @@ function renderWeek() {
     '<button class="btn-secondary btn-sm" onclick="printA4_()" data-tooltip="A4縦・表裏2ページで印刷します（表面=タスク＋チェックリスト／裏面=時間割。両面印刷で紙1枚）。講習・テスト対策の期間全体は「📄 期間印刷」（B4横・1週=1ページ）を使ってください">🖨️ 印刷</button>' +
     (isKoushuModeActive() && getActiveKoushuPeriod() ? '<button class="btn-secondary btn-sm" onclick="printKoushuPeriod()" data-tooltip="選択中の講習・テスト対策期間の全日程をB4横で印刷します（1週間=1ページ・表示中の教室のみ）。今日の業務用にはタブ右上の「🖨️ 印刷」（A4縦1枚）を使ってください">📄 期間印刷</button>' : '') +
     '</div>' +
+    (koushuViewNoteHtml_() ? '<div class="cb-koushu-note" style="margin:-6px 0 10px">' + koushuViewNoteHtml_() + '</div>' : '') +
     '<div class="classroom-tabs">' +
     ['北久里浜','久里浜'].map(function(cr2) {
       var crCls2 = cr2 === '北久里浜' ? ' cr-kita' : ' cr-kuri';
