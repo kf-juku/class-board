@@ -738,9 +738,10 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kp-b-enshuu { background: #d1fae5; color: #047857; }
 .kp-g-elem { color: #be185d !important; font-weight: 700; }
 .kp-g-high { color: #6d28d9 !important; font-weight: 700; }
-.kp-b-kesseki { background: #fee2e2; color: #991b1b; }
-.kp-stu-abs { color: #9ca3af; }
-.kp-stu-abs .kp-grade { color: #cbd5e1; }
+.kp-b-kesseki { background: #dc2626; color: #fff; }
+.kp-stu-abs { background: #e5e7eb; border-radius: 4px; padding: 0 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.kp-abs-name { text-decoration: line-through; text-decoration-thickness: 1.5px; color: #6b7280; }
+.kp-stu-abs .kp-grade { color: #9ca3af; }
 @media print {
   body.kp-printing > :not(#kp-print-root) { display: none !important; }
   body.kp-printing #kp-print-root { display: block !important; position: static !important; left: 0 !important; top: 0 !important; }
@@ -4296,8 +4297,9 @@ function printKoushuPeriod() {
           var _idx2 = komaDayIndex_(_s2, iso);
           var _two2 = (_idx2[cr] || []).length >= 2 ? '<span class="kp-badge kp-b-2koma">' + _idx2[cr].length + 'コマ</span>' : '';
           var _cross2 = Object.keys(_idx2).some(function(c){ return c !== cr && (_idx2[c] || []).length > 0; }) ? '<span class="kp-badge kp-b-cross">教室またぎ</span>' : '';
-          var _kes = it.absent ? '<span class="kp-badge kp-b-kesseki">欠</span>' : '';
-          return '<span class="kp-stu' + (it.absent ? ' kp-stu-abs' : '') + '">' + _kes + esc(it.name) + (it.grade ? '<span class="kp-grade' + (it.grade.indexOf('小') === 0 ? ' kp-g-elem' : it.grade.indexOf('高') === 0 ? ' kp-g-high' : '') + '">(' + esc(it.grade) + ')</span>' : '') + bdg + _two2 + _cross2 + '</span>';
+          var _kes = it.absent ? '<span class="kp-badge kp-b-kesseki">欠席</span>' : '';
+          var _nm = it.absent ? '<span class="kp-abs-name">' + esc(it.name) + '</span>' : esc(it.name);
+          return '<span class="kp-stu' + (it.absent ? ' kp-stu-abs' : '') + '">' + _kes + _nm + (it.grade ? '<span class="kp-grade' + (it.grade.indexOf('小') === 0 ? ' kp-g-elem' : it.grade.indexOf('高') === 0 ? ' kp-g-high' : '') + '">(' + esc(it.grade) + ')</span>' : '') + bdg + _two2 + _cross2 + '</span>';
         }).join('');
         var _comeN = items.filter(function(it){ return !it.absent; }).length;
         var _absN = items.length - _comeN;
