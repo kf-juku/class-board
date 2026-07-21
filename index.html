@@ -733,6 +733,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kp-b-furikae { background: #dbeafe; color: #1d4ed8; }
 .kp-b-2koma { background: #fef3c7; color: #b45309; }
 .kp-b-cross { background: #dc2626; color: #fff; }
+.kp-b-ca { background: #e0f2fe; color: #0369a1; }
+.kp-b-eiken { background: #FAEEDA; color: #854F0B; }
+.kp-b-enshuu { background: #d1fae5; color: #047857; }
+.kp-g-elem { color: #be185d !important; font-weight: 700; }
+.kp-g-high { color: #6d28d9 !important; font-weight: 700; }
 @media print {
   body.kp-printing > :not(#kp-print-root) { display: none !important; }
   body.kp-printing #kp-print-root { display: block !important; position: static !important; left: 0 !important; top: 0 !important; }
@@ -4184,7 +4189,17 @@ function printKoushuPeriod() {
         var items = [];
         getStudentsForKoma(cr, youbi, kt).forEach(function(s) {
           // テスト対策：通常コマ全員 ／ 夏期等：小学生・CAのみ（中高は講習割付に置換）
-          if (isTestPr || isNormalKomaInKoushu_(s, kt)) items.push({ name: s.name, grade: s.grade || '', badge: '' });
+          if (isTestPr || isNormalKomaInKoushu_(s, kt)) {
+            var _mk = (s.komas || []).find(function(k){
+              if (k.satType === 'juken') return false;
+              if (k.classroom && k.classroom !== cr) return false;
+              if (k.satType === 'hira' && k.hiraKoma) { var _hv = k.hiraKoma; if (_hv.indexOf('_') !== -1) _hv = _hv.split('_').slice(1).join('_'); return _hv === (youbi + kt); }
+              return k.youbi === youbi && k.time === kt;
+            });
+            var _typ = 'juku';
+            if (_mk) { if ((_mk.id || '').indexOf('ca_') === 0) _typ = 'ca'; else if (_mk.online) _typ = 'online'; else if (_mk.satType === 'eiken') _typ = 'eiken'; else if (_mk.satType === 'enshuu' || _mk.satType === 'hira' || _mk.satType === 'sat') _typ = 'enshuu'; }
+            items.push({ name: s.name, grade: s.grade || '', badge: '', type: _typ });
+          }
         });
         _koushuAssignments.forEach(function(a) {
           if (a.date !== iso || a.classroom !== cr || a.komaTime !== kt) return;
@@ -4192,7 +4207,7 @@ function printKoushuPeriod() {
           var badge = '';
           if (isTestPr) badge = (a.type === 'jishu') ? 'jishu' : 'taisaku';
           else if (isNormalKomaInKoushu_(s, '')) badge = 'koushu'; // 通常コマで来ている子の追加受講
-          items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge });
+          items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge, type: (badge === 'taisaku' ? 'taisaku' : badge === 'jishu' ? 'jishu' : 'koushu') });
         });
         // 振替来塾（画面と同じ：その日・そのコマ・その教室の振替確定。既出・退会休会は除く）2026-07-14
         (_absenceRecords || []).forEach(function(r) {
@@ -4201,19 +4216,19 @@ function printKoushuPeriod() {
           var rs = _students.find(function(st) { return st.name === r.studentName; });
           if (rs && (rs.status === '退会' || rs.status === '休会')) return;
           if (items.some(function(it) { return it.name === r.studentName; })) return;
-          items.push({ name: r.studentName, grade: (rs && rs.grade) || '', badge: 'furikae' });
+          items.push({ name: r.studentName, grade: (rs && rs.grade) || '', badge: 'furikae', type: 'furikae' });
         });
         if (!items.length) return '<td><span style="color:#ccc">—</span></td>';
         var chips = items.map(function(it) {
-          var bdg = it.badge === 'taisaku' ? '<span class="kp-badge kp-b-taisaku">対策</span>'
-                  : it.badge === 'jishu'   ? '<span class="kp-badge kp-b-jishu">自習</span>'
-                  : it.badge === 'koushu'  ? '<span class="kp-badge kp-b-koushu">講習</span>'
-                  : it.badge === 'furikae' ? '<span class="kp-badge kp-b-furikae">振替</span>' : '';
+          // 川上さん指示(2026-07-21)：印刷は多数派を無バッジにして少数派をバッジで判別。講習モード＝多数派は中学生の講習（講習バッジ出さない）、テスト対策モード＝多数派は中学生の通常塾（塾バッジ出さない）。小学生・高校生は学年色で判別。
+          var _ty = it.type || '';
+          var _bmap = { ca: ['CA', 'kp-b-ca'], eiken: ['英検', 'kp-b-eiken'], enshuu: ['演習回', 'kp-b-enshuu'], furikae: ['振替', 'kp-b-furikae'], taisaku: ['対策', 'kp-b-taisaku'], jishu: ['自習', 'kp-b-jishu'] };
+          var bdg = _bmap[_ty] ? '<span class="kp-badge ' + _bmap[_ty][1] + '">' + _bmap[_ty][0] + '</span>' : '';
           var _s2 = _students.find(function(st){ return st.name === it.name; }) || { name: it.name };
           var _idx2 = komaDayIndex_(_s2, iso);
           var _two2 = (_idx2[cr] || []).length >= 2 ? '<span class="kp-badge kp-b-2koma">' + _idx2[cr].length + 'コマ</span>' : '';
           var _cross2 = Object.keys(_idx2).some(function(c){ return c !== cr && (_idx2[c] || []).length > 0; }) ? '<span class="kp-badge kp-b-cross">教室またぎ</span>' : '';
-          return '<span class="kp-stu">' + esc(it.name) + (it.grade ? '<span class="kp-grade">(' + esc(it.grade) + ')</span>' : '') + bdg + _two2 + _cross2 + '</span>';
+          return '<span class="kp-stu">' + esc(it.name) + (it.grade ? '<span class="kp-grade' + (it.grade.indexOf('小') === 0 ? ' kp-g-elem' : it.grade.indexOf('高') === 0 ? ' kp-g-high' : '') + '">(' + esc(it.grade) + ')</span>' : '') + bdg + _two2 + _cross2 + '</span>';
         }).join('');
         return '<td><div class="kp-count">計' + items.length + '人</div>' + chips + '</td>';
       }).join('');
