@@ -1979,6 +1979,15 @@ function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn)
   return 2;                                                       // 通常塾
 }
 
+// 川上さん指示(2026-07-21)：コマの種別に対応するコースが休会/退会なら、そのコマは時間割に出さない。
+// ca_始まり＝CAコマ、それ以外＝塾コマ。s.caActive / s.jukuActive は会員管理GASがコース別に在籍判定して渡す
+//（getStudentsForClassBoard）。全体が在籍でも、休会にしたコースのコマだけを消せる。
+// 値が未定義（GAS未更新の古いレスポンス）のときは従来どおり表示する（=== false のときだけ隠す）。
+function komaCourseActive_(s, k) {
+  var isCa = !!(k && (k.id || '').indexOf('ca_') === 0);
+  if (isCa) return s.caActive !== false;
+  return s.jukuActive !== false;
+}
 function getStudentsForKoma(classroom, youbi, komaTime) {
   var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
   // hiraKoma（平日演習回）が指定された曜日・時間に一致するか判定
@@ -2011,6 +2020,8 @@ function getStudentsForKoma(classroom, youbi, komaTime) {
     if (s.status === '退会' || s.status === '休会') return false;
     return (s.komas || []).some(function(k) {
       if (!matchesKoma(k)) return false;
+      // 川上さん指示(2026-07-21)：このコマの種別に当たるコース（塾/CA）が休会/退会なら出さない
+      if (!komaCourseActive_(s, k)) return false;
       // classroomが未設定の土曜コマ（sat/eiken/hira）はgetMainClassroomで教室を判定
       if (!k.classroom && k.satType && k.satType !== 'juken') {
         return getMainClassroom(s) === classroom;
