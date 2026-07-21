@@ -2875,7 +2875,7 @@ function renderToday() {
     // ※テスト対策（type=test）は通常モード表示＋上乗せのため通常分岐に流す
     var todayAssign = _koushuAssignments.filter(function(a) { return a.date === todayIso; });
     crHtml = ['北久里浜','久里浜'].map(function(cr) {
-      var komaBlocksHtml = '';
+      var _tblocks = [];
 
       // ── 1. 通常コマ（小学生・CAの授業）をそのまま表示（塾の中高生は除外）──
       var normalKomas = getKomasForClassroom(cr).filter(function(kt) {
@@ -2895,10 +2895,10 @@ function renderToday() {
           // 川上さん指示(2026-06-14)：通常コマ生はCA/塾で区別しない。週間グリッド(3033行付近)と対称に studentChipHtml で統一描画
           return studentChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso, koushuNormalMode:true});
         }).join('');
-        komaBlocksHtml += '<div class="koma-block">' +
+        _tblocks.push({ t: _tkTimeKey_(kt), html: '<div class="koma-block">' +
           '<div class="koma-time">' + esc(kt) + ' <span style="font-size:10px;color:#6b7280">（通常）</span></div>' +
           '<div class="koma-students">' + chips + '</div>' +
-          '</div>';
+          '</div>' });
       });
 
       // ── 2. 講習割付コマを表示 ──
@@ -2942,16 +2942,17 @@ function renderToday() {
             var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
             return koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: a.id, assignType: a.type });
           }).join('');
-          komaBlocksHtml += '<div class="koma-block">' +
+          _tblocks.push({ t: _tkTimeKey_(kt), html: '<div class="koma-block">' +
             '<div class="koma-time">🎓 ' + esc(kt) + countHtml + '</div>' +
             '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + chips + (function(){var subStu=(_absenceRecords||[]).filter(function(r){return r.substituteDate===todayIso&&r.substituteKomaTime===kt&&r.substituteClassroom===cr&&r.status==='scheduled'&&!( _koushuAssignments.find(function(a){return a.date===todayIso&&a.komaTime===kt&&a.classroom===cr&&(a.studentName===r.studentName);}) );});return subStu.map(function(r){var stu=(_students||[]).find(function(s){return s.name===r.studentName;})||{name:r.studentName};return studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso});}).join('');})() + '</div>' +
-            '</div>';
+            '</div>' });
         });
       } else if (!normalKomas.length) {
-        komaBlocksHtml = '<div class="koma-empty">本日の講習登録はありません</div>';
+        _tblocks.push({ t: 0, html: '<div class="koma-empty">本日の講習登録はありません</div>' });
       }
 
       var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
+      var komaBlocksHtml = _tblocks.sort(function(a,b){ return a.t - b.t; }).map(function(x){ return x.html; }).join('');
       return '<div class="classroom-block' + crCls + '"><div class="classroom-block-header">🏫 ' + cr + '</div>' + komaBlocksHtml + '</div>';
     }).join('');
   } else {
