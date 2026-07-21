@@ -738,6 +738,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kp-b-enshuu { background: #d1fae5; color: #047857; }
 .kp-g-elem { color: #be185d !important; font-weight: 700; }
 .kp-g-high { color: #6d28d9 !important; font-weight: 700; }
+.kp-b-kesseki { background: #fee2e2; color: #991b1b; }
+.kp-stu-abs { color: #9ca3af; }
+.kp-stu-abs .kp-grade { color: #cbd5e1; }
 @media print {
   body.kp-printing > :not(#kp-print-root) { display: none !important; }
   body.kp-printing #kp-print-root { display: block !important; position: static !important; left: 0 !important; top: 0 !important; }
@@ -4261,7 +4264,7 @@ function printKoushuPeriod() {
             });
             var _typ = 'juku';
             if (_mk) { if ((_mk.id || '').indexOf('ca_') === 0) _typ = 'ca'; else if (_mk.online) _typ = 'online'; else if (_mk.satType === 'eiken') _typ = 'eiken'; else if (_mk.satType === 'enshuu' || _mk.satType === 'hira' || _mk.satType === 'sat') _typ = 'enshuu'; }
-            items.push({ name: s.name, grade: s.grade || '', badge: '', type: _typ, sortKey: attendSortKey_(s, { komaType: _typ }) });
+            items.push({ name: s.name, grade: s.grade || '', badge: '', type: _typ, absent: _tkAbsent_(s.name, iso, kt, cr), sortKey: attendSortKey_(s, { komaType: _typ }) });
           }
         });
         _koushuAssignments.forEach(function(a) {
@@ -4270,7 +4273,7 @@ function printKoushuPeriod() {
           var badge = '';
           if (isTestPr) badge = (a.type === 'jishu') ? 'jishu' : 'taisaku';
           else if (isNormalKomaInKoushu_(s, '')) badge = 'koushu'; // 通常コマで来ている子の追加受講
-          items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge, type: (badge === 'taisaku' ? 'taisaku' : badge === 'jishu' ? 'jishu' : 'koushu'), sortKey: attendSortKey_({ grade: s.grade || '' }, { assignType: (badge === 'taisaku' ? 'taisaku' : badge === 'jishu' ? 'jishu' : 'normal') }) });
+          items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge, type: (badge === 'taisaku' ? 'taisaku' : badge === 'jishu' ? 'jishu' : 'koushu'), absent: _tkAbsent_(a.studentName || s.name || '', iso, kt, cr), sortKey: attendSortKey_({ grade: s.grade || '' }, { assignType: (badge === 'taisaku' ? 'taisaku' : badge === 'jishu' ? 'jishu' : 'normal') }) });
         });
         // 振替来塾（画面と同じ：その日・そのコマ・その教室の振替確定。既出・退会休会は除く）2026-07-14
         (_absenceRecords || []).forEach(function(r) {
@@ -4280,7 +4283,7 @@ function printKoushuPeriod() {
           if (rs && (rs.status === '退会' || rs.status === '休会')) return;
           if (items.some(function(it) { return it.name === r.studentName; })) return;
           var _rok = rs ? (rs.komas || []).find(function(k){ return k.time === r.komaTime; }) : null;
-          items.push({ name: r.studentName, grade: (rs && rs.grade) || '', badge: 'furikae', type: 'furikae', sortKey: attendSortKey_({ grade: (rs && rs.grade) || '' }, { isSub: true, subOrigType: _komaTypeOf_(_rok) }) });
+          items.push({ name: r.studentName, grade: (rs && rs.grade) || '', badge: 'furikae', type: 'furikae', absent: _tkAbsent_(r.studentName, iso, kt, cr), sortKey: attendSortKey_({ grade: (rs && rs.grade) || '' }, { isSub: true, subOrigType: _komaTypeOf_(_rok) }) });
         });
         if (!items.length) return '<td><span style="color:#ccc">—</span></td>';
         items.sort(function(a, b){ return attendCmp_(a.sortKey || [9,9,99], b.sortKey || [9,9,99]); });
@@ -4293,9 +4296,13 @@ function printKoushuPeriod() {
           var _idx2 = komaDayIndex_(_s2, iso);
           var _two2 = (_idx2[cr] || []).length >= 2 ? '<span class="kp-badge kp-b-2koma">' + _idx2[cr].length + 'コマ</span>' : '';
           var _cross2 = Object.keys(_idx2).some(function(c){ return c !== cr && (_idx2[c] || []).length > 0; }) ? '<span class="kp-badge kp-b-cross">教室またぎ</span>' : '';
-          return '<span class="kp-stu">' + esc(it.name) + (it.grade ? '<span class="kp-grade' + (it.grade.indexOf('小') === 0 ? ' kp-g-elem' : it.grade.indexOf('高') === 0 ? ' kp-g-high' : '') + '">(' + esc(it.grade) + ')</span>' : '') + bdg + _two2 + _cross2 + '</span>';
+          var _kes = it.absent ? '<span class="kp-badge kp-b-kesseki">欠</span>' : '';
+          return '<span class="kp-stu' + (it.absent ? ' kp-stu-abs' : '') + '">' + _kes + esc(it.name) + (it.grade ? '<span class="kp-grade' + (it.grade.indexOf('小') === 0 ? ' kp-g-elem' : it.grade.indexOf('高') === 0 ? ' kp-g-high' : '') + '">(' + esc(it.grade) + ')</span>' : '') + bdg + _two2 + _cross2 + '</span>';
         }).join('');
-        return '<td><div class="kp-count">計' + items.length + '人</div>' + chips + '</td>';
+        var _comeN = items.filter(function(it){ return !it.absent; }).length;
+        var _absN = items.length - _comeN;
+        var _cntLabel = '計' + _comeN + '人' + (_absN > 0 ? '<span style="color:#991b1b;font-weight:400">（欠' + _absN + '）</span>' : '');
+        return '<td><div class="kp-count">' + _cntLabel + '</div>' + chips + '</td>';
       }).join('');
       return '<tr><td class="kp-koma-col">' + esc(kt) + '</td>' + cells + '</tr>';
     }).join('');
