@@ -1679,15 +1679,8 @@ function loadAll() {
   showLoading(true);
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var taskUrl    = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
-  var pending = 0;
 
-  function done() {
-    pending--;
-    if (pending <= 0) { showLoading(false); renderCurrent(); updateTopTitle(_currentTab || 'today'); updateLastLoaded(); }
-  }
-
-  // キャッシュ廃止（2026-06-14）：スプレッドシートを唯一の正とする。localStorageのデータキャッシュは使わない。
-  // 古いキャッシュが残っていれば削除する
+  // キャッシュ廃止（2026-06-14）：スプレッドシートを唯一の正とする。
   ['students','school_info','school_tasks','test_records','school_events','school_works',
    'tasks','exam_strategies','exam_schedules','absence_records','koushu_periods','modes'].forEach(function(k){
     localStorage.removeItem('cb_cache_' + k);
@@ -1698,11 +1691,63 @@ function loadAll() {
     return;
   }
 
+  // ===== 2フェーズ読み込み（2026-07-21 高速化）=====
+  // フェーズ1＝時間割表示に必須（生徒・欠席・講習期間・講習割付・タスク）。これが揃った時点で先に描画する。
+  // フェーズ2＝学校情報・定期テスト・イベント・カスタムバッジ等（バナー/他タブ用）。後追いで読み込み、届いたら再描画。
+  var p1 = 0, p1done = false;
+  var p2 = 0;
+  function firstPaint() {
+    if (p1done) return;
+    p1done = true;
+    showLoading(false);
+    renderCurrent();
+    updateTopTitle(_currentTab || 'today');
+    updateLastLoaded();
+    startPhase2();
+  }
+  function d1() { p1--; if (p1 <= 0) firstPaint(); }
+  function d2() { p2--; if (p2 <= 0) { renderCurrent(); updateLastLoaded(); } }
+
+  // ---- フェーズ2の起動（フェーズ1描画後に非ブロッキングで読み込む）----
+  var _phase2Started = false;
+  function startPhase2() {
+    if (_phase2Started) return;
+    _phase2Started = true;
+    if (!studentUrl) return;
+    var jobs = [
+      { action: 'getSchoolInfo',     apply: function(r){ if (r && r.success && r.list)       _schoolInfo = r.list; } },
+      { action: 'getSchoolTasks',    apply: function(r){ if (r && r.success && r.tasks)      _schoolTasks = r.tasks; } },
+      { action: 'getTestRecords',    apply: function(r){ if (r && r.success && r.records)    _testRecords = r.records; } },
+      { action: 'getSchoolEvents',   apply: function(r){ if (r && r.success && r.events)     _schoolEvents = r.events; } },
+      { action: 'getSchoolWorks',    apply: function(r){ if (r && r.success && r.works)      _schoolWorks = r.works; } },
+      { action: 'getExamStrategies', apply: function(r){ if (r && r.success && r.strategies) _examStrategies = r.strategies; } },
+      { action: 'getExamSchedules',  apply: function(r){ if (r && r.success && r.schedules)  _examSchedules = r.schedules; } },
+      { action: 'getCustomBadges',   apply: function(r){ if (r && r.success && r.badges) { _customBadges = r.badges; rebuildCustomBadgeIndex_(); } } }
+    ];
+    jobs.forEach(function(job) {
+      p2++;
+      callGas(studentUrl, { action: job.action }, function(res) { try { job.apply(res); } catch(e){} d2(); });
+    });
+    if (_koushuFixPid) { // フェーズ1で先読みした期間と実アクティブ期間が違った場合の取り直し
+      p2++;
+      callGas(studentUrl, { action: 'getKoushuAssignments', periodId: _koushuFixPid }, function(r) {
+        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _koushuFixPid; } d2();
+      });
+      p2++;
+      callGas(studentUrl, { action: 'getKoushuCalendar', periodId: _koushuFixPid }, function(rc) {
+        if (rc && rc.success) _koushuCalendar = rc.entries || []; d2();
+      }, 'POST');
+    }
+  }
+
+  var _koushuFixPid = null; // フェーズ2で取り直す期間ID（違っていた場合のみ）
+
+  // ===== フェーズ1 =====
   if (studentUrl) {
-    pending += 4;
+    // 生徒
+    p1++;
     callGas(studentUrl, { action: 'getStudentsForClassBoard' }, function(res) {
       if (res && res.success && res.students) {
-        // 受験特訓コマのtime正規化（旧データが'19:00〜20:30'の場合に修正）
         res.students.forEach(function(s) {
           (s.komas || []).forEach(function(k) {
             if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
@@ -1710,140 +1755,113 @@ function loadAll() {
         });
         _students = res.students;
       }
-      done();
+      d1();
     });
-    callGas(studentUrl, { action: 'getSchoolInfo' }, function(res) {
-      if (res && res.success && res.list) { _schoolInfo = res.list; }
-      done();
-    });
-    callGas(studentUrl, { action: 'getSchoolTasks' }, function(res) {
-      if (res && res.success && res.tasks) { _schoolTasks = res.tasks; }
-      done();
-    });
-    pending++;
-    callGas(studentUrl, { action: 'getTestRecords' }, function(res) {
-      if (res && res.success && res.records) { _testRecords = res.records; }
-      done();
-    });
-    pending++;
-    callGas(studentUrl, { action: 'getSchoolEvents' }, function(res) {
-      if (res && res.success && res.events) { _schoolEvents = res.events; }
-      done();
-    });
-    pending++;
-    callGas(studentUrl, { action: 'getSchoolWorks' }, function(res) {
-      if (res && res.success && res.works) { _schoolWorks = res.works; }
-      done();
-    });
-    pending++;
-    callGas(studentUrl, { action: 'getExamStrategies' }, function(res) {
-      if (res && res.success && res.strategies) { _examStrategies = res.strategies; }
-      done();
-    });
-    pending++;
-    callGas(studentUrl, { action: 'getExamSchedules' }, function(res) {
-      if (res && res.success && res.schedules) { _examSchedules = res.schedules; }
-      done();
-    });
-    pending++;
+    // 欠席・振替
+    p1++;
     callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
-      if (res && res.success && res.records) {
-        _absenceRecords = res.records.map(normalizeAbsenceRecord_);
-      }
-      done();
+      if (res && res.success && res.records) { _absenceRecords = res.records.map(normalizeAbsenceRecord_); }
+      d1();
     });
-    pending++;
-    callGas(studentUrl, { action: 'getCustomBadges' }, function(res) {
-      if (res && res.success && res.badges) {
-        _customBadges = res.badges;
-        rebuildCustomBadgeIndex_();
-      }
-      done();
-    });
-    // 講習期間データを読み込む → アクティブ期間があれば割付も読み込む
-    pending++;
-    callGas(studentUrl, { action: 'getKoushuPeriods' }, function(res) {
-      if (res && res.success && res.periods) {
-        _koushuPeriods = res.periods;
-      }
-      // アクティブな講習期間があれば割付データも読み込む（準備中・期間内どちらも対象）
-      var todayIso_ = isoDate(new Date());
-      var activePeriod = _koushuPeriods.find(function(p) {
-        return p.startDate <= todayIso_ && todayIso_ <= p.endDate;
+    // 講習：前回のアクティブ期間IDをキャッシュして割付・カレンダーを並列先読み（getKoushuPeriodsを待たない）
+    var _cachedPid = '';
+    try { _cachedPid = localStorage.getItem('cb_active_pid_cache') || ''; } catch(e) {}
+    var _koushuLoadedPid = '';
+    if (_cachedPid) {
+      _koushuLoadedPid = _cachedPid;
+      p1++;
+      callGas(studentUrl, { action: 'getKoushuAssignments', periodId: _cachedPid }, function(r) {
+        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _cachedPid; }
+        d1();
       });
-      // 期間外でも選択中の期間（準備中モード）があれば割付データを読む
+      p1++;
+      callGas(studentUrl, { action: 'getKoushuCalendar', periodId: _cachedPid }, function(rc) {
+        if (rc && rc.success) _koushuCalendar = rc.entries || [];
+        d1();
+      }, 'POST');
+    }
+    // 講習期間（モード判定に必須）
+    p1++;
+    callGas(studentUrl, { action: 'getKoushuPeriods' }, function(res) {
+      if (res && res.success && res.periods) { _koushuPeriods = res.periods; }
+      var todayIso_ = isoDate(new Date());
+      var activePeriod = _koushuPeriods.find(function(p) { return p.startDate <= todayIso_ && todayIso_ <= p.endDate; });
       if (!activePeriod) {
         var savedPid = localStorage.getItem('cb_view_period_id');
         if (savedPid) activePeriod = _koushuPeriods.find(function(p){ return p.id === savedPid; });
       }
-      // それもなければ直近の未来期間を対象にする
       if (!activePeriod && _koushuPeriods.length) {
         activePeriod = _koushuPeriods.slice().sort(function(a,b){ return a.startDate < b.startDate ? -1 : 1; })
           .find(function(p){ return p.startDate > todayIso_; });
       }
       if (activePeriod) {
-        pending++;
-        callGas(studentUrl, { action: 'getKoushuCalendar', periodId: activePeriod.id }, function(rc) {
-          if (rc && rc.success) _koushuCalendar = rc.entries || [];
-          done();
-        }, 'POST');
-        pending++;
-        callGas(studentUrl, { action: 'getKoushuAssignments', periodId: activePeriod.id }, function(r) {
-          if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = activePeriod.id; }
-          done();
-        });
+        try { localStorage.setItem('cb_active_pid_cache', activePeriod.id); } catch(e) {}
+        if (activePeriod.id !== _koushuLoadedPid) {
+          // 先読みしていない／違う期間だった → 正しい期間で取り直す
+          if (!_koushuLoadedPid) {
+            // 先読みゼロ（初回等）：フェーズ1で取得して描画に間に合わせる
+            p1++;
+            callGas(studentUrl, { action: 'getKoushuAssignments', periodId: activePeriod.id }, function(r) {
+              if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = activePeriod.id; }
+              d1();
+            });
+            p1++;
+            callGas(studentUrl, { action: 'getKoushuCalendar', periodId: activePeriod.id }, function(rc) {
+              if (rc && rc.success) _koushuCalendar = rc.entries || [];
+              d1();
+            }, 'POST');
+          } else {
+            // 先読み済みだが期間が変わっていた → フェーズ2で取り直す（描画はブロックしない）
+            _koushuFixPid = activePeriod.id;
+          }
+        }
+      } else {
+        try { localStorage.removeItem('cb_active_pid_cache'); } catch(e) {}
+        if (_koushuLoadedPid) { _koushuAssignments = []; _koushuCalendar = []; }
       }
-      done();
+      d1();
     });
   }
 
   if (taskUrl) {
-    pending++;
-    loadChecklists(taskUrl, function(cls) {
-      _checklists = cls;
-    });
+    // チェックリスト
+    p1++;
+    loadChecklists(taskUrl, function(cls) { _checklists = cls; d1(); });
+    // タスク
+    p1++;
     callGas(taskUrl, { action: 'getTasksForClassBoard' }, function(res) {
       if (res && res.success && res.tasks) {
-        // ローカルで完了・削除済みのIDをGAS結果から除外（競合状態対策）
-        // GASへの書き込みが完了する前にloadAllが走ると復活するバグを防ぐ
         var localMap = {};
         (_tasks || []).forEach(function(t) { localMap[t.id] = t; });
         _tasks = res.tasks.filter(function(t) {
           var local = localMap[t.id];
-          // ローカルで完了済み・削除中のタスクはGAS結果から除外
           return (!local || local.status !== 'done') && !_pendingDeleteIds[t.id];
         }).map(function(t) {
           var local = localMap[t.id];
-          // ローカルのdueDateがGASより未来なら（手動変更がGASより先行）ローカル値を優先
           if (local && local.dueDate && local.dueDate > t.dueDate) {
             return Object.assign({}, t, { dueDate: local.dueDate });
           }
           return t;
         });
-        // A-5：自動持越し処理
         autoCarryOverTasks(taskUrl);
       }
-      done();
+      d1();
     });
-    // 担当者マスターを取得（タスクモーダルのドロップダウン用）
-    pending++;
+    // 担当者マスター
+    p1++;
     callGas(taskUrl, { action: 'getMaster' }, function(res) {
-      if (res && res.assignees && res.assignees.length > 0) {
-        _taskAssignees = res.assignees;
-      }
-      done();
+      if (res && res.assignees && res.assignees.length > 0) { _taskAssignees = res.assignees; }
+      d1();
     });
   }
 
-  if (pending === 0) { showLoading(false); renderCurrent(); updateLastLoaded(); }
+  if (p1 <= 0) { firstPaint(); }
 
-  // タイムアウトフォールバック：10秒経っても読み込み中のままなら強制解除
+  // タイムアウトフォールバック：10秒経っても読み込み中なら強制解除
   setTimeout(function() {
     var overlay = document.getElementById('loading-overlay');
     if (overlay && overlay.classList.contains('show')) {
-      showLoading(false);
-      renderCurrent();
-      updateLastLoaded();
+      showLoading(false); renderCurrent(); updateLastLoaded();
     }
   }, 10000);
 }
