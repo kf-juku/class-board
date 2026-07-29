@@ -1730,17 +1730,17 @@ function loadAll() {
     ];
     jobs.forEach(function(job) {
       p2++;
-      callGas(studentUrl, { action: job.action }, function(res) { try { job.apply(res); } catch(e){} d2(); });
+      callGas(studentUrl, { action: job.action }, function(res) { try { job.apply(res); } catch(e){} d2(); }, 'GET', true);
     });
     if (_koushuFixPid) { // フェーズ1で先読みした期間と実アクティブ期間が違った場合の取り直し
       p2++;
       callGas(studentUrl, { action: 'getKoushuAssignments', periodId: _koushuFixPid }, function(r) {
         if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _koushuFixPid; } d2();
-      });
+      }, 'GET', true);
       p2++;
       callGas(studentUrl, { action: 'getKoushuCalendar', periodId: _koushuFixPid }, function(rc) {
         if (rc && rc.success) _koushuCalendar = rc.entries || []; d2();
-      }, 'POST');
+      }, 'POST', true);
     }
   }
 
@@ -8394,15 +8394,20 @@ function _gasLoadingText_(params) {
   if (/delete/i.test(act)) return '削除中…';
   return '保存中…';
 }
-function callGas(url, params, callback, method) {
+function callGas(url, params, callback, method, silent) {
   if (!url) { if (callback) callback(null); return; }
   method = method || 'GET';
-  _gasBusy++;
-  showLoading(true, _gasLoadingText_(params));
+  // silent=true：背景取得（フェーズ2など）。全画面ローディングを出さず、描画済み画面を隠さない（2026-07-29 高速化）。
+  if (!silent) {
+    _gasBusy++;
+    showLoading(true, _gasLoadingText_(params));
+  }
   var callback0_ = callback;
   callback = function(res) {                 // 以降の callback(...) はすべてこのラッパー経由＝必ず解除される
-    _gasBusy--;
-    if (_gasBusy <= 0) { _gasBusy = 0; hideLoading(); }
+    if (!silent) {
+      _gasBusy--;
+      if (_gasBusy <= 0) { _gasBusy = 0; hideLoading(); }
+    }
     if (callback0_) callback0_(res);
   };
   if (method === 'GET') {
