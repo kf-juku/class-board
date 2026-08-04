@@ -1249,6 +1249,10 @@ tr.mx-done-row td { background: #f0fdf4; }
       <button class="btn-secondary btn-sm" onclick="reloadAll()">🔄 再読み込み</button>
     </div>
   </div>
+  <div id="cb-load-error" style="display:none;margin:10px 16px 0;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;font-weight:600;align-items:center;gap:12px">
+    <span style="flex:1">⚠️ 生徒・講習期間データを取得できませんでした（通信が不安定な可能性）。時間割が空・講習/テストモードに切り替えられないときは、下のボタンで再読み込みしてください。</span>
+    <button class="btn-secondary btn-sm" style="white-space:nowrap" onclick="reloadAll()">🔄 再読み込み</button>
+  </div>
   <div class="content-inner" id="main-content">
     <p style="color:var(--text-muted)">読み込み中...</p>
   </div>
@@ -1403,6 +1407,7 @@ var _koushuAssignments = [];  // 現在の期間の生徒割付
 var _activeKoushuPeriodId = null; // 設定タブで選択中の期間ID
 var _koushuMode = false;      // 講習モード表示中かどうか（今日・今週タブ）
 var _koushuModeUserOverride = null; // null=自動, true=手動ON, false=手動OFF
+var _cbCriticalLoadFailed = false; // 2026-08-04：生徒/講習期間の取得失敗（null応答）を検知。firstPaintで失敗バナー表示に使う
 var CB_VIEW_PERIOD_KEY = 'cb_view_period_id';
 var _selectedViewPeriodId = localStorage.getItem(CB_VIEW_PERIOD_KEY) || '__auto__'; // 期間選択プルダウン：'__auto__'=自動（進行中）, ''=通常表示固定, その他=期間ID（2026-06-10）
 
@@ -1681,6 +1686,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
 function loadAll() {
   showLoading(true);
+  _cbCriticalLoadFailed = false; // 2026-08-04：重要データ取得失敗の検知フラグをリセット
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var taskUrl    = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
 
@@ -1707,6 +1713,7 @@ function loadAll() {
     renderCurrent();
     updateTopTitle(_currentTab || 'today');
     updateLastLoaded();
+    showLoadErrorBanner_(_cbCriticalLoadFailed); // 生徒/講習期間の取得に失敗したら再読み込みバナーを出す
     startPhase2();
   }
   function d1() { p1--; if (p1 <= 0) firstPaint(); }
@@ -1758,15 +1765,17 @@ function loadAll() {
           });
         });
         _students = res.students;
+      } else {
+        _cbCriticalLoadFailed = true; // 生徒データ取得に失敗（null応答＝通信失敗/コールドスタート）
       }
       d1();
-    });
+    }, 'GET', false, 2);
     // 欠席・振替
     p1++;
     callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
       if (res && res.success && res.records) { _absenceRecords = res.records.map(normalizeAbsenceRecord_); }
       d1();
-    });
+    }, 'GET', false, 2);
     // 講習：前回のアクティブ期間IDをキャッシュして割付・カレンダーを並列先読み（getKoushuPeriodsを待たない）
     var _cachedPid = '';
     try { _cachedPid = localStorage.getItem('cb_active_pid_cache') || ''; } catch(e) {}
@@ -1777,7 +1786,7 @@ function loadAll() {
       callGas(studentUrl, { action: 'getKoushuAssignments', periodId: _cachedPid }, function(r) {
         if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _cachedPid; }
         d1();
-      });
+      }, 'GET', false, 2);
       p1++;
       callGas(studentUrl, { action: 'getKoushuCalendar', periodId: _cachedPid }, function(rc) {
         if (rc && rc.success) _koushuCalendar = rc.entries || [];
@@ -1788,6 +1797,7 @@ function loadAll() {
     p1++;
     callGas(studentUrl, { action: 'getKoushuPeriods' }, function(res) {
       if (res && res.success && res.periods) { _koushuPeriods = res.periods; }
+      else if (!res || !res.success) { _cbCriticalLoadFailed = true; } // 講習期間取得に失敗＝モード判定・プルダウンが出せない
       var todayIso_ = isoDate(new Date());
       var activePeriod = _koushuPeriods.find(function(p) { return p.startDate <= todayIso_ && todayIso_ <= p.endDate; });
       if (!activePeriod) {
@@ -1808,7 +1818,7 @@ function loadAll() {
             callGas(studentUrl, { action: 'getKoushuAssignments', periodId: activePeriod.id }, function(r) {
               if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = activePeriod.id; }
               d1();
-            });
+            }, 'GET', false, 2);
             p1++;
             callGas(studentUrl, { action: 'getKoushuCalendar', periodId: activePeriod.id }, function(rc) {
               if (rc && rc.success) _koushuCalendar = rc.entries || [];
@@ -1824,7 +1834,7 @@ function loadAll() {
         if (_koushuLoadedPid) { _koushuAssignments = []; _koushuCalendar = []; }
       }
       d1();
-    });
+    }, 'GET', false, 2);
   }
 
   if (taskUrl) {
@@ -8394,7 +8404,14 @@ function _gasLoadingText_(params) {
   if (/delete/i.test(act)) return '削除中…';
   return '保存中…';
 }
-function callGas(url, params, callback, method, silent) {
+// 2026-08-04：重要データ取得失敗バナーの表示切替。firstPaintから呼ぶ。
+function showLoadErrorBanner_(show) {
+  var el = document.getElementById('cb-load-error');
+  if (!el) return;
+  el.style.display = show ? 'flex' : 'none';
+}
+
+function callGas(url, params, callback, method, silent, retries) {
   if (!url) { if (callback) callback(null); return; }
   method = method || 'GET';
   // silent=true：背景取得（フェーズ2など）。全画面ローディングを出さず、描画済み画面を隠さない（2026-07-29 高速化）。
@@ -8414,11 +8431,20 @@ function callGas(url, params, callback, method, silent) {
     var qs = Object.keys(params).map(function(k) {
       return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
     }).join('&');
-    // GET（取得系）はリトライしない。失敗しても次の取得で回復するため。
-    fetch(url + '?' + qs, { redirect: 'follow' })
-      .then(function(r) { return r.json(); })
-      .then(callback)
-      .catch(function() { callback(null); });
+    // GET（取得系）：既定はリトライしない。ただし retries>0 を渡した重要データ
+    //（生徒・講習期間・割付・欠席）は、GASコールドスタートで一時失敗しても空画面にせず
+    //   2.5秒間隔で最大 retries 回まで再取得する（2026-08-04：講習期間中に「何も出ない」対策）。
+    var _maxGetRetry = retries || 0;
+    var _tryGet = function(attempt) {
+      fetch(url + '?' + qs, { redirect: 'follow' })
+        .then(function(r) { return r.json(); })
+        .then(callback)
+        .catch(function() {
+          if (attempt < _maxGetRetry) { setTimeout(function() { _tryGet(attempt + 1); }, 2500); }
+          else { callback(null); }
+        });
+    };
+    _tryGet(0);
   } else {
     // POST（保存・削除系）は失敗したら2.5秒後に最大2回まで自動リトライする（2026-06-27）。
     // GASの保存系actionはIDで上書き/重複ガード/entries全置換＝冪等、かつwithLock_(LockService)付きのため
