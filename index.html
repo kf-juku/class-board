@@ -1905,7 +1905,7 @@ function loadAll() {
       { action: 'getExamSchedules',  apply: function(r){ if (r && r.success && r.schedules)  _examSchedules = r.schedules; } },
       { action: 'getCustomBadges',   apply: function(r){ if (r && r.success && r.badges) { _customBadges = r.badges; rebuildCustomBadgeIndex_(); } } },
       // 定期テスト対策カード（2026-08-17 カード自由記述方式）。重要度は中なので retries は付けない。
-      { action: 'getExamCards',      apply: function(r){ if (r && r.success && r.cards)      _examCards = r.cards; } }
+      { action: 'getExamCards',      apply: function(r){ if (r && r.success && r.cards) { _examCards = r.cards; _xcLastFetch = Date.now(); } } }
     ];
     jobs.forEach(function(job) {
       p2++;
@@ -5172,7 +5172,7 @@ function getExamYearOptions() {
 
 // 【2026-08-17】定期テスト対策はカード自由記述方式に刷新。タブ本体は xcRender()。
 // 旧「定期テスト対策DB」（教科・学年・学校を1件ずつ登録する方式）は renderExamLegacy として残す（既存データの参照用・通常は呼ばれない）。
-function renderExam() { xcRender(); }
+function renderExam() { xcSyncIfStale(); xcRender(); }
 
 // 定期テスト日程セクション（新カードUI・旧DBの両方から使う。2026-08-17に関数として切り出し）
 function examScheduleSectionHtml_() {
@@ -10311,6 +10311,7 @@ var _xcSaveMsg   = '';
 var _xcSaveState = '';      // '' / 'dirty' / 'saving' / 'saved' / 'err'
 var _xcFocusSearch = false;
 var _xcFlashSub  = null;    // 検索結果から飛んだとき光らせる教科
+var _xcLastFetch = 0;       // 最後に getExamCards を取った時刻（タブを開くたびの取り直し用）
 
 // ---- 年度・テスト回の既定（4〜3月を1年度とする）----
 function xcNendo() {
@@ -10483,7 +10484,66 @@ function xcFilterLabel() {
 }
 
 // =====================================================
-// 保存（1カード単位upsert・デバウンス）
+// 複数端末対策（2026-08-17）
+//   ・保存は「変更した教科だけ」を送り、GAS側で既存JSONにマージさせる
+//     → 古い画面を開いたままの端末が、他の先生の書いた別教科を巻き戻さない
+//       （講習割付・欠席振替と同じ「自分が触ったものだけ変わる」水準）
+//   ・定期テストタブを開くたびに最新を取り直す（silent・30秒クールダウン・編集中はスキップ）
+// =====================================================
+function xcMark(card, sub) {          // この教科を「自分が変えた」と記録する
+  if (!card) return;
+  if (!card.__dirty) card.__dirty = {};
+  card.__dirty[sub] = 1;
+}
+function xcDirtySubs(card) {
+  var out = [];
+  if (card && card.__dirty) for (var k in card.__dirty) out.push(k);
+  return out;
+}
+// 編集中は再描画しない（打ちかけを消さない・3原則の原則1）
+function xcSafeRerender() {
+  var ae = document.activeElement;
+  if (ae && /TEXTAREA|INPUT/.test(ae.tagName)) return;
+  if (_currentTab === 'exam') xcRender();
+}
+// サーバーの内容を取り込む。未送信の編集がある教科だけローカルを残す。
+function xcMergeServerCards_(server) {
+  var byKey = {};
+  _examCards.forEach(function(c) { byKey[c.year + '|' + c.term + '|' + c.grade] = c; });
+  var out = (server || []).map(function(sc) {
+    var k = sc.year + '|' + sc.term + '|' + sc.grade;
+    var local = byKey[k];
+    if (!local) return sc;
+    delete byKey[k];
+    var memos = sc.subjectMemos || {};
+    xcDirtySubs(local).forEach(function(sub) { memos[sub] = xcBody(local, sub); });  // 未送信は守る
+    local.cardId     = sc.cardId || local.cardId;
+    local.subjectMemos = memos;
+    local.testPeriod = sc.testPeriod || local.testPeriod;
+    local.updatedAt  = sc.updatedAt || local.updatedAt;
+    return local;                       // 参照を保つ（保存待ちが指している場合がある）
+  });
+  for (var kk in byKey) out.push(byKey[kk]);   // まだサーバーに無いローカルの新規カード
+  _examCards = out;
+}
+function xcSyncIfStale(force) {
+  if (_xcSaving || _xcPending) return;                       // 保存中・保存待ちは触らない
+  var ae = document.activeElement;
+  if (ae && /TEXTAREA|INPUT/.test(ae.tagName)) return;       // 編集中は触らない
+  var now = Date.now();
+  if (!force && (now - _xcLastFetch) < 30000) return;        // 30秒クールダウン
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) return;
+  _xcLastFetch = now;
+  callGas(url, { action: 'getExamCards' }, function(res) {
+    if (!res || !res.success || !res.cards) return;
+    xcMergeServerCards_(res.cards);
+    xcSafeRerender();
+  }, 'GET', true);
+}
+
+// =====================================================
+// 保存（1カード単位upsert・変更教科だけ送る・デバウンス）
 // =====================================================
 function xcSetSaveState(state, msg) {
   _xcSaveState = state; _xcSaveMsg = msg || '';
@@ -10510,22 +10570,36 @@ function xcSaveNow() {
   _xcSaving = true;
   _xcPending = null;
   xcSetSaveState('saving', '保存中…');
+  var sentSubs = xcDirtySubs(card);
+  card.__dirty = {};                       // 送信ぶんはクリア（送信中の追加入力は新しく積まれる）
   var payload = {
     cardId: card.cardId || '',
     year: String(card.year || ''),
     term: card.term || '',
     grade: card.grade || '',
     subjectMemos: card.subjectMemos || {},
+    changedSubjects: sentSubs,             // ← これがある教科だけGAS側で差し替わる
     testPeriod: card.testPeriod || ''
   };
   callGas(url, { action: 'saveExamCard', card: payload }, function(res) {
     _xcSaving = false;
     if (res && res.success) {
       if (res.cardId) card.cardId = res.cardId;
+      if (res.updatedAt) card.updatedAt = res.updatedAt;
+      // GASがマージした結果を取り込む＝他の先生がその間に書いた教科もここで手元に入る。
+      // ただし送信後に自分が打ち直した教科（再びdirty）は上書きしない。
+      if (res.subjectMemos) {
+        var stillDirty = card.__dirty || {};
+        for (var sub in res.subjectMemos) {
+          if (!stillDirty[sub]) card.subjectMemos[sub] = res.subjectMemos[sub];
+        }
+      }
       var n = new Date();
       xcSetSaveState('saved', '保存しました ' + zeroPad(n.getHours()) + ':' + zeroPad(n.getMinutes()));
       if (_xcPending) xcQueueSave(_xcPending);   // 送信中に追加入力があれば拾う
+      else xcSafeRerender();                     // 他の先生の書き込みを画面に反映
     } else {
+      sentSubs.forEach(function(sub) { xcMark(card, sub); });   // 失敗＝未送信に戻す
       _xcPending = card;
       xcSetSaveState('err', '保存に失敗しました。もう一度お試しください。');
     }
@@ -10536,6 +10610,7 @@ function xcSaveNow() {
 function xcEdit(sub, val) {
   var c = xcEnsure(_xcYear, _xcTerm, _xcGrade);
   c.subjectMemos[sub] = val;
+  xcMark(c, sub);
   xcQueueSave(c);
 }
 
@@ -10693,6 +10768,7 @@ function xcCopySubject(sub) {
   } else {
     cur.subjectMemos[sub] = p;
   }
+  xcMark(cur, sub);
   xcQueueSave(cur); xcFlushSave();
   xcRender();
   miniToast(prevY + '年度の「' + sub + '」をコピーしました');
@@ -10750,6 +10826,7 @@ function xcRunDup() {
     } else {
       cur.subjectMemos[sub] = p;
     }
+    xcMark(cur, sub);
     n++;
   });
   closeModal('modal-xc-dup');
@@ -10792,6 +10869,7 @@ function xcSaveLine(ta) {
   if (String(val).trim() === '') lines.splice(idx, 1);
   else lines.splice.apply(lines, [idx, 1].concat(String(val).split('\n')));
   card.subjectMemos[sub] = lines.join('\n');
+  xcMark(card, sub);
   xcQueueSave(card); xcFlushSave();
   xcRender();
 }
@@ -10879,6 +10957,7 @@ function xcSaveCell(ta) {
   if (!card) { xcRender(); return; }
   if (xcBody(card, sub) === ta.value) { xcRender(); return; }
   card.subjectMemos[sub] = ta.value;
+  xcMark(card, sub);
   xcQueueSave(card); xcFlushSave();
   xcRender();
 }
