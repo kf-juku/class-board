@@ -875,11 +875,15 @@ textarea.xc-celledit { width:100%; min-height:110px; border:1.5px solid var(--cr
 .xc-sbody.xc-y2 { grid-template-columns:2fr 1.2fr; }   /* 参照＝他の学校は1列（川上さん指示 2026-08-17）*/
 .xc-sbody.xc-y2 .xc-col { min-width:0; }
 .xc-clabel .xc-oth { background:#eff6ff; color:#1d4ed8; border-radius:5px; padding:1px 7px; }
-.xc-clabel .xc-allbtn { margin-left:auto; }
 .xc-have { font-size:10.5px; font-weight:700; color:#94a3b8; background:#f1f5f9; border-radius:5px; padding:2px 7px; white-space:nowrap; flex-shrink:0; }
-.xc-refbar { display:flex; align-items:center; gap:7px; flex-wrap:wrap; background:#f8fafc; border:1px solid var(--border); border-radius:var(--radius); padding:8px 12px; margin-bottom:10px; }
-.xc-refbar .xc-rlb { font-size:11px; font-weight:700; color:var(--text-muted); flex-shrink:0; }
-.xc-refbar .xc-rnote, .xc-refbar .xc-rnone { font-size:11px; color:var(--text-muted); }
+.xc-refnote { font-size:11.5px; color:var(--text-muted); background:#f8fafc; border:1px solid var(--border); border-radius:var(--radius); padding:7px 12px; margin-bottom:10px; }
+.xc-ogrp { display:flex; align-items:center; gap:6px; margin:9px 0 3px; padding-top:7px; border-top:1px dashed var(--border); }
+.xc-ogrp.xc-ogrp1 { margin-top:2px; padding-top:0; border-top:none; }
+.xc-ogrp .xc-onm { font-size:11.5px; font-weight:800; color:#0369a1; background:#e0f2fe; border-radius:5px; padding:1px 8px; }
+.xc-ogrp .xc-ocnt { font-size:10.5px; font-weight:700; color:var(--text-muted); }
+.xc-ogrp .xc-allbtn { margin-left:auto; }
+.xc-oshare { font-size:10.5px; font-weight:700; color:#94a3b8; margin-left:6px; }
+.xc-acts .xc-toggle { padding:6px 11px; }
 .xc-yt { font-size:14px; color:var(--text-muted); font-weight:700; }
 .xc-cnt { font-size:11.5px; color:var(--text-muted); font-weight:700; }
 .xc-lrow2 { display:flex; gap:8px; align-items:flex-start; padding:4px 5px; border-radius:8px; }
@@ -10347,7 +10351,7 @@ var _xcTerm      = null;
 var _xcGrade     = '中1';
 var _xcRef       = true;    // 参照列を横に表示（学校ごと入力）【川上さん指示 2026-08-17：既定ON】
 var _xcRefMode   = 'past';  // 参照列の中身 'past'=過去年度（同じ学校）／'school'=同じ年度の他の学校【川上さん指示 2026-08-17】
-var _xcRefSchool = null;    // 'school'モードで参照する学校（未選択なら行数の多い学校）
+                            // 'school' のときは学校を選ばせず、入力済みの他校を全部（行数の多い順に）出す
 var _xcPickerOpen = true;   // 学校×学年ピッカーを開いているか
 var _xcFocusAdd  = null;    // 追加欄にフォーカスを戻す教科
 var _xcSchool    = null;
@@ -10747,7 +10751,6 @@ function xcSetSchool(v) { _xcSchool = v;  xcRender(); }
 function xcSetSubject(v){ _xcSubject = v; xcRender(); }
 function xcToggleRef()  { _xcRef = !_xcRef; xcRender(); }
 function xcSetRefMode(v)   { _xcRefMode = v; xcRender(); }
-function xcSetRefSchool(s) { _xcRefSchool = s; xcRender(); }
 
 // =====================================================
 // 学校ごと入力（既定）【川上さん指示 2026-08-17】
@@ -10830,12 +10833,6 @@ function xcSchoolTextSet_(card, sub, school) {
   if (card) xcSchoolLines_(card, sub, school).forEach(function(x) { m[xcTextKey_(x.raw)] = 1; });
   return m;
 }
-function xcRefSchool_() {
-  var list = xcOtherSchools_();
-  if (!list.length) return '';
-  for (var i = 0; i < list.length; i++) if (list[i].school === _xcRefSchool) return _xcRefSchool;
-  return list[0].school;
-}
 
 // ---- 画面本体 ----
 function xcInputHtml() {
@@ -10851,9 +10848,6 @@ function xcInputHtml() {
      + '</select>';
   h += '<span class="xc-lb">テスト回</span>' + xcSegHtml(XC_TERMS, _xcTerm, 'xcSetTerm');
   h += '<span class="xc-lb">学年</span>' + xcSegHtml(XC_GRADES, _xcGrade, 'xcSetGrade');
-  h += '<div class="xc-spacer"></div>';
-  h += '<div class="xc-toggle' + (_xcRef ? ' on' : '') + '" onclick="xcToggleRef()">📖 参照を横に表示</div>';
-  if (_xcRef) h += xcRefModeSegHtml_();
   h += '</div>';
 
   h += xcPickerHtml_(schools);
@@ -10866,12 +10860,15 @@ function xcInputHtml() {
   h += '<div class="xc-head"><div class="xc-h1"><span class="xc-pin">' + esc(_xcSchool) + '</span>'
      + '<span class="xc-gr">' + esc(_xcGrade) + '</span>'
      + '<span class="xc-yt">' + esc(_xcYear) + '年度 ' + esc(_xcTerm) + '</span></div>'
-     + '<div class="xc-acts"><button class="btn-secondary btn-sm"'
+     + '<div class="xc-acts">'
+     + '<div class="xc-toggle' + (_xcRef ? ' on' : '') + '" onclick="xcToggleRef()">📖 参照を横に表示</div>'
+     + (_xcRef ? xcRefModeSegHtml_() : '')
+     + '<button class="btn-secondary btn-sm"'
      + (prevN ? '' : ' disabled title="' + prevY + '年度の同じ回に、この学校の記録がありません"')
      + ' onclick="xcCopyPrevSchool()">📋 昨年のこの学校からコピー…' + (prevN ? '（' + prevN + '行）' : '') + '</button></div></div>';
   h += '<div class="xc-lead">テスト範囲表1枚＝この画面1つ。入力するとき学校名は書かなくて大丈夫です（「 → ' + esc(_xcSchool) + '」を自動で付けます）。'
      + '書いた内容は今までどおり「' + esc(_xcYear) + '年度 ' + esc(_xcTerm) + ' ' + esc(_xcGrade) + '」に入り、検索・他の切り口からも拾えます。入力は自動保存。計 ' + total + ' 行。</div>';
-  if (_xcRef && _xcRefMode === 'school') h += xcRefSchoolBarHtml_();
+  if (_xcRef && _xcRefMode === 'school') h += xcRefNoteHtml_();
 
   XC_SUBJECTS.forEach(function(sub) {
     var arr = xcSchoolLines_(card, sub, _xcSchool);
@@ -10919,48 +10916,50 @@ function xcRefModeSegHtml_() {
     + '</div>';
 }
 
-// ---- 参照する学校のチップ（同じ年度・回・学年で入力済みの学校だけ・行数の多い順）----
-function xcRefSchoolBarHtml_() {
-  var list = xcOtherSchools_(), cur = xcRefSchool_();
-  var head = '<div class="xc-refbar"><span class="xc-rlb">参照する学校</span>';
+// ---- 参照の注記（1行だけ。学校を選ばせるチップは置かない＝川上さん指示 2026-08-17）----
+function xcRefNoteHtml_() {
+  var list = xcOtherSchools_();
   if (!list.length) {
-    return head + '<span class="xc-rnone">' + esc(_xcYear) + '年度 ' + esc(_xcTerm) + ' ' + esc(_xcGrade)
-      + ' で入力済みの中学校は、いまのところ ' + esc(_xcSchool) + ' だけです。</span></div>';
+    return '<div class="xc-refnote">' + esc(_xcYear) + '年度 ' + esc(_xcTerm) + ' ' + esc(_xcGrade)
+      + ' で入力済みの中学校は、いまのところ ' + esc(_xcSchool) + ' だけです。</div>';
   }
-  var h = head;
-  list.forEach(function(o) {
-    h += '<div class="xc-chip xc-sch' + (o.school === cur ? ' on' : '') + '" data-s="' + esc(o.school) + '"'
-       + ' title="' + esc(o.school) + ' ' + esc(_xcGrade) + '：' + o.n + '行 入力済み"'
-       + ' onclick="xcSetRefSchool(this.dataset.s)">' + esc(o.school) + '<span class="xc-cnt2">' + o.n + '</span></div>';
-  });
-  h += '<span class="xc-rnote">入力済みの学校だけ、行数の多い順に出しています。「← 入れる」で ' + esc(_xcSchool) + ' の行としてコピーします（相手の行はそのまま）。</span>';
-  return h + '</div>';
+  return '<div class="xc-refnote">右側に ' + list.length + '校（'
+    + list.map(function(o) { return esc(o.school) + ' ' + o.n + '行'; }).join('／')
+    + '）を全部出しています。「← 入れる」で ' + esc(_xcSchool) + ' の行としてコピーします（相手の行はそのまま）。</div>';
 }
 
-// ---- 参照列（他の学校）----
+// ---- 参照列（他の学校・入力済みの学校を全部・行数の多い順）----
 function xcOtherSchoolColHtml_(card, sub) {
-  var os = xcRefSchool_();
+  var list = xcOtherSchools_();
   var h = '<div class="xc-col"><div class="xc-clabel"><span class="xc-oth">' + esc(_xcYear) + ' ' + esc(_xcTerm) + '</span>'
-        + (os ? esc(os) + ' ' + esc(_xcGrade) + '（参照）' : '他の学校（参照）');
-  if (!os) return h + '</div><div class="xc-empty2">ほかに入力済みの学校がありません</div></div>';
-  var arr = card ? xcSchoolLines_(card, sub, os) : [];
+        + 'ほかの学校 ' + esc(_xcGrade) + '（参照）</div>';
+  if (!list.length) return h + '<div class="xc-empty2">ほかに入力済みの学校がありません</div></div>';
   var mine = xcSchoolTextSet_(card, sub, _xcSchool);
-  var addable = arr.filter(function(x) { return !mine[xcTextKey_(x.raw)]; });
-  if (addable.length) {
-    h += '<button class="xc-minibtn xc-allbtn" data-s="' + sub + '"'
-       + ' onclick="xcCopyOtherSubject(this.dataset.s)">← この教科をまるごと（' + addable.length + '行）</button>';
-  }
-  h += '</div>';
-  if (!arr.length) return h + '<div class="xc-empty2">記録なし</div></div>';
-  arr.forEach(function(x) {
-    var pp = xcParseLine_(x.raw);
-    var have = !!mine[xcTextKey_(x.raw)];
-    h += '<div class="xc-prevline"><span class="xc-p">' + esc(pp.text) + (pp.tail ? ' ' + esc(pp.tail) : '') + '</span>'
-       + (have ? '<span class="xc-have" title="同じ内容が すでに ' + esc(_xcSchool) + ' に入っています">入力済み</span>'
-               : '<button class="xc-minibtn" data-s="' + sub + '" data-i="' + x.idx + '"'
-                 + ' onclick="xcCopyOtherLine(this.dataset.s,this.dataset.i)">← 入れる</button>')
+  var n = 0, first = true;
+  list.forEach(function(o) {
+    var arr = card ? xcSchoolLines_(card, sub, o.school) : [];
+    if (!arr.length) return;                      // その教科に無い学校は出さない
+    n += arr.length;
+    var addable = arr.filter(function(x) { return !mine[xcTextKey_(x.raw)]; }).length;
+    h += '<div class="xc-ogrp' + (first ? ' xc-ogrp1' : '') + '"><span class="xc-onm">' + esc(o.school) + '</span>'
+       + '<span class="xc-ocnt">' + arr.length + '行</span>'
+       + (addable ? '<button class="xc-minibtn xc-allbtn" data-s="' + sub + '" data-sc="' + esc(o.school) + '"'
+                    + ' onclick="xcCopyOtherSubject(this.dataset.s,this.dataset.sc)">← まるごと（' + addable + '行）</button>' : '')
        + '</div>';
+    first = false;
+    arr.forEach(function(x) {
+      var pp = xcParseLine_(x.raw);
+      var also = pp.schools.filter(function(sc) { return sc !== o.school && sc !== _xcSchool; });
+      var have = !!mine[xcTextKey_(x.raw)];
+      h += '<div class="xc-prevline"><span class="xc-p">' + esc(pp.text) + (pp.tail ? ' ' + esc(pp.tail) : '')
+         + (also.length ? '<span class="xc-oshare">＋' + esc(also.join('・')) + '</span>' : '') + '</span>'
+         + (have ? '<span class="xc-have" title="同じ内容が すでに ' + esc(_xcSchool) + ' に入っています">入力済み</span>'
+                 : '<button class="xc-minibtn" data-s="' + sub + '" data-i="' + x.idx + '"'
+                   + ' onclick="xcCopyOtherLine(this.dataset.s,this.dataset.i)">← 入れる</button>')
+         + '</div>';
+    });
   });
+  if (!n) h += '<div class="xc-empty2">記録なし</div>';
   return h + '</div>';
 }
 
@@ -11110,8 +11109,8 @@ function xcCopyOtherLine(sub, idx) {
   _xcFlashSub = sub;
   xcRender();
 }
-function xcCopyOtherSubject(sub) {
-  var os = xcRefSchool_(); if (!os) return;
+function xcCopyOtherSubject(sub, os) {
+  if (!os) return;
   var card = xcFind(_xcYear, _xcTerm, _xcGrade); if (!card) return;
   var mine = xcSchoolTextSet_(card, sub, _xcSchool);
   var arr = [];
