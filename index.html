@@ -749,6 +749,162 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   body.kp-printing .kp-page:last-child { page-break-after: auto; }
 }
 
+
+/* =====================================================
+   定期テスト対策：カード自由記述方式（2026-08-17）
+   1枚＝年度×テスト回×学年。教科ごと自由記述。学校名は本文に直書き。
+   ===================================================== */
+.xc-sub-英語 { --xc-c:#2563eb; --xc-cl:#dbeafe; }
+.xc-sub-数学 { --xc-c:#dc2626; --xc-cl:#fee2e2; }
+.xc-sub-国語 { --xc-c:#7c3aed; --xc-cl:#ede9fe; }
+.xc-sub-理科 { --xc-c:#059669; --xc-cl:#d1fae5; }
+.xc-sub-社会 { --xc-c:#d97706; --xc-cl:#fef3c7; }
+.xc-sub-実技 { --xc-c:#0891b2; --xc-cl:#cffafe; }
+
+.xc-bar { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:9px 12px; margin-bottom:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.xc-bar .xc-lb { font-size:11px; font-weight:700; color:var(--text-muted); flex-shrink:0; }
+.xc-search { margin-left:auto; display:flex; align-items:center; gap:7px; border:1.5px solid var(--border); border-radius:8px; padding:5px 10px; background:#fbfcfe; min-width:250px; }
+.xc-search.hot { border-color:var(--crimson); box-shadow:0 0 0 3px rgba(198,0,11,.08); }
+.xc-search input { border:none; background:none; outline:none; font-family:inherit; font-size:13px; width:100%; color:var(--text); }
+.xc-search .xc-clr { cursor:pointer; color:#c3cbd6; font-size:16px; line-height:1; }
+
+.xc-vtabs { display:inline-flex; border:1.5px solid var(--border); border-radius:9px; overflow:hidden; background:#fff; }
+.xc-vtabs button { border:none; background:#fff; color:var(--text-muted); font-family:inherit; font-size:12.5px; font-weight:700; padding:7px 13px; cursor:pointer; }
+.xc-vtabs button + button { border-left:1.5px solid var(--border); }
+.xc-vtabs button.active { background:var(--crimson); color:#fff; }
+
+.xc-quick { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.xc-chip { border:1.5px solid var(--border); background:#fff; border-radius:20px; padding:3px 11px; font-size:12px; font-weight:700; color:var(--text-muted); cursor:pointer; }
+.xc-chip:hover { background:#f4f6fa; }
+.xc-chip.on { background:var(--crimson); color:#fff; border-color:var(--crimson); }
+.xc-chip.xc-sch.on { background:#0369a1; border-color:#0369a1; }
+
+.xc-seg { display:inline-flex; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; background:#fff; }
+.xc-seg button { border:none; background:#fff; color:var(--text-muted); font-family:inherit; font-size:12.5px; font-weight:700; padding:5px 11px; cursor:pointer; }
+.xc-seg button + button { border-left:1.5px solid var(--border); }
+.xc-seg button.active { background:var(--crimson-light); color:var(--crimson-dark); }
+.xc-select { border:1.5px solid var(--border); border-radius:8px; padding:5px 10px; font-family:inherit; font-size:13px; background:#fff; color:var(--text); cursor:pointer; font-weight:700; }
+.xc-toggle { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--text-muted); cursor:pointer; user-select:none; border:1.5px solid var(--border); border-radius:8px; padding:5px 10px; background:#fff; }
+.xc-toggle.on { background:var(--crimson-light); color:var(--crimson-dark); border-color:#f3c9cc; }
+.xc-spacer { flex:1; }
+
+.xc-head { display:flex; align-items:center; gap:11px; flex-wrap:wrap; margin-bottom:4px; }
+.xc-h1 { font-size:19px; font-weight:800; display:flex; align-items:center; gap:9px; }
+.xc-h1 .xc-gr { background:var(--crimson); color:#fff; border-radius:7px; padding:1px 10px; font-size:15px; }
+.xc-h1 .xc-pin { background:#0369a1; color:#fff; border-radius:7px; padding:1px 10px; font-size:14px; }
+.xc-acts { margin-left:auto; display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.xc-lead { font-size:12px; color:var(--text-muted); margin-bottom:9px; }
+.xc-status { font-size:11.5px; font-weight:700; color:var(--text-muted); }
+.xc-status.dirty { color:#b45309; }
+.xc-status.saved { color:#047857; }
+.xc-status.err { color:#dc2626; }
+
+.xc-ychips { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+.xc-ychip { border:1.5px solid var(--border); background:#fff; border-radius:20px; padding:2px 11px; font-weight:700; font-size:12.5px; color:var(--text-muted); cursor:pointer; }
+.xc-ychip.on { background:var(--crimson); color:#fff; border-color:var(--crimson); }
+
+.xc-sblock { background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-sm); margin-bottom:11px; overflow:hidden; }
+.xc-sblock-head { display:flex; align-items:center; gap:9px; padding:8px 13px; border-bottom:1px solid var(--border); background:linear-gradient(0deg,#fff,#fbfcfe); }
+.xc-sc { border-radius:6px; padding:1px 10px; font-size:12.5px; font-weight:800; color:#fff; background:var(--xc-c); }
+.xc-hint { font-size:11px; color:var(--text-muted); }
+.xc-sbody { display:grid; gap:0; }
+.xc-sbody.split { grid-template-columns:1fr 1fr; }
+.xc-col { padding:10px 13px; }
+.xc-col + .xc-col { border-left:1px dashed var(--border); background:#fbfcfe; }
+.xc-clabel { font-size:10.5px; font-weight:700; color:var(--text-muted); margin-bottom:5px; display:flex; align-items:center; gap:6px; }
+.xc-clabel .xc-now { background:#ecfdf5; color:#047857; border-radius:5px; padding:1px 7px; }
+.xc-clabel .xc-prev { background:#f1f5f9; color:#64748b; border-radius:5px; padding:1px 7px; }
+textarea.xc-free { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:8px 10px; font-family:inherit; font-size:13px; line-height:1.7; background:#fff; resize:vertical; min-height:92px; color:var(--text); }
+textarea.xc-free:focus { outline:none; border-color:var(--crimson); box-shadow:0 0 0 3px rgba(198,0,11,.08); }
+.xc-prevtext { font-size:12.5px; line-height:1.7; color:#475569; white-space:pre-wrap; background:#fff; border:1px solid var(--border); border-radius:8px; padding:8px 10px; min-height:92px; }
+.xc-prevtext .xc-empty { color:#b6bfcc; }
+
+.xc-ssec { background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-sm); margin-bottom:11px; overflow:hidden; }
+.xc-ssec-head { display:flex; align-items:center; gap:9px; padding:8px 13px; border-bottom:1px solid var(--border); background:linear-gradient(0deg,#fff,#fbfcfe); }
+.xc-ssec-head .xc-cnt { font-size:11.5px; color:var(--text-muted); font-weight:700; }
+.xc-lrow { display:flex; gap:11px; align-items:flex-start; padding:8px 13px; border-top:1px solid #f2f4f8; cursor:pointer; }
+.xc-lrow:first-child { border-top:none; }
+.xc-lrow:hover { background:var(--crimson-light); }
+.xc-ltags { display:flex; gap:4px; min-width:124px; flex-wrap:wrap; align-content:flex-start; }
+.xc-ltag { font-size:10px; font-weight:700; border-radius:5px; padding:2px 7px; background:#f1f5f9; color:#475569; }
+.xc-lline { font-size:13px; line-height:1.6; flex:1; }
+.xc-lline mark { background:#dbeafe; color:#0369a1; border-radius:3px; padding:0 2px; font-weight:700; }
+
+.xc-mwrap { overflow-x:auto; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-sm); }
+table.xc-mx { width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; min-width:760px; }
+table.xc-mx th, table.xc-mx td { border-bottom:1px solid #eef1f6; border-right:1px solid #f2f4f8; vertical-align:top; }
+table.xc-mx thead th { background:#f5f7fb; font-size:12.5px; font-weight:700; padding:9px; text-align:center; }
+table.xc-mx thead th.xc-new { color:var(--crimson-dark); }
+.xc-rowh { width:104px; background:#f8fafc; font-weight:700; font-size:13px; padding:10px 11px; }
+.xc-rowh .xc-rb { display:inline-block; border-radius:6px; padding:1px 9px; font-size:12px; background:var(--xc-cl); color:var(--xc-c); }
+.xc-mcell { padding:8px 10px; }
+.xc-mcell .xc-txt { font-size:12px; line-height:1.65; white-space:pre-wrap; color:#334155; max-height:170px; overflow:auto; }
+.xc-mcell .xc-none { color:#c3cbd6; font-size:12px; }
+.xc-mcell.xc-cur { background:#fffdf7; }
+.xc-hint2 { font-size:11.5px; color:var(--text-muted); margin-top:9px; }
+
+.xc-srhead { font-size:15px; font-weight:800; margin-bottom:3px; }
+.xc-srsub { font-size:12px; color:var(--text-muted); margin-bottom:12px; }
+.xc-sritem { background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px; cursor:pointer; display:flex; gap:11px; align-items:flex-start; margin-bottom:7px; }
+.xc-sritem:hover { border-color:#f3c9cc; background:var(--crimson-light); }
+.xc-srtags { display:flex; flex-direction:column; gap:4px; min-width:112px; }
+.xc-srtag { font-size:10.5px; font-weight:700; border-radius:5px; padding:2px 8px; text-align:center; background:#f1f5f9; color:#475569; }
+.xc-srline { font-size:13px; line-height:1.6; flex:1; }
+.xc-srline mark { background:#fde68a; color:#7c2d12; border-radius:3px; padding:0 2px; font-weight:700; }
+.xc-noresult { text-align:center; color:#94a3b8; padding:36px; font-weight:700; }
+
+/* v2 追加（2026-08-17） */
+.xc-cnt2 { display:inline-block; margin-left:5px; font-size:10.5px; font-weight:700; background:rgba(0,0,0,.08); border-radius:9px; padding:0 6px; }
+.xc-chip.on .xc-cnt2 { background:rgba(255,255,255,.28); }
+.xc-chip.xc-clrall { border-style:dashed; color:var(--crimson-dark); }
+.xc-minibtn { border:1px solid var(--border); background:#fff; color:var(--text-muted); border-radius:6px; padding:2px 8px; font-family:inherit; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+.xc-minibtn:hover { background:var(--crimson-light); color:var(--crimson-dark); border-color:#f3c9cc; }
+.xc-lrow { cursor:default; }
+.xc-lrow:hover { background:#fbfcfe; }
+.xc-lline { cursor:text; border-radius:6px; padding:1px 4px; margin:-1px -4px; }
+.xc-lline:hover { background:#fff7e6; box-shadow:inset 0 0 0 1px #f0d9a8; }
+textarea.xc-lineedit { width:100%; border:1.5px solid var(--crimson); border-radius:7px; padding:6px 8px; font-family:inherit; font-size:13px; line-height:1.6; resize:vertical; outline:none; box-shadow:0 0 0 3px rgba(198,0,11,.08); }
+.xc-mcell { cursor:text; }
+.xc-mcell:hover { background:#fff7e6; }
+.xc-mcell.xc-cur:hover { background:#fff3d6; }
+textarea.xc-celledit { width:100%; min-height:110px; border:1.5px solid var(--crimson); border-radius:7px; padding:6px 8px; font-family:inherit; font-size:12px; line-height:1.65; resize:vertical; outline:none; box-shadow:0 0 0 3px rgba(198,0,11,.08); }
+.xc-sblock.xc-flash { box-shadow:0 0 0 3px rgba(198,0,11,.25); transition:box-shadow .3s; }
+.btn-secondary[disabled] { opacity:.45; cursor:not-allowed; }
+.btn-secondary[disabled]:hover { background:#fff; }
+.xc-acts .btn-sm { padding:6px 12px; border-radius:8px; font-size:12.5px; font-weight:700; }
+
+/* 生徒配布A4（WYSIWYG） */
+#xc-print-root { display:none; }
+.xc-sheet { background:#fff; width:794px; max-width:100%; margin:0 auto; padding:30px 34px 34px; color:#1c2230; font-size:14px; line-height:1.7; }
+.xc-sh-head { display:flex; align-items:flex-end; gap:12px; border-bottom:3px solid var(--crimson); padding-bottom:11px; flex-wrap:wrap; }
+.xc-sh-brand { font-weight:800; font-size:13px; color:var(--crimson); letter-spacing:.03em; }
+.xc-sh-title { font-size:25px; font-weight:800; line-height:1.25; }
+.xc-sh-title .xc-g { color:var(--crimson); }
+.xc-sh-meta { margin-left:auto; text-align:right; font-size:12px; color:#5c6676; font-weight:700; }
+.xc-sh-lead { font-size:12.5px; color:#374151; background:#f8fafc; border:1px solid #e3e8f0; border-left:4px solid var(--crimson); border-radius:8px; padding:9px 13px; margin:12px 0 18px; }
+.xc-subj { margin-bottom:15px; break-inside:avoid; }
+.xc-subj-head { display:flex; align-items:center; gap:9px; margin-bottom:5px; }
+.xc-subj-head .xc-b { width:6px; height:19px; border-radius:3px; background:var(--xc-c); }
+.xc-subj-head .xc-nm { font-size:16px; font-weight:800; color:var(--xc-c); }
+.xc-subj-lines { list-style:none; margin:0; padding:0; }
+.xc-subj-lines li { position:relative; padding:3px 0 3px 18px; font-size:13.5px; line-height:1.65; border-bottom:1px dashed #eef1f6; }
+.xc-subj-lines li:before { content:''; position:absolute; left:2px; top:12px; width:6px; height:6px; border-radius:50%; background:var(--xc-c); }
+.xc-subj-lines li:last-child { border-bottom:none; }
+.xc-guide { margin-top:20px; border:1.5px solid #e3e8f0; border-radius:11px; padding:13px 15px; background:#fbfcfe; break-inside:avoid; }
+.xc-guide h4 { margin:0 0 8px; font-size:14px; font-weight:800; }
+.xc-steps { display:flex; gap:10px; flex-wrap:wrap; }
+.xc-step { flex:1; min-width:180px; background:#fff; border:1px solid #e3e8f0; border-radius:9px; padding:9px 11px; }
+.xc-step .xc-n { font-weight:800; font-size:12px; color:#fff; background:var(--crimson); border-radius:20px; padding:1px 9px; }
+.xc-step .xc-t { font-size:12.5px; margin-top:5px; line-height:1.6; }
+.xc-sh-foot { margin-top:15px; font-size:11px; color:#9aa4b2; border-top:1px solid #e3e8f0; padding-top:8px; }
+@media print {
+  body.xc-printing > :not(#xc-print-root) { display:none !important; }
+  body.xc-printing #xc-print-root { display:block !important; position:static !important; left:0 !important; top:0 !important; }
+  body.xc-printing .xc-sheet { width:auto; max-width:none; padding:0; box-shadow:none; }
+  body.xc-printing .xc-page { page-break-after:always; break-inside:avoid; }
+  body.xc-printing .xc-page:last-child { page-break-after:auto; }
+}
+
 /* 印刷ヘッダー（通常時は非表示） */
 .print-header {
   display: none;
@@ -913,6 +1069,20 @@ tr.mx-done-row td { background: #f0fdf4; }
   </div>
 </div>
 <!-- チェックリスト作成モーダル -->
+<div class="modal-overlay" id="modal-xc-dup">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span>昨年からコピー</span>
+      <span class="modal-close" onclick="closeModal('modal-xc-dup')">✕</span>
+    </div>
+    <div class="modal-body" id="xc-dup-body"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-xc-dup')">やめる</button>
+      <button class="btn-primary" onclick="xcRunDup()">この内容でコピーする</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-print-choice">
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
@@ -1541,7 +1711,7 @@ function testAssignCount_(cr, kt, dateIso) {
 
 // トップバーのタイトルエリアを更新（モードバッジ付き）
 function updateTopTitle(tab) {
-  var baseTitles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・小テスト', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
+  var baseTitles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・小テスト', exam: '定期テスト対策', settings: '設定', absence: '欠席・振替管理' };
   var baseTitle = baseTitles[tab] || 'Class Board';
   var el = document.getElementById('top-title');
   if (!el) return;
@@ -1733,7 +1903,9 @@ function loadAll() {
       { action: 'getSchoolWorks',    apply: function(r){ if (r && r.success && r.works)      _schoolWorks = r.works; } },
       { action: 'getExamStrategies', apply: function(r){ if (r && r.success && r.strategies) _examStrategies = r.strategies; } },
       { action: 'getExamSchedules',  apply: function(r){ if (r && r.success && r.schedules)  _examSchedules = r.schedules; } },
-      { action: 'getCustomBadges',   apply: function(r){ if (r && r.success && r.badges) { _customBadges = r.badges; rebuildCustomBadgeIndex_(); } } }
+      { action: 'getCustomBadges',   apply: function(r){ if (r && r.success && r.badges) { _customBadges = r.badges; rebuildCustomBadgeIndex_(); } } },
+      // 定期テスト対策カード（2026-08-17 カード自由記述方式）。重要度は中なので retries は付けない。
+      { action: 'getExamCards',      apply: function(r){ if (r && r.success && r.cards)      _examCards = r.cards; } }
     ];
     jobs.forEach(function(job) {
       p2++;
@@ -1893,7 +2065,7 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
   var ni = document.getElementById('nav-' + tab);
   if (ni) ni.classList.add('active');
-  var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・小テスト', exam: '定期テスト対策DB', settings: '設定', absence: '欠席・振替管理' };
+  var titles = { today: '本日の時間割', week: '今週の時間割', school: '学校マスタ・小テスト', exam: '定期テスト対策', settings: '設定', absence: '欠席・振替管理' };
   updateTopTitle(tab);
   renderCurrent();
 }
@@ -4998,36 +5170,12 @@ function getExamYearOptions() {
   return years;
 }
 
-function renderExam() {
-  var el = document.getElementById('main-content');
-  // 川上さん承認(2026-07-03)：未保存の仮レコード（編集中でないtmp_）は再描画時に自動削除（件数水増し防止）
-  _examStrategies = _examStrategies.filter(function(s) {
-    return String(s.recordId).indexOf('tmp_') !== 0 || s.recordId === _examEditingId;
-  });
-  var yearOpts = getExamYearOptions();
-  if (_examYearFilter === null) _examYearFilter = String(new Date().getFullYear());
+// 【2026-08-17】定期テスト対策はカード自由記述方式に刷新。タブ本体は xcRender()。
+// 旧「定期テスト対策DB」（教科・学年・学校を1件ずつ登録する方式）は renderExamLegacy として残す（既存データの参照用・通常は呼ばれない）。
+function renderExam() { xcRender(); }
 
-  // フィルタ後レコード
-  var filtered = _examStrategies.filter(function(s) {
-    if (String(s.recordId).indexOf('tmp_') === 0) return false; // 仮レコードは件数・表に含めない（新規追加枠で別描画）
-    var gradeOK   = (_examGradeFilter === 'all') || (s.grade || '').split(',').map(function(g){return g.trim();}).indexOf(_examGradeFilter) !== -1;
-    var subjectOK = (_examSubjectFilter === 'all') || s.subject === _examSubjectFilter;
-    var yearOK    = !_examYearFilter || (s.years || '').split(',').map(function(y){return y.trim();}).indexOf(_examYearFilter) !== -1;
-    return gradeOK && subjectOK && yearOK;
-  });
-
-  // テスト種別グループ
-  var groups = {};
-  EXAM_TEST_TYPES.forEach(function(t) { groups[t] = []; });
-  filtered.forEach(function(s) {
-    if (groups[s.testType] !== undefined) groups[s.testType].push(s);
-    else {
-      if (!groups['その他']) groups['その他'] = [];
-      groups['その他'].push(s);
-    }
-  });
-
-  // テスト日程セクション
+// 定期テスト日程セクション（新カードUI・旧DBの両方から使う。2026-08-17に関数として切り出し）
+function examScheduleSectionHtml_() {
   var schedHtml = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin-bottom:16px">';
   schedHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
   schedHtml += '<div style="font-size:13px;font-weight:700;color:#15803d;display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 定期テスト日程</div>';
@@ -5060,7 +5208,40 @@ function renderExam() {
   }
   schedHtml += '</div>';
 
-  var html = schedHtml;
+  return schedHtml;
+}
+
+function renderExamLegacy() {
+  var el = document.getElementById('main-content');
+  // 川上さん承認(2026-07-03)：未保存の仮レコード（編集中でないtmp_）は再描画時に自動削除（件数水増し防止）
+  _examStrategies = _examStrategies.filter(function(s) {
+    return String(s.recordId).indexOf('tmp_') !== 0 || s.recordId === _examEditingId;
+  });
+  var yearOpts = getExamYearOptions();
+  if (_examYearFilter === null) _examYearFilter = String(new Date().getFullYear());
+
+  // フィルタ後レコード
+  var filtered = _examStrategies.filter(function(s) {
+    if (String(s.recordId).indexOf('tmp_') === 0) return false; // 仮レコードは件数・表に含めない（新規追加枠で別描画）
+    var gradeOK   = (_examGradeFilter === 'all') || (s.grade || '').split(',').map(function(g){return g.trim();}).indexOf(_examGradeFilter) !== -1;
+    var subjectOK = (_examSubjectFilter === 'all') || s.subject === _examSubjectFilter;
+    var yearOK    = !_examYearFilter || (s.years || '').split(',').map(function(y){return y.trim();}).indexOf(_examYearFilter) !== -1;
+    return gradeOK && subjectOK && yearOK;
+  });
+
+  // テスト種別グループ
+  var groups = {};
+  EXAM_TEST_TYPES.forEach(function(t) { groups[t] = []; });
+  filtered.forEach(function(s) {
+    if (groups[s.testType] !== undefined) groups[s.testType].push(s);
+    else {
+      if (!groups['その他']) groups['その他'] = [];
+      groups['その他'].push(s);
+    }
+  });
+
+  var html = examScheduleSectionHtml_();
+
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
     + '<div style="font-size:15px;font-weight:700">定期テスト対策DB</div>'
     + '<button class="btn-primary btn-sm" onclick="addNewExamCard()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 追加</button>'
@@ -10088,9 +10269,748 @@ document.addEventListener('keydown', function(e) {
 });
 
 
+
+// =====================================================
+// 定期テスト対策：カード自由記述方式（2026-08-17 実装／同日 v2 改修）
+// 1枚＝年度×テスト回×学年。中は教科ごとの自由記述。学校名は本文に直書き。
+// 仕様の単一の正：機能仕様書_定期テスト対策_カード自由記述方式.md v1.2
+// 保存は1カード単位upsert（saveExamCard）。全件上書きは作らない。
+// v2（川上さん指示 2026-08-17）：
+//   ・クイック絞り込みを複数選択可に（学校同士はOR／それ以外はAND）
+//   ・「昨年から複製」は使えるときだけ有効。押したら確認モーダルで中身と方法を見せる
+//   ・教科ごとの「去年からコピー」
+//   ・学校チップに件数
+//   ・検索結果から該当教科へジャンプ（開いて光らせる）
+//   ・中1〜中3をまとめて印刷
+//   ・切り口ビュー・検索結果からも、その場で本文を編集できる
+// =====================================================
+var XC_SUBJECTS = ['英語','数学','国語','理科','社会','実技'];
+var XC_TERMS    = ['前期中間','前期期末','後期中間','学年末'];
+var XC_GRADES   = ['中1','中2','中3'];
+var XC_QUICK_FIXED = [
+  { label:'📄 プリント', q:'プリント' },
+  { label:'📝 小テスト', q:'小テスト' },
+  { label:'✍️ 記述',   q:'記述' },
+  { label:'🏫 全校',   q:'全校' }
+];
+
+var _examCards   = [];      // フェーズ2で getExamCards（silent）
+var _xcView      = 'card';  // card / school / term / subject
+var _xcQ         = '';      // 自由入力
+var _xcChips     = [];      // 選択中のクイック絞り込み（複数可）
+var _xcYear      = null;
+var _xcTerm      = null;
+var _xcGrade     = '中1';
+var _xcRef       = true;    // 去年の同じ回を横に表示
+var _xcSchool    = null;
+var _xcSubject   = '社会';
+var _xcPending   = null;    // 保存待ちのカード（1枚単位）
+var _xcSaving    = false;
+var _xcSaveTimer = null;
+var _xcSaveMsg   = '';
+var _xcSaveState = '';      // '' / 'dirty' / 'saving' / 'saved' / 'err'
+var _xcFocusSearch = false;
+var _xcFlashSub  = null;    // 検索結果から飛んだとき光らせる教科
+
+// ---- 年度・テスト回の既定（4〜3月を1年度とする）----
+function xcNendo() {
+  var d = new Date();
+  return String((d.getMonth() + 1) <= 3 ? d.getFullYear() - 1 : d.getFullYear());
+}
+function xcDefaultTerm() {
+  var m = new Date().getMonth() + 1;
+  if (m >= 4 && m <= 6)  return '前期中間';
+  if (m >= 7 && m <= 9)  return '前期期末';
+  if (m >= 10 && m <= 12) return '後期中間';
+  return '学年末';
+}
+
+// ---- 正規化（NFKC・小文字・空白除去・ひらがな→カタカナ）----
+function xcNorm(s) {
+  s = String(s || '');
+  if (s.normalize) s = s.normalize('NFKC');
+  s = s.toLowerCase().replace(/\s+/g, '');
+  return s.replace(/[ぁ-ゖ]/g, function(c) { return String.fromCharCode(c.charCodeAt(0) + 0x60); });
+}
+// 元文字列の各文字が正規化後のどの位置に対応するかの対応表（ハイライトを元表記のまま当てるため）
+function xcNormMap(line) {
+  var map = [], nn = '';
+  for (var i = 0; i < line.length; i++) {
+    var piece = xcNorm(line.charAt(i));
+    for (var j = 0; j < piece.length; j++) map.push(i);
+    nn += piece;
+  }
+  return { map: map, nn: nn };
+}
+function xcHasWord(line, word) {
+  var wn = xcNorm(word);
+  return !!wn && xcNorm(line).indexOf(wn) !== -1;
+}
+// 複数語をまとめてハイライト
+function xcHl(line, words) {
+  words = (words || []).filter(function(w) { return String(w || '').trim(); });
+  if (!words.length) return esc(line);
+  var m = xcNormMap(line), ranges = [];
+  words.forEach(function(w) {
+    var wn = xcNorm(w); if (!wn) return;
+    var p = m.nn.indexOf(wn);
+    while (p >= 0) {
+      var s = m.map[p];
+      var e = (p + wn.length - 1 < m.map.length) ? m.map[p + wn.length - 1] + 1 : line.length;
+      ranges.push([s, e]);
+      p = m.nn.indexOf(wn, p + wn.length);
+    }
+  });
+  if (!ranges.length) return esc(line);
+  ranges.sort(function(a, b) { return a[0] - b[0]; });
+  var out = '', pos = 0;
+  ranges.forEach(function(r) {
+    if (r[1] <= pos) return;
+    var s = Math.max(r[0], pos);
+    out += esc(line.slice(pos, s)) + '<mark>' + esc(line.slice(s, r[1])) + '</mark>';
+    pos = r[1];
+  });
+  return out + esc(line.slice(pos));
+}
+
+// ---- カード検索・生成 ----
+function xcFind(y, t, g) {
+  for (var i = 0; i < _examCards.length; i++) {
+    var c = _examCards[i];
+    if (String(c.year) === String(y) && c.term === t && c.grade === g) return c;
+  }
+  return null;
+}
+function xcEnsure(y, t, g) {
+  var c = xcFind(y, t, g);
+  if (!c) {
+    c = { cardId:'', year:String(y), term:t, grade:g, subjectMemos:{}, testPeriod:'' };
+    _examCards.push(c);
+  }
+  if (!c.subjectMemos) c.subjectMemos = {};
+  return c;
+}
+function xcBody(card, sub) { return (card && card.subjectMemos && card.subjectMemos[sub]) ? String(card.subjectMemos[sub]) : ''; }
+function xcLines(card, sub) { return xcBody(card, sub).split('\n').filter(function(l) { return l.trim(); }); }
+function xcHasBody(card) {
+  if (!card || !card.subjectMemos) return false;
+  for (var k in card.subjectMemos) {
+    if (String(card.subjectMemos[k] || '').trim() !== '') return true;
+  }
+  return false;
+}
+// 中身のあるカードだけ（移行で生まれた空カードは一覧・切り口・検索に出さない）
+function xcFilledCards() { return _examCards.filter(xcHasBody); }
+function xcCardKey(c) { return c ? (c.cardId || (c.year + '|' + c.term + '|' + c.grade)) : ''; }
+function xcByKey(key) {
+  for (var i = 0; i < _examCards.length; i++) if (xcCardKey(_examCards[i]) === key) return _examCards[i];
+  return null;
+}
+
+// ---- 年度リスト（新しい順）----
+function xcYears() {
+  var out = [], seen = {};
+  var cur = parseInt(xcNendo(), 10);
+  [String(cur), String(cur - 1)].forEach(function(y) { if (!seen[y]) { seen[y] = 1; out.push(y); } });
+  xcFilledCards().forEach(function(c) {
+    var y = String(c.year || '').trim();
+    if (y && !seen[y]) { seen[y] = 1; out.push(y); }
+  });
+  out.sort(function(a, b) { return parseInt(b, 10) - parseInt(a, 10); });
+  return out;
+}
+
+// ---- 学校リスト（在籍生徒の中学校から動的生成・固定配列にしない）----
+function xcSchools() {
+  var cnt = {}, out = [];
+  (_students || []).forEach(function(s) {
+    if (!s) return;
+    var st = String(s.status || '');
+    if (st === '退会' || st === '休会') return;
+    var name = String(s.school || '').trim();
+    if (!name) return;
+    if (/小(学校)?$/.test(name)) return;                       // 小学校は除外
+    var g = String(s.grade || '').trim();
+    var isJhs = (XC_GRADES.indexOf(g) !== -1) || /中(学校)?$/.test(name);
+    if (!isJhs) return;
+    cnt[name] = (cnt[name] || 0) + 1;
+  });
+  for (var k in cnt) out.push(k);
+  out.sort(function(a, b) { return (cnt[b] - cnt[a]) || (a < b ? -1 : 1); });
+  return out;
+}
+// 学校ごとの本文ヒット行数（チップの件数バッジ用）
+function xcSchoolCounts() {
+  var schools = xcSchools(), cnt = {};
+  schools.forEach(function(s) { cnt[s] = 0; });
+  xcFilledCards().forEach(function(c) {
+    XC_SUBJECTS.forEach(function(sub) {
+      xcLines(c, sub).forEach(function(line) {
+        var ln = xcNorm(line);
+        schools.forEach(function(s) { if (ln.indexOf(xcNorm(s)) !== -1) cnt[s]++; });
+      });
+    });
+  });
+  return cnt;
+}
+
+// =====================================================
+// 絞り込み（学校チップ同士はOR／それ以外の語はAND）【川上さん確定 2026-08-17】
+// =====================================================
+function xcTerms() {
+  var schools = xcSchools();
+  var sc = [], ands = [];
+  _xcChips.forEach(function(c) { (schools.indexOf(c) !== -1 ? sc : ands).push(c); });
+  String(_xcQ).trim().split(/[\s　]+/).forEach(function(w) { if (w) ands.push(w); });
+  return { schools: sc, ands: ands, all: sc.concat(ands) };
+}
+function xcHasFilter() { var t = xcTerms(); return t.schools.length > 0 || t.ands.length > 0; }
+function xcLineMatch(line, t) {
+  t = t || xcTerms();
+  if (t.schools.length) {
+    var hit = false;
+    for (var i = 0; i < t.schools.length; i++) { if (xcHasWord(line, t.schools[i])) { hit = true; break; } }
+    if (!hit) return false;
+  }
+  for (var j = 0; j < t.ands.length; j++) { if (!xcHasWord(line, t.ands[j])) return false; }
+  return true;
+}
+function xcFilterLabel() {
+  var t = xcTerms(), parts = [];
+  if (t.schools.length) parts.push('（' + t.schools.join(' または ') + '）');
+  t.ands.forEach(function(w) { parts.push(w); });
+  return parts.join(' かつ ');
+}
+
+// =====================================================
+// 保存（1カード単位upsert・デバウンス）
+// =====================================================
+function xcSetSaveState(state, msg) {
+  _xcSaveState = state; _xcSaveMsg = msg || '';
+  var el = document.getElementById('xc-status');
+  if (el) { el.className = 'xc-status ' + (state || ''); el.textContent = msg || ''; }
+}
+function xcQueueSave(card) {
+  if (_xcPending && _xcPending !== card) xcFlushSave();   // 別カードに移るときは先に確定
+  _xcPending = card;
+  xcSetSaveState('dirty', '未保存の変更があります');
+  clearTimeout(_xcSaveTimer);
+  _xcSaveTimer = setTimeout(xcSaveNow, 1500);
+}
+function xcFlushSave() { clearTimeout(_xcSaveTimer); if (_xcPending) xcSaveNow(); }
+function xcSaveNow() {
+  clearTimeout(_xcSaveTimer);
+  var card = _xcPending;
+  if (!card || _xcSaving) return;
+  // 新規で全教科空 → 空カードを作らない（移行の空カード対策と同じ方針）
+  if (!card.cardId && !xcHasBody(card)) { _xcPending = null; xcSetSaveState('', ''); return; }
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { xcSetSaveState('err', '保存先GASが未設定です（設定タブ）'); return; }
+
+  _xcSaving = true;
+  _xcPending = null;
+  xcSetSaveState('saving', '保存中…');
+  var payload = {
+    cardId: card.cardId || '',
+    year: String(card.year || ''),
+    term: card.term || '',
+    grade: card.grade || '',
+    subjectMemos: card.subjectMemos || {},
+    testPeriod: card.testPeriod || ''
+  };
+  callGas(url, { action: 'saveExamCard', card: payload }, function(res) {
+    _xcSaving = false;
+    if (res && res.success) {
+      if (res.cardId) card.cardId = res.cardId;
+      var n = new Date();
+      xcSetSaveState('saved', '保存しました ' + zeroPad(n.getHours()) + ':' + zeroPad(n.getMinutes()));
+      if (_xcPending) xcQueueSave(_xcPending);   // 送信中に追加入力があれば拾う
+    } else {
+      _xcPending = card;
+      xcSetSaveState('err', '保存に失敗しました。もう一度お試しください。');
+    }
+  }, 'POST', true);
+}
+
+// カード画面のテキストエリア入力（再描画しない＝フォーカスを失わない）
+function xcEdit(sub, val) {
+  var c = xcEnsure(_xcYear, _xcTerm, _xcGrade);
+  c.subjectMemos[sub] = val;
+  xcQueueSave(c);
+}
+
+// =====================================================
+// 描画
+// =====================================================
+function xcRender() {
+  var el = document.getElementById('main-content');
+  if (!el) return;
+  if (_xcYear === null)  _xcYear  = xcNendo();
+  if (_xcTerm === null)  _xcTerm  = xcDefaultTerm();
+  if (_xcSchool === null) { var sc = xcSchools(); _xcSchool = sc.length ? sc[0] : ''; }
+
+  var html = xcBarHtml();
+  if (xcHasFilter())              html += xcSearchHtml();
+  else if (_xcView === 'card')    html += xcCardHtml();
+  else if (_xcView === 'school')  html += xcSchoolHtml();
+  else if (_xcView === 'term')    html += xcTermHtml();
+  else                            html += xcSubjectHtml();
+  el.innerHTML = html;
+
+  var q = document.getElementById('xc-q');
+  if (q && _xcFocusSearch) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); _xcFocusSearch = false; }
+  xcSetSaveState(_xcSaveState, _xcSaveMsg);
+
+  // 検索結果から飛んできたとき：その教科までスクロールして一瞬光らせる
+  if (_xcFlashSub) {
+    var target = document.getElementById('xc-sb-' + _xcFlashSub);
+    _xcFlashSub = null;
+    if (target) {
+      target.scrollIntoView({ block: 'center' });
+      target.classList.add('xc-flash');
+      setTimeout(function() { target.classList.remove('xc-flash'); }, 1600);
+    }
+  }
+}
+
+// ---- 上部バー（切り口タブ・検索・クイック絞り込み・保存状態）----
+function xcBarHtml() {
+  var h = '<div class="xc-bar">';
+  h += '<span class="xc-lb">切り口</span><div class="xc-vtabs">';
+  [['card','カード（入力）'],['school','学校で束ねる'],['term','テスト回で束ねる'],['subject','教科で束ねる']].forEach(function(v) {
+    h += '<button class="' + (_xcView === v[0] ? 'active' : '') + '" data-v="' + v[0] + '" onclick="xcSetView(this.dataset.v)">' + v[1] + '</button>';
+  });
+  h += '</div>';
+  h += '<span id="xc-status" class="xc-status"></span>';
+  h += '<div class="xc-search' + (xcHasFilter() ? ' hot' : '') + '">'
+     + '<span style="color:var(--text-muted);font-size:13px">🔎</span>'
+     + '<input id="xc-q" placeholder="本文を自由検索（学校名・単元名）" value="' + esc(_xcQ) + '" oninput="xcOnSearch(this.value)">'
+     + (xcHasFilter() ? '<span class="xc-clr" title="絞り込みを解除" onclick="xcClearSearch()">×</span>' : '')
+     + '</div></div>';
+
+  // クイック絞り込み（複数選択可・学校同士はOR／それ以外はAND）
+  var cnt = xcSchoolCounts();
+  h += '<div class="xc-bar"><span class="xc-lb">クイック絞り込み<br><span style="font-weight:400">複数OK・学校はor</span></span><div class="xc-quick">';
+  xcSchools().forEach(function(s) {
+    var on = _xcChips.indexOf(s) !== -1;
+    h += '<span class="xc-chip xc-sch' + (on ? ' on' : '') + '" data-q="' + esc(s) + '" onclick="xcToggleChip(this.dataset.q)">'
+       + esc(s) + '<span class="xc-cnt2">' + (cnt[s] || 0) + '</span></span>';
+  });
+  XC_QUICK_FIXED.forEach(function(x) {
+    var on = _xcChips.indexOf(x.q) !== -1;
+    h += '<span class="xc-chip' + (on ? ' on' : '') + '" data-q="' + esc(x.q) + '" onclick="xcToggleChip(this.dataset.q)">' + x.label + '</span>';
+  });
+  if (xcHasFilter()) h += '<span class="xc-chip xc-clrall" onclick="xcClearSearch()">絞り込みを解除</span>';
+  h += '</div></div>';
+  return h;
+}
+function xcSetView(v)   { xcFlushSave(); _xcView = v; xcRender(); }
+function xcOnSearch(v)  { _xcQ = v; _xcFocusSearch = true; xcRender(); }
+function xcClearSearch(){ _xcQ = ''; _xcChips = []; xcRender(); }
+function xcToggleChip(q) {
+  var i = _xcChips.indexOf(q);
+  if (i === -1) _xcChips.push(q); else _xcChips.splice(i, 1);
+  xcRender();
+}
+
+function xcSegHtml(items, cur, fn) {
+  return '<div class="xc-seg">' + items.map(function(it) {
+    return '<button class="' + (it === cur ? 'active' : '') + '" data-v="' + esc(it) + '" onclick="' + fn + '(this.dataset.v)">' + esc(it) + '</button>';
+  }).join('') + '</div>';
+}
+function xcSetYear(v)   { xcFlushSave(); _xcYear = v;    xcRender(); }
+function xcSetTerm(v)   { xcFlushSave(); _xcTerm = v;    xcRender(); }
+function xcSetGrade(v)  { xcFlushSave(); _xcGrade = v;   xcRender(); }
+function xcSetSchool(v) { _xcSchool = v;  xcRender(); }
+function xcSetSubject(v){ _xcSubject = v; xcRender(); }
+function xcToggleRef()  { _xcRef = !_xcRef; xcRender(); }
+
+// ---- カード（入力・既定）----
+function xcCardHtml() {
+  var years = xcYears();
+  var card  = xcFind(_xcYear, _xcTerm, _xcGrade);
+  var prevY = String(parseInt(_xcYear, 10) - 1);
+  var prev  = xcFind(prevY, _xcTerm, _xcGrade);
+  var canDup = xcHasBody(prev);
+
+  var h = '<div class="xc-bar">';
+  h += '<span class="xc-lb">年度</span><select class="xc-select" onchange="xcSetYear(this.value)">'
+     + years.map(function(y) { return '<option value="' + y + '"' + (y === _xcYear ? ' selected' : '') + '>' + y + '年度</option>'; }).join('')
+     + '</select>';
+  h += '<span class="xc-lb">テスト回</span>' + xcSegHtml(XC_TERMS, _xcTerm, 'xcSetTerm');
+  h += '<span class="xc-lb">学年</span>' + xcSegHtml(XC_GRADES, _xcGrade, 'xcSetGrade');
+  h += '<div class="xc-spacer"></div>';
+  h += '<div class="xc-toggle' + (_xcRef ? ' on' : '') + '" onclick="xcToggleRef()">🕘 去年の同じ回を横に表示</div>';
+  h += '</div>';
+
+  h += '<div class="xc-head"><div class="xc-h1"><span class="xc-gr">' + esc(_xcGrade) + '</span>' + esc(_xcYear) + '年度 ' + esc(_xcTerm) + '</div>'
+     + '<div class="xc-acts">'
+     + '<button class="btn-secondary btn-sm"' + (canDup ? '' : ' disabled title="' + prevY + '年度の同じ回に中身がないのでコピーできません"')
+     + ' onclick="xcOpenDupModal()">📋 昨年からコピー…</button>'
+     + '<button class="btn-secondary btn-sm" onclick="xcPrintHandout(true)">🖨️ 中1〜3まとめて印刷</button>'
+     + '<button class="btn-primary btn-sm" onclick="xcPrintHandout(false)">🖨️ 生徒配布を印刷（' + esc(_xcGrade) + '）</button>'
+     + '</div></div>';
+  h += '<div class="xc-lead">1枚＝年度×テスト回×学年。中は教科ごとに自由記述。学校名は本文にそのまま書く（例：県庁所在地 → 大津中・久里浜中で出題）。書いた内容は検索・クイック絞り込み・切り口ビューで横断して拾える。入力は自動保存。</div>';
+
+  h += '<div class="xc-ychips"><span class="xc-lb">この回の年度（新しい順）：</span>'
+     + years.map(function(y) {
+         var hasData = xcHasBody(xcFind(y, _xcTerm, _xcGrade));
+         return '<span class="xc-ychip' + (y === _xcYear ? ' on' : '') + '" data-v="' + y + '" onclick="xcSetYear(this.dataset.v)">' + y + (hasData ? '' : '<span style="opacity:.5;font-size:11px"> 未記入</span>') + '</span>';
+       }).join('') + '</div>';
+
+  XC_SUBJECTS.forEach(function(sub) {
+    var cur = xcBody(card, sub), pv = xcBody(prev, sub);
+    h += '<div class="xc-sblock xc-sub-' + sub + '" id="xc-sb-' + sub + '"><div class="xc-sblock-head"><span class="xc-sc">' + sub + '</span>'
+       + '<span class="xc-hint">出題範囲・傾向・配布物・やること／該当する学校名を本文に書く</span></div>';
+    if (_xcRef) {
+      h += '<div class="xc-sbody split"><div class="xc-col"><div class="xc-clabel"><span class="xc-now">今年 ' + esc(_xcYear) + '</span></div>'
+         + '<textarea class="xc-free" placeholder="ここに自由記述…" data-sub="' + sub + '" oninput="xcEdit(this.dataset.sub,this.value)" onblur="xcFlushSave()">' + esc(cur) + '</textarea></div>'
+         + '<div class="xc-col"><div class="xc-clabel"><span class="xc-prev">去年 ' + prevY + ' ' + esc(_xcTerm) + '</span>（参照）'
+         + (pv.trim() ? '<button class="xc-minibtn" data-sub="' + sub + '" onclick="xcCopySubject(this.dataset.sub)">← この教科にコピー</button>' : '')
+         + '</div><div class="xc-prevtext">' + (pv ? esc(pv) : '<span class="xc-empty">記録なし</span>') + '</div></div></div>';
+    } else {
+      h += '<div class="xc-sbody"><div class="xc-col">'
+         + '<textarea class="xc-free" placeholder="ここに自由記述…" data-sub="' + sub + '" oninput="xcEdit(this.dataset.sub,this.value)" onblur="xcFlushSave()">' + esc(cur) + '</textarea></div></div>';
+    }
+    h += '</div>';
+  });
+  h += examScheduleSectionHtml_();
+  return h;
+}
+
+// ---- 教科ごとの「去年からコピー」----
+function xcCopySubject(sub) {
+  var prevY = String(parseInt(_xcYear, 10) - 1);
+  var prev = xcFind(prevY, _xcTerm, _xcGrade);
+  var p = xcBody(prev, sub);
+  if (!p.trim()) return;
+  var cur = xcEnsure(_xcYear, _xcTerm, _xcGrade);
+  var c = xcBody(cur, sub);
+  if (c.trim()) {
+    var ok = confirm('今年の「' + sub + '」には ' + xcLines(cur, sub).length + '行の記入があります。\n\n［OK］去年の内容を下に追記する\n［キャンセル］やめる');
+    if (!ok) return;
+    cur.subjectMemos[sub] = c.replace(/\s+$/, '') + '\n' + p;
+  } else {
+    cur.subjectMemos[sub] = p;
+  }
+  xcQueueSave(cur); xcFlushSave();
+  xcRender();
+  miniToast(prevY + '年度の「' + sub + '」をコピーしました');
+}
+
+// ---- 昨年からコピー（確認モーダル）----
+function xcOpenDupModal() {
+  var prevY = String(parseInt(_xcYear, 10) - 1);
+  var prev = xcFind(prevY, _xcTerm, _xcGrade);
+  if (!xcHasBody(prev)) { alert(prevY + '年度 ' + _xcTerm + ' ' + _xcGrade + ' のカードに中身がありません。'); return; }
+  var cur = xcFind(_xcYear, _xcTerm, _xcGrade);
+
+  var rows = '', nEmpty = 0, nConflict = 0;
+  XC_SUBJECTS.forEach(function(sub) {
+    var pn = xcLines(prev, sub).length;
+    var cn = xcLines(cur, sub).length;
+    if (!pn) return;
+    if (cn) nConflict++; else nEmpty++;
+    rows += '<tr><td style="padding:5px 8px;font-weight:700">' + sub + '</td>'
+          + '<td style="padding:5px 8px;color:var(--text-muted)">去年 ' + pn + '行</td>'
+          + '<td style="padding:5px 8px">' + (cn ? '<span style="color:#b45309;font-weight:700">今年すでに ' + cn + '行あり</span>' : '<span style="color:#047857">今年は空</span>') + '</td></tr>';
+  });
+
+  var body = '<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px">'
+    + '<b>' + prevY + '年度 ' + esc(_xcTerm) + ' ' + esc(_xcGrade) + '</b> の本文を、'
+    + '<b>' + esc(_xcYear) + '年度 ' + esc(_xcTerm) + ' ' + esc(_xcGrade) + '</b> にコピーします。去年のカードは変わりません。</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12.5px;background:#fbfcfe;border:1px solid var(--border);border-radius:8px;margin-bottom:12px">' + rows + '</table>';
+
+  if (nConflict) {
+    body += '<div style="font-size:12.5px;font-weight:700;margin-bottom:6px">今年すでに記入がある教科をどうしますか</div>'
+      + '<label style="display:block;font-size:13px;margin-bottom:6px"><input type="radio" name="xc-dup-mode" value="empty" checked> 触らない（空の教科だけコピー）</label>'
+      + '<label style="display:block;font-size:13px;margin-bottom:6px"><input type="radio" name="xc-dup-mode" value="append"> 今年の下に追記する</label>'
+      + '<label style="display:block;font-size:13px"><input type="radio" name="xc-dup-mode" value="overwrite"> 今年を消して去年の内容にする</label>';
+  } else {
+    body += '<div style="font-size:12.5px;color:#047857">今年はまだ全教科が空なので、そのままコピーします。</div>'
+      + '<input type="hidden" name="xc-dup-mode" value="empty">';
+  }
+  document.getElementById('xc-dup-body').innerHTML = body;
+  openModal('modal-xc-dup');
+}
+function xcRunDup() {
+  var el = document.querySelector('input[name="xc-dup-mode"]:checked') || document.querySelector('input[name="xc-dup-mode"]');
+  var mode = el ? el.value : 'empty';
+  var prevY = String(parseInt(_xcYear, 10) - 1);
+  var prev = xcFind(prevY, _xcTerm, _xcGrade);
+  var cur = xcEnsure(_xcYear, _xcTerm, _xcGrade);
+  var n = 0;
+  XC_SUBJECTS.forEach(function(sub) {
+    var p = xcBody(prev, sub);
+    if (!p.trim()) return;
+    var c = xcBody(cur, sub);
+    if (c.trim()) {
+      if (mode === 'empty') return;
+      cur.subjectMemos[sub] = (mode === 'append') ? (c.replace(/\s+$/, '') + '\n' + p) : p;
+    } else {
+      cur.subjectMemos[sub] = p;
+    }
+    n++;
+  });
+  closeModal('modal-xc-dup');
+  xcQueueSave(cur); xcFlushSave();
+  xcRender();
+  miniToast(prevY + '年度から ' + n + '教科をコピーしました');
+}
+
+// =====================================================
+// 行単位のその場編集（切り口ビュー・検索結果から）【川上さん指示 2026-08-17】
+// =====================================================
+function xcEditLine(el) {
+  if (el.querySelector('textarea')) return;
+  var raw = el.getAttribute('data-line') || '';
+  var ta = document.createElement('textarea');
+  ta.className = 'xc-lineedit';
+  ta.value = raw;
+  ta.setAttribute('data-key', el.getAttribute('data-key'));
+  ta.setAttribute('data-sub', el.getAttribute('data-sub'));
+  ta.setAttribute('data-idx', el.getAttribute('data-idx'));
+  ta.setAttribute('data-orig', raw);
+  ta.onblur = function() { xcSaveLine(this); };
+  ta.onkeydown = function(e) { if (e.key === 'Escape') { this.onblur = null; xcRender(); } };
+  el.innerHTML = '';
+  el.appendChild(ta);
+  ta.focus();
+  ta.style.height = Math.max(38, ta.scrollHeight) + 'px';
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+function xcSaveLine(ta) {
+  var card = xcByKey(ta.getAttribute('data-key'));
+  var sub  = ta.getAttribute('data-sub');
+  var idx  = parseInt(ta.getAttribute('data-idx'), 10);
+  var orig = ta.getAttribute('data-orig');
+  var val  = ta.value;
+  if (!card) { xcRender(); return; }
+  if (val === orig) { xcRender(); return; }
+  var lines = xcBody(card, sub).split('\n');
+  if (lines[idx] !== orig) { miniToast('本文が変わっていたため保存しませんでした。開き直してください'); xcRender(); return; }
+  if (String(val).trim() === '') lines.splice(idx, 1);
+  else lines.splice.apply(lines, [idx, 1].concat(String(val).split('\n')));
+  card.subjectMemos[sub] = lines.join('\n');
+  xcQueueSave(card); xcFlushSave();
+  xcRender();
+}
+// 行HTML（クリックでその場編集・右のボタンでカードを開く）
+function xcLineRowHtml(card, sub, idx, line, words, showSubject) {
+  return '<div class="xc-lrow">'
+    + '<div class="xc-ltags">'
+    + (showSubject ? '<span class="xc-ltag" style="background:' + xcSubColor(sub) + ';color:#fff">' + sub + '</span>' : '')
+    + '<span class="xc-ltag">' + esc(card.year) + ' ' + esc(card.term) + '</span>'
+    + '<span class="xc-ltag">' + esc(card.grade) + '</span></div>'
+    + '<div class="xc-lline" title="クリックでその場で直せます"'
+    + ' data-key="' + esc(xcCardKey(card)) + '" data-sub="' + sub + '" data-idx="' + idx + '" data-line="' + esc(line) + '"'
+    + ' onclick="xcEditLine(this)">' + xcHl(line, words) + '</div>'
+    + '<button class="xc-minibtn" data-y="' + esc(card.year) + '" data-t="' + esc(card.term) + '" data-g="' + esc(card.grade) + '" data-s="' + sub + '"'
+    + ' onclick="event.stopPropagation();xcOpenCard(this.dataset.y,this.dataset.t,this.dataset.g,this.dataset.s)">カードを開く</button>'
+    + '</div>';
+}
+function xcOpenCard(y, t, g, sub) {
+  xcFlushSave();
+  _xcView = 'card'; _xcYear = String(y); _xcTerm = t; _xcGrade = g;
+  _xcQ = ''; _xcChips = [];
+  _xcFlashSub = sub || null;
+  xcRender();
+}
+
+// ---- 切り口：学校で束ねる ----
+function xcSortCards(a, b) {
+  var ya = parseInt(a.year, 10) || 0, yb = parseInt(b.year, 10) || 0;
+  if (yb !== ya) return yb - ya;
+  var ta = XC_TERMS.indexOf(a.term), tb = XC_TERMS.indexOf(b.term);
+  if (ta !== tb) return ta - tb;
+  return XC_GRADES.indexOf(a.grade) - XC_GRADES.indexOf(b.grade);
+}
+function xcSchoolHtml() {
+  var schools = xcSchools();
+  var h = '<div class="xc-bar"><span class="xc-lb">学校</span><select class="xc-select" onchange="xcSetSchool(this.value)">'
+        + (schools.length ? schools.map(function(s) { return '<option value="' + esc(s) + '"' + (s === _xcSchool ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('')
+                          : '<option value="">（在籍生徒に中学校の登録がありません）</option>')
+        + '</select><span class="xc-lb">在籍生徒の学校名から自動生成</span></div>';
+  if (!_xcSchool) return h + '<div class="xc-noresult">学校を選ぶと、その学校名が本文に出てくる行だけを教科ごとにまとめます。</div>';
+
+  var bySub = {}; XC_SUBJECTS.forEach(function(s) { bySub[s] = []; });
+  var total = 0;
+  xcFilledCards().slice().sort(xcSortCards).forEach(function(c) {
+    XC_SUBJECTS.forEach(function(sub) {
+      xcBody(c, sub).split('\n').forEach(function(line, idx) {
+        if (line.trim() && xcHasWord(line, _xcSchool)) { bySub[sub].push({ c: c, line: line, idx: idx }); total++; }
+      });
+    });
+  });
+
+  h += '<div class="xc-head"><div class="xc-h1"><span class="xc-pin">' + esc(_xcSchool) + '</span>のクセ</div></div>';
+  h += '<div class="xc-lead">' + esc(_xcSchool) + ' が本文に出てくる行を、教科ごとにまとめて表示（新しい年度が上）。計 ' + total + ' 行。<b>行をクリックするとその場で直せます。</b></div>';
+  if (!total) return h + '<div class="xc-noresult">この学校の記録はまだありません。</div>';
+  XC_SUBJECTS.forEach(function(sub) {
+    var arr = bySub[sub];
+    if (!arr.length) return;
+    h += '<div class="xc-ssec xc-sub-' + sub + '"><div class="xc-ssec-head"><span class="xc-sc">' + sub + '</span><span class="xc-cnt">' + arr.length + '行</span></div>';
+    arr.forEach(function(x) { h += xcLineRowHtml(x.c, sub, x.idx, x.line, [_xcSchool], false); });
+    h += '</div>';
+  });
+  return h;
+}
+
+// ---- マトリクスのセル編集 ----
+function xcEditCell(el) {
+  if (el.querySelector('textarea')) return;
+  var card = xcEnsure(el.getAttribute('data-y'), el.getAttribute('data-t'), el.getAttribute('data-g'));
+  var sub = el.getAttribute('data-s');
+  var ta = document.createElement('textarea');
+  ta.className = 'xc-celledit';
+  ta.value = xcBody(card, sub);
+  ta.setAttribute('data-key', xcCardKey(card));
+  ta.setAttribute('data-sub', sub);
+  ta.onblur = function() { xcSaveCell(this); };
+  ta.onkeydown = function(e) { if (e.key === 'Escape') { this.onblur = null; xcRender(); } };
+  el.innerHTML = '';
+  el.appendChild(ta);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+function xcSaveCell(ta) {
+  var card = xcByKey(ta.getAttribute('data-key'));
+  var sub = ta.getAttribute('data-sub');
+  if (!card) { xcRender(); return; }
+  if (xcBody(card, sub) === ta.value) { xcRender(); return; }
+  card.subjectMemos[sub] = ta.value;
+  xcQueueSave(card); xcFlushSave();
+  xcRender();
+}
+function xcCellHtml(y, t, g, sub, isCur) {
+  var c = xcFind(y, t, g), txt = xcBody(c, sub);
+  return '<td class="xc-mcell' + (isCur ? ' xc-cur' : '') + '" title="クリックでその場で直せます"'
+    + ' data-y="' + esc(y) + '" data-t="' + esc(t) + '" data-g="' + esc(g) + '" data-s="' + sub + '"'
+    + ' onclick="xcEditCell(this)">'
+    + (txt ? '<div class="xc-txt">' + esc(txt) + '</div>' : '<span class="xc-none">記録なし</span>') + '</td>';
+}
+
+// ---- 切り口：テスト回で束ねる（年度＝列 × 教科＝行）----
+function xcTermHtml() {
+  var years = xcYears();
+  var h = '<div class="xc-bar"><span class="xc-lb">学年</span>' + xcSegHtml(XC_GRADES, _xcGrade, 'xcSetGrade')
+        + '<span class="xc-lb">テスト回</span>' + xcSegHtml(XC_TERMS, _xcTerm, 'xcSetTerm') + '</div>';
+  h += '<div class="xc-head"><div class="xc-h1"><span class="xc-pin">' + esc(_xcGrade) + ' ' + esc(_xcTerm) + '</span>を年度で並べる</div></div>';
+  h += '<div class="xc-lead">同じ「' + esc(_xcGrade) + '・' + esc(_xcTerm) + '」を、年度＝列（新しい順・左）× 教科＝行で横並び。<b>セルをクリックするとその場で直せます。</b></div>';
+  h += '<div class="xc-mwrap"><table class="xc-mx"><thead><tr><th class="xc-rowh">教科＼年度</th>'
+     + years.map(function(y, i) { return '<th class="' + (i === 0 ? 'xc-new' : '') + '">' + y + (i === 0 ? '（最新）' : '') + '</th>'; }).join('')
+     + '</tr></thead><tbody>';
+  XC_SUBJECTS.forEach(function(sub) {
+    h += '<tr class="xc-sub-' + sub + '"><td class="xc-rowh"><span class="xc-rb">' + sub + '</span></td>'
+       + years.map(function(y, i) { return xcCellHtml(y, _xcTerm, _xcGrade, sub, i === 0); }).join('') + '</tr>';
+  });
+  h += '</tbody></table></div><div class="xc-hint2">左の最新年を、右の過去年を見ながら埋める。</div>';
+  return h;
+}
+
+// ---- 切り口：教科で束ねる（年度＝列 × テスト回＝行）----
+function xcSubjectHtml() {
+  var years = xcYears();
+  var h = '<div class="xc-bar"><span class="xc-lb">学年</span>' + xcSegHtml(XC_GRADES, _xcGrade, 'xcSetGrade')
+        + '<span class="xc-lb">教科</span>' + xcSegHtml(XC_SUBJECTS, _xcSubject, 'xcSetSubject') + '</div>';
+  h += '<div class="xc-head"><div class="xc-h1"><span class="xc-pin">' + esc(_xcGrade) + ' ' + esc(_xcSubject) + '</span>をテスト回で追う</div></div>';
+  h += '<div class="xc-lead">同じ「' + esc(_xcGrade) + '・' + esc(_xcSubject) + '」を、年度＝列（新しい順・左）× テスト回＝行で一望（例：県庁所在地が毎年出ているか）。<b>セルをクリックするとその場で直せます。</b></div>';
+  h += '<div class="xc-mwrap"><table class="xc-mx xc-sub-' + _xcSubject + '"><thead><tr><th class="xc-rowh">回＼年度</th>'
+     + years.map(function(y, i) { return '<th class="' + (i === 0 ? 'xc-new' : '') + '">' + y + (i === 0 ? '（最新）' : '') + '</th>'; }).join('')
+     + '</tr></thead><tbody>';
+  XC_TERMS.forEach(function(t) {
+    h += '<tr><td class="xc-rowh"><span class="xc-rb">' + t + '</span></td>'
+       + years.map(function(y, i) { return xcCellHtml(y, t, _xcGrade, _xcSubject, i === 0); }).join('') + '</tr>';
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+
+// ---- 検索結果（全ビュー横断・行単位）----
+function xcSearchHtml() {
+  var t = xcTerms();
+  var hits = [];
+  xcFilledCards().slice().sort(xcSortCards).forEach(function(c) {
+    XC_SUBJECTS.forEach(function(sub) {
+      xcBody(c, sub).split('\n').forEach(function(line, idx) {
+        if (line.trim() && xcLineMatch(line, t)) hits.push({ c: c, sub: sub, line: line, idx: idx });
+      });
+    });
+  });
+  var h = '<div class="xc-srhead">🔎 ' + esc(xcFilterLabel()) + ' の検索結果：' + hits.length + '行</div>';
+  h += '<div class="xc-srsub">本文に含まれる行をカードをまたいで抜き出しました（新しい年度が上）。学校のチップ同士は「どちらか」、それ以外の語は「すべて含む」で絞ります。全角半角・かな/カナのぶれは吸収。<b>行をクリックするとその場で直せます。</b></div>';
+  if (!hits.length) return h + '<div class="xc-noresult">一致する行はありません（＝その条件の記録なし）</div>';
+  hits.forEach(function(x) { h += xcLineRowHtml(x.c, x.sub, x.idx, x.line, t.all, true); });
+  return h;
+}
+function xcSubColor(sub) {
+  return { '英語':'#2563eb','数学':'#dc2626','国語':'#7c3aed','理科':'#059669','社会':'#d97706','実技':'#0891b2' }[sub] || '#64748b';
+}
+
+// =====================================================
+// 生徒配布資料（A4・WYSIWYG：カード本文をそのまま出す）
+// 既存の期間印刷（kp-printing）と同じ「印刷ルート＋body class＋@page一時注入」方式。
+// allGrades=true で中1〜中3を3ページまとめて出す。
+// =====================================================
+function xcHandoutPageHtml_(grade) {
+  var card = xcFind(_xcYear, _xcTerm, grade);
+  if (!xcHasBody(card)) return '';
+  var h = '<div class="xc-page xc-sheet">';
+  h += '<div class="xc-sh-head"><div><div class="xc-sh-brand">進学塾クロフネ</div>'
+     + '<div class="xc-sh-title"><span class="xc-g">' + esc(grade) + '</span> 定期テスト対策</div></div>'
+     + '<div class="xc-sh-meta">' + esc(_xcYear) + '年度／' + esc(_xcTerm) + '<br>教科ごとの出題ポイント</div></div>';
+  h += '<div class="xc-sh-lead">このプリントは、過去の定期テストで実際に出た内容をまとめたものです。テスト範囲が正式に出る前から「今年も出そうな単元」を見つけて、早めに対策を始めよう！他の中学校で出題されている内容もおさえておこう！</div>';
+  XC_SUBJECTS.forEach(function(sub) {
+    var lines = xcLines(card, sub);
+    if (!lines.length) return;
+    h += '<div class="xc-subj xc-sub-' + sub + '"><div class="xc-subj-head"><span class="xc-b"></span><span class="xc-nm">' + sub + '</span></div>'
+       + '<ul class="xc-subj-lines">' + lines.map(function(l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul></div>';
+  });
+  h += '<div class="xc-guide"><h4>📌 テストまでの進め方</h4><div class="xc-steps">'
+     + '<div class="xc-step"><span class="xc-n">1</span><div class="xc-t">上に出ている単元は、過去に実際にテストで出たもの。今年も出る可能性が高いと知っておく。授業でこの内容をやったら、テストに出るつもりで取り組む。</div></div>'
+     + '<div class="xc-step"><span class="xc-n">2</span><div class="xc-t">学校の授業で習ったことや、配られたプリントは、そのまま出ることが多い。答えを見ないで解けるようになるまで、もう一度やり直す。</div></div>'
+     + '<div class="xc-step"><span class="xc-n">3</span><div class="xc-t">正式なテスト範囲が発表されたら、書かれている内容を最後までしっかり読む。やっていない単元やあいまいな単元がないか確認して、抜けをなくす。</div></div>'
+     + '</div></div>';
+  h += '<div class="xc-sh-foot">※ 過去の出題情報です。今年必ず出るとは限りませんが、早めの準備に役立ててください。／進学塾クロフネ</div>';
+  return h + '</div>';
+}
+function xcPrintHandout(allGrades) {
+  xcFlushSave();
+  var grades = allGrades ? XC_GRADES : [_xcGrade];
+  var pages = grades.map(xcHandoutPageHtml_).filter(function(x) { return x; });
+  if (!pages.length) {
+    alert(allGrades ? (_xcYear + '年度 ' + _xcTerm + ' はまだどの学年にも本文がありません。')
+                    : 'このカードにはまだ本文がありません。入力してから印刷してください。');
+    return;
+  }
+  var root = document.getElementById('xc-print-root');
+  if (!root) { alert('印刷エリアが見つかりません'); return; }
+  root.innerHTML = pages.join('');
+  root.style.display = 'block';
+  root.style.position = 'absolute';
+  root.style.left = '-99999px';
+  root.style.top = '0';
+  var st = document.createElement('style');
+  st.id = 'xc-page-style';
+  st.textContent = '@page { size: A4; margin: 10mm; }';
+  document.head.appendChild(st);
+  document.body.classList.add('xc-printing');
+  function xcCleanup() {
+    document.body.classList.remove('xc-printing');
+    root.style.display = 'none';
+    root.innerHTML = '';
+    var s2 = document.getElementById('xc-page-style');
+    if (s2 && s2.parentNode) s2.parentNode.removeChild(s2);
+    window.removeEventListener('afterprint', xcCleanup);
+  }
+  window.addEventListener('afterprint', xcCleanup);
+  setTimeout(function() { window.print(); }, 50);
+}
+
 </script>
 
 <div id="kp-print-root"></div>
 <div id="a4-print-root"></div>
+<div id="xc-print-root"></div>
 </body>
 </html>
