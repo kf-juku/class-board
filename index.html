@@ -1020,6 +1020,18 @@ input.xc-addin:focus { border-style:solid; border-color:var(--crimson); backgrou
 .cl-chip:hover { background: #e0e7ff; }
 .cl-chip.done { background: #dcfce7; color: #15803d; border-color: #86efac; text-decoration: line-through; opacity: .75; }
 .cl-chip.done:hover { opacity: 1; }
+.cl-chip-locked { cursor: default; opacity: .8; }
+.cl-chip-locked:hover { background: #eef2ff; }
+.cl-card-future { border-color: #d7dde7; background: #f8fafc; }
+.cl-card-future .cl-card-header { background: #eef1f5; border-bottom-color: #d7dde7; color: #64748b; }
+.cl-card-future .cl-chip { background: #eef1f5; color: #64748b; }
+.cl-future-badge { flex-shrink: 0; font-size: 10px; font-weight: 700; color: #475569; background: #e2e8f0; border-radius: 999px; padding: 1px 7px; }
+.mx-ordbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px; background: #fff7ed; border-bottom: 1px solid #fed7aa; font-size: 12px; color: #9a3412; }
+.mx-ordbtn { background: #fff; border: 1px solid #c7d2fe; color: #3730a3; border-radius: 5px; font-size: 11px; font-weight: 700; padding: 1px 6px; cursor: pointer; line-height: 1.6; }
+.mx-ordbtn:disabled { opacity: .3; cursor: default; }
+.mx-ordsave { background: #4338ca; border: 1px solid #4338ca; color: #fff; border-radius: 5px; font-size: 11px; font-weight: 700; padding: 2px 10px; cursor: pointer; }
+.mx-ordcancel { background: #fff; border: 1px solid #d1d5db; color: #6b7280; border-radius: 5px; font-size: 11px; padding: 2px 10px; cursor: pointer; }
+.mx-cb.mx-locked { opacity: .35; cursor: default; }
 .cl-chip-popup { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid #e0e7ff; border-radius: 8px; padding: 9px 11px; min-width: 170px; max-width: 230px; box-shadow: 0 4px 14px rgba(0,0,0,.1); z-index: 200; white-space: nowrap; pointer-events: none; }
 .cl-chip:hover .cl-chip-popup { display: block; }
 .cl-chip-popup-name { font-weight: 700; font-size: 12px; color: #1e1b4b; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #e0e7ff; }
@@ -9099,18 +9111,34 @@ function loadChecklists(taskUrl, callback) {
   });
 }
 
+// 未来開始カードのバッジ文言（2026-08-18）。startDate は作成直後は 'YYYY-MM-DD'、
+// GAS往復後は 'YYYY-MM-DDTHH:mm:ss.sssZ'（JST0時のUTC表記）で来る。どちらも Date にすれば
+// 端末のローカル時間＝JSTで同じ日付になるので、文字列を切らずに Date で日付を出す。
+function clFutureLabel_(cl) {
+  var d = new Date(cl.startDate);
+  if (isNaN(d.getTime())) return '開始日未設定';
+  return (d.getMonth() + 1) + '/' + d.getDate() + '開始';
+}
+
 // ── チェックリスト帯HTML（本日タブ・今週タブ共通） ──
 function checklistBarHtml() {
   var todayIso = isoDate(new Date());
   var active = _checklists.filter(function(cl) {
     return cl.status !== 'done' && cl.startDate <= todayIso;
   });
-  if (active.length === 0) return '';
+  // 開始日が今日より先のリスト（2026-08-18）：帯に一切出ないため「作成されていない」と誤解され、
+  //  カードが無いので開始日を直すこともできなかった。グレーカードで末尾に出す（チェックは不可）。
+  //  条件は active の否定にする＝どちらにも入らない取りこぼしを作らない
+  //  （GAS往復後の startDate は 'YYYY-MM-DDTHH:mm:ss.sssZ' 形式で来るため単純な日付比較にしない）。
+  var future = _checklists.filter(function(cl) {
+    return cl.status !== 'done' && !(cl.startDate <= todayIso);
+  }).sort(clDefaultCmp_);
+  if (active.length === 0 && future.length === 0) return '';
 
   // ── 自動統合（2026-06-11）：開始日が古い順に処理し、リストのメンバーの80%以上が
   //    既存グループの行（生徒の和集合）に含まれるならそのグループに統合する ──
   //    noMerge=true のリストは統合しない（作成時に「いいえ」を選んだ独立リスト 2026-06-12）
-  active.sort(function(a, b) { return (a.startDate || '') < (b.startDate || '') ? -1 : 1; });
+  active.sort(clDefaultCmp_);
   var mxGroups = mxComputeGroups_(active);
   var matrixCards = mxGroups.filter(function(g) { return g.lists.length >= 2; })
     .map(function(g) { return buildMatrixCard_(g); }).join('');
@@ -9120,7 +9148,8 @@ function checklistBarHtml() {
 
   var ico_chev = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
-  var cards = active.map(function(cl) {
+  // 単独カード1枚分のHTML。peers=チップのホバーに並べるリスト群／locked=チェック不可／futureLabel='8/19開始'
+  function clSingleCardHtml_(cl, peers, locked, futureLabel) {
     var items = cl.items || [];
     var doneCount = items.filter(function(it) { return it.done; }).length;
     var total = items.length;
@@ -9131,7 +9160,7 @@ function checklistBarHtml() {
     // チップ生成ヘルパー
     function makeChip(it, originalIdx) {
       var doneCls = it.done ? ' done' : '';
-      var popupRows = active.map(function(cl2) {
+      var popupRows = (peers || []).map(function(cl2) {
         var it2 = (cl2.items || []).find(function(x) { return x.name === it.name; });
         if (!it2) return '';
         var rowCls = it2.done ? ' row-done' : '';
@@ -9140,7 +9169,10 @@ function checklistBarHtml() {
           : '<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'#9ca3af\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><circle cx=\'12\' cy=\'12\' r=\'10\'/></svg>';
         return '<div class=\"cl-chip-popup-row' + rowCls + '\">' + ico + ' ' + esc(cl2.title) + '</div>';
       }).join('');
-      return '<span class="cl-chip' + doneCls + '" onclick="event.stopPropagation();clChipClick(\'' + cl.id + '\',' + originalIdx + ',this)">' +
+      var chipAttr = locked
+        ? ' title="開始日前のためチェックできません"'
+        : ' onclick="event.stopPropagation();clChipClick(\'' + cl.id + '\',' + originalIdx + ',this)"';
+      return '<span class="cl-chip' + doneCls + (locked ? ' cl-chip-locked' : '') + '"' + chipAttr + '>' +
         esc(it.name) +
         '<span class="cl-chip-popup"><div class="cl-chip-popup-name">' + esc(it.name) + '</div>' + popupRows + '</span>' +
         '</span>';
@@ -9197,10 +9229,11 @@ function checklistBarHtml() {
     var cardId = 'cl-card-' + cl.id;
     var ico_pencil = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
     var ico_x = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    return '<div class="cl-card" id="' + cardId + '" data-cl-id="' + cl.id + '">' +
+    return '<div class="cl-card' + (futureLabel ? ' cl-card-future' : '') + '" id="' + cardId + '" data-cl-id="' + cl.id + '">' +
       '<div class="cl-card-header collapsed" onclick="clToggleCard(\'' + cl.id + '\',this)">' +
       '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' +
       '<span class="cl-card-title">' + esc(cl.title) + '</span>' +
+      (futureLabel ? '<span class="cl-future-badge">' + esc(futureLabel) + '</span>' : '') +
       '<span class="cl-card-progress' + progCls + '">' + doneCount + '/' + total + '</span>' +
       '<span class="cl-chevron">' + ico_chev + '</span>' +
       '<button onclick="event.stopPropagation();openEditChecklistModal(&quot;' + cl.id + '&quot;)" title="編集" style="flex-shrink:0;background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px;display:flex;align-items:center;border-radius:3px;transition:color .15s">' + ico_pencil + '</button>' +
@@ -9211,9 +9244,12 @@ function checklistBarHtml() {
       '<div class="cl-chips">' + chips + '</div>' +
       '</div>' +
       '</div>';
-  }).join('');
+  }
 
-  var out = (matrixCards ? matrixCards : '') + (cards ? '<div class="cl-grid">' + cards + '</div>' : '');
+  var cards = active.map(function(cl) { return clSingleCardHtml_(cl, active, false, ''); }).join('');
+  var futureCards = future.map(function(cl) { return clSingleCardHtml_(cl, [cl], true, clFutureLabel_(cl)); }).join('');
+  var gridInner = cards + futureCards;
+  var out = (matrixCards ? matrixCards : '') + (gridInner ? '<div class="cl-grid">' + gridInner + '</div>' : '');
   return out ? '<div class="cl-zone">' + out + '</div>' : '';
 }
 
@@ -9221,7 +9257,11 @@ function checklistBarHtml() {
 var _mxOpenState = {}; // グループ開閉状態（先頭リストid → bool）
 
 function buildMatrixCard_(g) {
-  var lists = g.lists; // 開始日昇順
+  // グループの識別（開閉状態のキー）は統合順の先頭で固定。表示順を変えてもキーがぶれない。
+  var gid = g.lists[0].id;
+  var ordering = (_mxOrderMode === gid);
+  // 列の表示順：手動の並び順（sortOrder）→ 開始日 → 作成順
+  var lists = g.lists.slice().sort(mxColCmp_);
   var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
   var CR_ORDER = ['北久里浜', '久里浜'];
   function mKey_(it) { return it.uid || it.name; }
@@ -9255,7 +9295,6 @@ function buildMatrixCard_(g) {
     return m;
   });
 
-  var gid = lists[0].id;
   var isOpen = _mxOpenState[gid] === true; // デフォルト閉じ（川上さん指示2026-06-17：本日タブのチェックリストは閉じた状態で出す）
   var totalDone = 0, totalAll = 0;
   lists.forEach(function(cl) {
@@ -9275,8 +9314,11 @@ function buildMatrixCard_(g) {
         '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:104px;margin:0 auto">' + esc(cl.title) + '</span>' +
         '<span class="mx-colcnt' + (done === total && total > 0 ? ' done' : '') + '" id="mxcnt-' + cl.id + '">' + done + '/' + total + '</span>' +
         '<span style="white-space:nowrap">' +
-        '<button onclick="event.stopPropagation();openEditChecklistModal(&quot;' + cl.id + '&quot;)" title="編集" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px">' + ico_pencil + '</button>' +
-        '<button onclick="event.stopPropagation();clDeleteCard(\'' + cl.id + '\')" title="削除" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px">' + ico_x + '</button>' +
+        (ordering
+          ? '<button class="mx-ordbtn" ' + (li === 0 ? 'disabled ' : '') + 'onclick="event.stopPropagation();mxOrderMove(\'' + gid + '\',\'' + cl.id + '\',-1)" title="左へ">←</button> ' +
+            '<button class="mx-ordbtn" ' + (li === lists.length - 1 ? 'disabled ' : '') + 'onclick="event.stopPropagation();mxOrderMove(\'' + gid + '\',\'' + cl.id + '\',1)" title="右へ">→</button>'
+          : '<button onclick="event.stopPropagation();openEditChecklistModal(&quot;' + cl.id + '&quot;)" title="編集" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px">' + ico_pencil + '</button>' +
+            '<button onclick="event.stopPropagation();clDeleteCard(\'' + cl.id + '\')" title="削除" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 2px">' + ico_x + '</button>') +
         '</span></th>';
     }).join('') + '<th style="min-width:52px">進捗</th><th style="width:26px"></th></tr>';
 
@@ -9290,7 +9332,8 @@ function buildMatrixCard_(g) {
       targetCnt++;
       var it = cl.items[idx];
       if (it.done) doneCnt++;
-      return '<td><button class="mx-cb' + (it.done ? ' on' : '') + '" data-cl="' + cl.id + '" data-idx="' + idx + '" onclick="clMatrixToggle(\'' + cl.id + '\',' + idx + ',this)">' + (it.done ? '✓' : '') + '</button></td>';
+      return '<td><button class="mx-cb' + (it.done ? ' on' : '') + (ordering ? ' mx-locked' : '') + '" data-cl="' + cl.id + '" data-idx="' + idx + '"' +
+        (ordering ? ' title="並び替え中はチェックできません"' : ' onclick="clMatrixToggle(\'' + cl.id + '\',' + idx + ',this)"') + '>' + (it.done ? '✓' : '') + '</button></td>';
     }).join('');
     var full = targetCnt > 0 && doneCnt === targetCnt;
     return '<tr data-mxrow="' + esc(row.key) + '"' + (full ? ' class="mx-done-row"' : '') + '>' +
@@ -9322,20 +9365,110 @@ function buildMatrixCard_(g) {
   var titleNames = lists.map(function(cl) { return cl.title; }).join('・');
   var clIds = lists.map(function(cl) { return cl.id; }).join(',');
   var helpHtml = '<span class="gs-help" onclick="event.stopPropagation()"><span class="gs-help-icon">?</span>' +
-    '<span class="gs-help-body">【自動統合のルール】<br>開始日が古い順に並べ、新しいリストのメンバーの<b>80%以上がこの表のメンバーに含まれる</b>場合、自動でこの表に統合されます。<br><br>・列＝チェックリスト（開始日が古い順）／行＝生徒<br>・グレーのセル＝そのリストの対象外<br>・列の削除＝列ヘッダの ×（リストごと削除）<br>・行の削除＝行末の ×（全リストから外す）<br>・対象者の追加＝「＋生徒」で表内の全リストに追加。列ヘッダの ✎ で個別リストにも追加できます</span></span>';
+    '<span class="gs-help-body">【自動統合のルール】<br>開始日が古い順に並べ、新しいリストのメンバーの<b>80%以上がこの表のメンバーに含まれる</b>場合、自動でこの表に統合されます。<br><br>・列＝チェックリスト（既定は開始日→作った順。ヘッダの「≡ 並び順」で自分で並べ替えられます）／行＝生徒<br>・グレーのセル＝そのリストの対象外<br>・列の削除＝列ヘッダの ×（リストごと削除）<br>・行の削除＝行末の ×（全リストから外す）<br>・対象者の追加＝「＋生徒」で表内の全リストに追加。列ヘッダの ✎ で個別リストにも追加できます</span></span>';
   return '<div class="cl-card" style="margin-bottom:10px" data-mx-gid="' + gid + '" data-mx-cls="' + esc(clIds) + '">' +
     '<div class="cl-card-header' + (isOpen ? '' : ' collapsed') + '" onclick="mxToggleCard(\'' + gid + '\',this)">' +
     '<span style="flex-shrink:0">📊</span>' +
     '<span class="cl-card-title" title="' + esc(titleNames) + '">' + esc(titleNames) + '（自動統合：' + lists.length + 'リスト・' + rowList.length + '人）</span>' +
     helpHtml +
     '<button onclick="event.stopPropagation();mxToggleAddRow(\'' + gid + '\')" title="生徒を表内のすべてのリストに追加（新入生・追加漏れ用）" style="flex-shrink:0;font-size:11px;border:1px solid #c7d2fe;background:#fff;color:#3730a3;border-radius:6px;padding:1px 7px;cursor:pointer">＋生徒</button>' +
+    (ordering ? '' : '<button onclick="event.stopPropagation();mxOrderStart(\'' + gid + '\')" title="列（チェックリスト）の並び順を変える" style="flex-shrink:0;font-size:11px;border:1px solid #c7d2fe;background:#fff;color:#3730a3;border-radius:6px;padding:1px 7px;cursor:pointer">≡ 並び順</button>') +
     '<span class="cl-card-progress' + (totalDone === totalAll && totalAll > 0 ? ' all-done' : '') + '">' + totalDone + '/' + totalAll + '</span>' +
     '<span class="cl-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
     '</div>' +
+    (ordering
+      ? '<div class="mx-ordbar" onclick="event.stopPropagation()">' +
+        '<span>並び替え中：列見出しの ← → で入れ替えます</span>' +
+        '<button class="mx-ordsave" onclick="mxOrderSave(\'' + gid + '\')">保存</button>' +
+        '<button class="mx-ordcancel" onclick="mxOrderCancel(\'' + gid + '\')">キャンセル</button>' +
+        '</div>'
+      : '') +
     '<div id="mxadd-' + gid + '" style="display:none;padding:8px 12px;border-bottom:1px solid var(--border);background:#f8fafc;font-size:12px" onclick="event.stopPropagation()"></div>' +
     '<div class="cl-card-body' + (isOpen ? ' open' : '') + '" style="padding:0">' +
     columnsHtml +
     '</div></div>';
+}
+
+// ── 統合表の列（チェックリスト）の並び順 ──
+// 既定順：開始日 → 作成順（id末尾の数値）。同じ開始日のとき決着が付かず、
+// 読み込むたびに列の順が入れ替わっていたため作成順で決着させる（2026-08-18）。
+function clDefaultCmp_(a, b) {
+  var sa = String(a.startDate || ''), sb = String(b.startDate || '');
+  if (sa !== sb) return sa < sb ? -1 : 1;
+  var na = parseInt(String(a.id || '').replace(/\D/g, ''), 10) || 0;
+  var nb = parseInt(String(b.id || '').replace(/\D/g, ''), 10) || 0;
+  if (na !== nb) return na - nb;
+  return String(a.id) < String(b.id) ? -1 : 1;
+}
+// 表示順：手動の並び順（sortOrder）が最優先。未設定は既定順で後ろに回る。
+function mxColCmp_(a, b) {
+  var oa = (typeof a.sortOrder === 'number') ? a.sortOrder : Infinity;
+  var ob = (typeof b.sortOrder === 'number') ? b.sortOrder : Infinity;
+  if (oa !== ob) return oa - ob;
+  return clDefaultCmp_(a, b);
+}
+
+// ── 列の並び替えモード（2026-08-18 川上さん確定）──
+// 表全体の編集として「≡ 並び順」から入り、列見出しの ← → で入れ替え、保存で確定する。
+// 保存は updateChecklistOrder（並び順だけを送る専用action）。itemsを送らないので
+// 他の先生が付けたチェックを巻き戻さない。
+var _mxOrderMode = null;   // 並び替え中のグループid
+var _mxOrderBackup = null; // {チェックリストid: 元のsortOrder}
+
+function mxOrderStart(gid) {
+  var lists = mxListsOf_(gid);
+  if (!lists.length) return;
+  _mxOrderBackup = {};
+  lists.forEach(function(cl, i) {
+    _mxOrderBackup[cl.id] = cl.sortOrder;
+    cl.sortOrder = i; // 今の表示順で採番し直す（未設定・飛び番を正規化）
+  });
+  _mxOrderMode = gid;
+  _mxOpenState[gid] = true; // 閉じていると並び替えできないので開く
+  rerenderCurrentTab();
+}
+
+function mxOrderMove(gid, clId, dir) {
+  var lists = mxListsOf_(gid);
+  var i = -1;
+  lists.forEach(function(cl, k) { if (cl.id === clId) i = k; });
+  var j = i + dir;
+  if (i < 0 || j < 0 || j >= lists.length) return;
+  var t = lists[i].sortOrder;
+  lists[i].sortOrder = lists[j].sortOrder;
+  lists[j].sortOrder = t;
+  rerenderCurrentTab();
+}
+
+function mxOrderCancel(gid) {
+  var bk = _mxOrderBackup || {};
+  Object.keys(bk).forEach(function(id) {
+    var cl = _checklists.find(function(c) { return c.id === id; });
+    if (cl) cl.sortOrder = bk[id];
+  });
+  _mxOrderMode = null; _mxOrderBackup = null;
+  rerenderCurrentTab();
+  miniToast('並び替えをやめました');
+}
+
+function mxOrderSave(gid) {
+  var lists = mxListsOf_(gid);
+  var bk = _mxOrderBackup || {};
+  var changed = lists.filter(function(cl) { return cl.sortOrder !== bk[cl.id]; });
+  _mxOrderMode = null; _mxOrderBackup = null;
+  rerenderCurrentTab();
+  if (!changed.length) { miniToast('並び順は変わっていません'); return; }
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!taskUrl) { miniToast('⚠️ GAS未設定のため保存できません'); return; }
+  var left = changed.length, failed = 0;
+  changed.forEach(function(cl) {
+    callGas(taskUrl, { action: 'updateChecklistOrder', id: cl.id, sortOrder: String(cl.sortOrder) }, function(res) {
+      if (!res || !res.ok) failed++;
+      if (--left === 0) {
+        miniToast(failed ? '⚠️ 並び順の保存に失敗しました（' + failed + '件・GASの更新がまだかもしれません）' : '並び順を保存しました ✓');
+      }
+    }, 'POST');
+  });
 }
 
 // 統合グループ計算（checklistBarHtmlと作成時判定で共用 2026-06-12）
@@ -9369,7 +9502,7 @@ function mxComputeGroups_(lists) {
 function mxFindMergeTarget_(cl) {
   var todayIso = isoDate(new Date());
   var act = _checklists.filter(function(c) { return c.status !== 'done' && c.startDate <= todayIso; });
-  act.sort(function(a, b) { return (a.startDate || '') < (b.startDate || '') ? -1 : 1; });
+  act.sort(clDefaultCmp_);
   var groups = mxComputeGroups_(act);
   var keys = (cl.items || []).map(function(it) { return it.uid || it.name; });
   var best = null, bestRatio = 0;
