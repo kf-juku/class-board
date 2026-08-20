@@ -2113,6 +2113,7 @@ function loadAll() {
 }
 
 function reloadAll() {
+  clFlushQueue_();    // 未送信のチェックを先に送り切る（取り直しで消さない 2026-08-20）
   showLoading(false); // 残存オーバーレイを確実にクリア
   loadAll();
 }
@@ -2121,6 +2122,7 @@ function reloadAll() {
 // タブ切り替え
 // =====================================================
 function switchTab(tab) {
+  clFlushQueue_();  // タブを離れる前に未送信のチェックを送る（2026-08-20）
   _currentTab = tab;
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
   var ni = document.getElementById('nav-' + tab);
@@ -9685,10 +9687,8 @@ function clMatrixToggle(clId, idx, btn) {
     miniToast('全員完了！「' + cl.title + '」を完了しました ✓');
     rerenderCurrentTab();
   }
-  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
-  if (taskUrl) {
-    callGas(taskUrl, { action: 'updateChecklistItem', id: clId, idx: idx, done: it.done, doneAt: it.doneAt }, null, 'POST');
-  }
+  // 保存は裏でまとめて（2026-08-20）。押した瞬間に次を押せる。詳細は clQueueSave_ の説明。
+  clQueueSave_(clId, idx, it);
 }
 
 function clToggleCard(clId, hdrEl) {
@@ -9738,6 +9738,174 @@ function clDeleteCard(clId) {
   }
 }
 
+// =====================================================
+// チェックリストの保存キュー（2026-08-20）
+// 「1つチェックするたびに全画面ローディングが出て固まる」を解消する。
+// 他ツールと揃えた確定ルール：
+//  ① 送るのは変えた項目だけ＝リストid＋idx＋key(uid/氏名)＋done＋doneAt。items配列全体は送らない。
+//  ② 画面は押した瞬間に反映し、送信は裏（callGasの silent=true）で行う＝ローディングを出さない。
+//  ③ 同じリストのぶんは1回のPOST（updateChecklistItems）にまとめる。同じマスの連打は最新だけ残す。
+//  ④ 送信は直列（1本ずつ）＝GAS側の同時書き込み競合を避ける。
+//  ⑤ 未送信は画面右下に出し、離脱・再読込・タブ切替の前に送り切る。送れなければ警告する。
+// GASが updateChecklistItems 未対応（不明なアクション）のときは、自動で従来の
+//  updateChecklistItem（1件ずつ）に落ちる＝GAS貼り付け前でもHTMLだけ先に反映して構わない。
+// =====================================================
+var _clQueue = {};            // clId -> { idxの文字列 -> {idx,key,done,doneAt} }
+var _clSending = false;
+var _clSendingN = 0;
+var _clFailStreak = 0;
+var _clBulkUnsupported = false;
+var _clFlushTimer = null;
+var _clStatHideTimer = null;
+var _CL_DEBOUNCE_MS = 600;
+
+function clPendingCount_() {
+  var n = 0;
+  Object.keys(_clQueue).forEach(function(id) { n += Object.keys(_clQueue[id]).length; });
+  return n;
+}
+
+// it＝itemsの1要素。keyは uid があれば uid、無ければ氏名（既存の紐づけ方と同じ）
+function clQueueSave_(clId, idx, it) {
+  if (!_clQueue[clId]) _clQueue[clId] = {};
+  _clQueue[clId][String(idx)] = {
+    idx: idx,
+    key: (it && (it.uid || it.name)) || '',
+    done: !!(it && it.done),
+    doneAt: (it && it.doneAt) || ''
+  };
+  clUpdateSaveStat_();
+  if (_clFlushTimer) { clearTimeout(_clFlushTimer); }
+  _clFlushTimer = setTimeout(function() { clFlushQueue_(); }, _CL_DEBOUNCE_MS);
+}
+
+function clQueueBack_(clId, arr, from) {
+  if (!_clQueue[clId]) _clQueue[clId] = {};
+  for (var j = from; j < arr.length; j++) {
+    // その後に入った新しい操作を優先する（戻しで上書きしない）
+    if (!_clQueue[clId][String(arr[j].idx)]) _clQueue[clId][String(arr[j].idx)] = arr[j];
+  }
+}
+
+function clFlushQueue_() {
+  if (_clFlushTimer) { clearTimeout(_clFlushTimer); _clFlushTimer = null; }
+  if (_clSending) return;
+  var ids = Object.keys(_clQueue);
+  if (!ids.length) { clUpdateSaveStat_(); return; }
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!taskUrl) { _clQueue = {}; clUpdateSaveStat_(); return; }
+
+  var clId = ids[0];
+  var batch = _clQueue[clId];
+  delete _clQueue[clId];                       // 送信中ぶんはキューから外す（失敗したら戻す）
+  var arr = Object.keys(batch).map(function(k) { return batch[k]; });
+  _clSending = true;
+  _clSendingN = arr.length;
+  clUpdateSaveStat_();
+
+  var finish = function(ok, backFrom) {
+    _clSending = false;
+    _clSendingN = 0;
+    if (ok) {
+      _clFailStreak = 0;
+    } else {
+      clQueueBack_(clId, arr, backFrom || 0);
+      _clFailStreak++;
+    }
+    clUpdateSaveStat_();
+    if (clPendingCount_() > 0) {
+      setTimeout(function() { clFlushQueue_(); }, ok ? 0 : 4000);  // 失敗直後は少し待つ
+    }
+  };
+
+  // ── まとめて1回 ──
+  if (!_clBulkUnsupported) {
+    callGas(taskUrl, { action: 'updateChecklistItems', id: clId, items: JSON.stringify(arr) }, function(res) {
+      if (res && res.ok) { finish(true); return; }
+      var msg = res && res.error ? String(res.error) : '';
+      if (!res || msg.indexOf('unknown action') !== -1 || msg.indexOf('不明なアクション') !== -1) {
+        if (res) {                                 // GAS未対応＝1件ずつに落として即やり直す
+          _clBulkUnsupported = true;
+          console.warn('[checklist] updateChecklistItems 未対応のため1件ずつ送信に切り替えます');
+          _clSending = false; _clSendingN = 0;
+          clQueueBack_(clId, arr, 0);
+          clUpdateSaveStat_();
+          clFlushQueue_();
+          return;
+        }
+      }
+      finish(false);                                // 通信失敗・その他の失敗はキューに戻して再送
+    }, 'POST', true);
+    return;
+  }
+
+  // ── 1件ずつ（従来action・GAS未反映のときのフォールバック） ──
+  var i = 0;
+  var next = function() {
+    if (i >= arr.length) { finish(true); return; }
+    var x = arr[i++];
+    callGas(taskUrl, { action: 'updateChecklistItem', id: clId, idx: x.idx, key: x.key, done: x.done, doneAt: x.doneAt }, function(res) {
+      if (res && res.ok) { next(); return; }
+      finish(false, i - 1);                        // 失敗したぶんから後ろをキューに戻す
+    }, 'POST', true);
+  };
+  next();
+}
+
+// 右下の保存状況（押した操作を邪魔しない小さい表示）
+function clSaveStatEl_() {
+  var el = document.getElementById('cl-savestat');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'cl-savestat';
+    el.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:9998;display:none;align-items:center;gap:8px;'
+      + 'padding:7px 13px;border-radius:999px;font-size:12px;font-weight:600;'
+      + 'box-shadow:0 2px 10px rgba(0,0,0,.15);border:1px solid #c7d2fe;background:#eef2ff;color:#3730a3';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function clUpdateSaveStat_() {
+  var el = clSaveStatEl_();
+  var pending = clPendingCount_();
+  var total = pending + _clSendingN;
+  if (_clStatHideTimer) { clearTimeout(_clStatHideTimer); _clStatHideTimer = null; }
+
+  if (_clFailStreak >= 2 && total > 0) {
+    el.style.background = '#fee2e2'; el.style.color = '#b91c1c'; el.style.borderColor = '#fecaca';
+    el.innerHTML = '⚠ 未保存 ' + total + '件'
+      + '<button onclick="clFlushQueue_()" style="border:1px solid #fca5a5;background:#fff;color:#b91c1c;'
+      + 'border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer">再送</button>';
+    el.style.display = 'inline-flex';
+    return;
+  }
+  if (total > 0) {
+    el.style.background = '#eef2ff'; el.style.color = '#3730a3'; el.style.borderColor = '#c7d2fe';
+    el.textContent = '保存中… ' + total + '件';
+    el.style.display = 'inline-flex';
+    return;
+  }
+  if (el.style.display !== 'none') {
+    el.style.background = '#dcfce7'; el.style.color = '#15803d'; el.style.borderColor = '#bbf7d0';
+    el.textContent = '保存済み ✓';
+    _clStatHideTimer = setTimeout(function() { el.style.display = 'none'; }, 1600);
+  }
+}
+
+// 未送信を残したまま画面を離れさせない
+window.addEventListener('beforeunload', function(ev) {
+  if (_clSending || clPendingCount_() > 0) {
+    clFlushQueue_();
+    ev.preventDefault();
+    ev.returnValue = '';
+    return '';
+  }
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') clFlushQueue_();
+});
+
 function clChipClick(clId, idx, chipEl) {
   var cl = _checklists.find(function(c) { return c.id === clId; });
   if (!cl) return;
@@ -9768,10 +9936,8 @@ function clChipClick(clId, idx, chipEl) {
     miniToast('全員完了！チェックリストを完了しました ✓');
     rerenderCurrentTab();
   }
-  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
-  if (taskUrl) {
-    callGas(taskUrl, { action: 'updateChecklistItem', id: clId, idx: idx, done: it.done, doneAt: it.doneAt }, null, 'POST');
-  }
+  // 保存は裏でまとめて（2026-08-20）。押した瞬間に次を押せる。詳細は clQueueSave_ の説明。
+  clQueueSave_(clId, idx, it);
 }
 
 // ── 作成モーダルを開く ──
@@ -10199,10 +10365,8 @@ function toggleClItem(clId, idx) {
   }
 
   // GAS更新
-  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
-  if (taskUrl) {
-    callGas(taskUrl, { action: 'updateChecklistItem', id: clId, idx: idx, done: it.done, doneAt: it.doneAt }, null, 'POST');
-  }
+  // 保存は裏でまとめて（2026-08-20）。押した瞬間に次を押せる。詳細は clQueueSave_ の説明。
+  clQueueSave_(clId, idx, it);
 }
 
 // ── 複製 ──
