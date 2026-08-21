@@ -1619,6 +1619,7 @@ var _pendingDeleteIds = {}; // 削除中のタスクID一時保持（競合状�
 var _checklists = [];
 var _customBadges = [];  // 川上さん指示(2026-06-17)：手動カスタムバッジ。会員管理GASのカスタムバッジシートから取得（社員間同期）
 var _schoolInfo = [];
+var _schoolInfoLoaded = false;   // 2026-08-21：getSchoolInfo が成功したか。未読込のまま全件保存に落ちるのを防ぐ
 var _schoolTasks = [];
 var _testRecords = [];
 var _schoolEvents = [];
@@ -1956,7 +1957,10 @@ function loadAll() {
     _phase2Started = true;
     if (!studentUrl) return;
     var jobs = [
-      { action: 'getSchoolInfo',     apply: function(r){ if (r && r.success && r.list)       _schoolInfo = r.list; } },
+      // 2026-08-21：GASの getSchoolInfo が返すキーは info（list ではない）。list を見ていたため
+      //   _schoolInfo が常に空のまま起動し、全件送信の saveSchoolInfo が「空配列＋自分が触った数件」で
+      //   シートを全消し＋書き直していた（1人で使っても他校の特記事項が消える）。info を読む。
+      { action: 'getSchoolInfo',     apply: function(r){ if (r && r.success && (r.info || r.list)) { _schoolInfo = r.info || r.list; _schoolInfoLoaded = true; } } },
       { action: 'getSchoolTasks',    apply: function(r){ if (r && r.success && r.tasks)      _schoolTasks = r.tasks; } },
       { action: 'getTestRecords',    apply: function(r){ if (r && r.success && r.records)    _testRecords = r.records; } },
       { action: 'getSchoolEvents',   apply: function(r){ if (r && r.success && r.events)     _schoolEvents = r.events; } },
@@ -5020,13 +5024,71 @@ function toggleSchoolCard(header) {
 
 function saveSchoolMemo(school, memo) {
   var info = _schoolInfo.find(function(si) { return si.school === school; });
-  if (!info) { info = { school: school, note: memo }; _schoolInfo.push(info); }  // GASはnoteフィールド
+  if (!info) { info = { school: school, grade: '', note: memo }; _schoolInfo.push(info); }  // GASはnoteフィールド
   else info.note = memo;
+  // 2026-08-21：1レコードupsert。変えた1校だけを送る（_schoolInfo 全件は送らない）。
+  saveSchoolInfoOne_(info, function(ok) {
+    miniToast(ok ? '保存しました ✓' : '保存エラー');
+  });
+}
+
+// =====================================================
+// 学校情報の保存は「変えた1校だけ」（2026-08-21）
+// 【なぜ】全件配列を送る saveSchoolInfo は、GAS側が全行 deleteRows してから書き直すため、
+//   2人が別々の学校を同時に編集すると後勝ちで先の学校の特記事項が消える。
+//   他タブ（講習割付・欠席振替・タスク）と同じ「1レコード＝1つの小さな事実」に揃える。
+// 【フォールバック】GASが saveSchoolInfoOne 未対応（不明なアクション）のときだけ従来の
+//   全件保存に落ちる＝GAS貼り付け前でもHTMLだけ先に反映して構わない。
+//   ただし getSchoolInfo をまだ読めていない（_schoolInfoLoaded=false）ときは、
+//   空配列でシートを全消しする事故になるのでフォールバックしない。
+// =====================================================
+var _schoolInfoOneUnsupported = false;
+function saveSchoolInfoOne_(info, cb) {
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
-  if (!url) { miniToast('GAS URLが未設定です'); return; }
+  if (!url) { miniToast('GAS URLが未設定です'); if (cb) cb(false); return; }
+  var payload = { school: info.school || '', grade: info.grade || '', note: info.note || '' };
+  if (_schoolInfoOneUnsupported) { saveSchoolInfoAll_(url, cb); return; }
+  callGas(url, { action: 'saveSchoolInfoOne', info: JSON.stringify(payload) }, function(res) {
+    if (res && res.success) {
+      if (res.grade !== undefined && !info.grade) info.grade = res.grade; // 既存行に寄せた学年を反映
+      if (cb) cb(true);
+      return;
+    }
+    var msg = (res && res.error) ? String(res.error) : '';
+    if (res && (msg.indexOf('unknown action') !== -1 || msg.indexOf('不明なアクション') !== -1)) {
+      _schoolInfoOneUnsupported = true;
+      console.warn('[schoolInfo] saveSchoolInfoOne 未対応のため従来の全件保存に切り替えます');
+      saveSchoolInfoAll_(url, cb);
+      return;
+    }
+    if (cb) cb(false);   // 通信失敗・その他の失敗は全件保存に落とさない（消える方が怖い）
+  }, 'POST');
+}
+
+// 従来action（全件上書き）。GAS未対応時のフォールバックだけで使う。
+function saveSchoolInfoAll_(url, cb) {
+  if (!_schoolInfoLoaded || !_schoolInfo.length) {
+    // 読み込めていない状態で全件を送ると、シートの全学校を空で上書きしてしまう
+    console.warn('[schoolInfo] 学校情報が未読み込みのため全件保存を中止しました');
+    miniToast('学校情報を読み込めていません。再読み込みしてください');
+    if (cb) cb(false);
+    return;
+  }
   callGas(url, { action: 'saveSchoolInfo', info: JSON.stringify(_schoolInfo) }, function(res) {
-    if (res && res.success) miniToast('保存しました ✓');
-    else miniToast('保存エラー');
+    if (cb) cb(!!(res && res.success));
+  }, 'POST');
+}
+
+// 学校情報の1件削除（2026-08-21）。現状UIから呼ぶ導線は無い（削除ボタンは未設置）。
+// 追加する場合は必ず確認ダイアログを付け、_schoolInfo からも取り除いて renderSchool() する。
+function deleteSchoolInfoOne_(school, cb) {
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!url) { if (cb) cb(false); return; }
+  callGas(url, { action: 'deleteSchoolInfoOne', school: school, all: '1' }, function(res) {
+    if (res && res.success) {
+      _schoolInfo = _schoolInfo.filter(function(si) { return si.school !== school; });
+      if (cb) cb(true);
+    } else if (cb) cb(false);
   }, 'POST');
 }
 
@@ -6773,14 +6835,37 @@ function submitKoushuEditPeriod() {
   if (!url) { miniToast('GAS URLが未設定です'); return; }
 
   miniToast('保存中...');
-  callGas(url, { action: 'saveKoushuPeriod', period: JSON.stringify(updated) }, function(res) {
-    if (!res || !res.success) { alert('保存エラー：' + (res && res.error || '不明')); return; }
+  // 2026-08-21 差分保存＋GET→POST。
+  // この画面で編集できるのは 期間名・開始日・終了日 の3つだけ。
+  // komaFrames / gradeGoals は「この画面のキャッシュにたまたま載っていた古い値」なので
+  // 送らない＝他の人が直前に更新したコマ枠・目標回数を巻き戻さない。
+  function _keDone_() {
     var idx = _koushuPeriods.findIndex(function(x) { return x.id === id; });
-    if (idx !== -1) _koushuPeriods[idx] = updated;
+    // ローカルも「変えた3項目だけ」を当てる（komaFrames等は手元の値で塗り替えない）
+    if (idx !== -1) _koushuPeriods[idx] = Object.assign({}, _koushuPeriods[idx],
+      { name: name, startDate: start, endDate: end });
     closeModal('modal-koushu-edit');
     renderSettings();
     miniToast('講習期間を更新しました');
-  });
+  }
+  callGas(url, {
+    action: 'updateKoushuPeriodFields',
+    id: id,
+    fields: JSON.stringify({ name: name, startDate: start, endDate: end })
+  }, function(res) {
+    if (res && res.success) { _keDone_(); return; }
+    var msg = res && res.error ? String(res.error) : '';
+    if (res && (msg.indexOf('unknown action') !== -1 || msg.indexOf('不明なアクション') !== -1)) {
+      // GAS未反映のときだけ従来action（全体上書き）に落とす
+      console.warn('[koushu] updateKoushuPeriodFields 未対応のため従来の全体保存に切り替えます');
+      callGas(url, { action: 'saveKoushuPeriod', period: JSON.stringify(updated) }, function(res2) {
+        if (!res2 || !res2.success) { alert('保存エラー：' + (res2 && res2.error || '不明')); return; }
+        _keDone_();
+      }, 'POST');
+      return;
+    }
+    alert('保存エラー：' + (res && res.error || '不明'));
+  }, 'POST');
 }
 
 /**
@@ -6808,6 +6893,41 @@ function koushuCopyBlockHtml_() {
 }
 
 // 前年カレンダーから曜日×教室の開閉パターンを抽出して今年の日付範囲に適用
+// 2026-08-21 開閉校カレンダーの差分保存ヘルパー（全置換の廃止）。
+// 従来の saveKoushuCalendar は「その期間の全エントリを clearContent → setValues」で
+// 全置換していたため、2人が同じ講習期間の別の日を編集すると後勝ちで先の変更が消えた。
+//
+// ★重要★ 画面は期間の全日×2教室を常に描画しているので、
+//   「画面の全エントリ」を upsert しても結局は後勝ちになる。
+//   そこで送る前に、サーバーから読んだ _koushuCalendar と値が違うものだけに絞る。
+//   サーバーに行が無いキーは、行を作らないと「閉校」扱いになってしまうので常に送る。
+function koushuCalDiff_(entries) {
+  var base = {};
+  (_koushuCalendar || []).forEach(function(e) { base[e.date + '|' + e.classroom] = !!e.isOpen; });
+  return (entries || []).filter(function(e) {
+    var k = e.date + '|' + e.classroom;
+    if (!(k in base)) return true;            // サーバー未登録の日 → 行を作る必要がある
+    return base[k] !== !!e.isOpen;            // 値が変わったものだけ
+  });
+}
+
+// diffEntries＝送る差分、fullEntries＝GAS未反映時に従来actionへ落とすときの全件。
+// フォールバックに差分だけを渡すと「差分だけで全置換」になり全日程が消えるので、
+// 必ず全件を別引数で持たせる。
+function saveKoushuCalendarDiff_(url, periodId, diffEntries, fullEntries, cb) {
+  callGas(url, { action: 'upsertKoushuCalendar', periodId: periodId, entries: diffEntries }, function(res) {
+    var msg = res && res.error ? String(res.error) : '';
+    if (res && !res.success &&
+        (msg.indexOf('unknown action') !== -1 || msg.indexOf('不明なアクション') !== -1)) {
+      // GAS未反映のときだけ従来の全置換actionに落とす（全件を送る）
+      console.warn('[koushu] upsertKoushuCalendar 未対応のため従来の全置換に切り替えます');
+      callGas(url, { action: 'saveKoushuCalendar', periodId: periodId, entries: fullEntries }, cb, 'POST');
+      return;
+    }
+    cb(res);
+  }, 'POST');
+}
+
 function buildCalendarFromPattern_(srcEntries, newStart, newEnd) {
   var pat = {}; // '曜日|教室' → {open:n, total:n}
   srcEntries.forEach(function(e) {
@@ -7136,7 +7256,8 @@ function saveKoushuPage(pageId) {
   // 【重要】期間→カレンダーの順に直列送信する。
   // 同時に2本送るとGASのスクリプトロックを取り合い、片方が10秒待ちタイムアウトで
   // 「他のスタッフが同時に保存中です」エラーになる（2026-06-10のバグの真因）
-  callGas(url, { action: 'saveKoushuPeriod', period: JSON.stringify(updatedPeriod) }, function(res) {
+  // 2026-08-21：期間保存の送信先を新旧で切り替えるため、コールバックを名前付き関数に出した。
+  function afterPeriodSaved_(res) {
     if (!res || !res.success) { miniToast('保存エラー: ' + (res && res.error || '不明')); return; }
     // 講習（新規）：前年の開閉校パターンをコピー（2026-06-10。コピー指定があれば自動生成より優先）
     if (isNew && type !== 'test' && res.id) {
@@ -7148,10 +7269,11 @@ function saveKoushuPage(pageId) {
           var srcEntries0 = (resC0 && resC0.success) ? (resC0.entries || []) : [];
           if (!srcEntries0.length) { finishSave(); return; }
           var newCal0 = buildCalendarFromPattern_(srcEntries0, start, end);
-          callGas(url, { action: 'saveKoushuCalendar', periodId: newIdS0, entries: newCal0 }, function(resS0) {
+          // 新規期間なので既存行は0件＝upsertは実質そのままの一括追加になる
+          saveKoushuCalendarDiff_(url, newIdS0, newCal0, newCal0, function(resS0) {
             if (!resS0 || !resS0.success) { miniToast('カレンダー保存エラー: ' + (resS0 && resS0.error || '不明') + '（期間自体は保存済み）'); return; }
             finishSave();
-          }, 'POST');
+          });
         }, 'POST');
         return;
       }
@@ -7169,19 +7291,50 @@ function saveKoushuPage(pageId) {
         ['北久里浜','久里浜'].forEach(function(cr) { autoCal.push({ classroom: cr, date: dsA, isOpen: openA }); });
         dA.setDate(dA.getDate() + 1);
       }
-      callGas(url, { action: 'saveKoushuCalendar', periodId: res.id, entries: autoCal }, function(res2) {
+      // 新規期間なので既存行は0件＝upsertは実質そのままの一括追加になる
+      saveKoushuCalendarDiff_(url, res.id, autoCal, autoCal, function(res2) {
         if (!res2 || !res2.success) { miniToast('カレンダー保存エラー: ' + (res2 && res2.error || '不明') + '（期間自体は保存済み）'); return; }
         finishSave();
-      }, 'POST');
+      });
       return;
     }
     if (isNew || calEntries.length === 0) { finishSave(); return; }
-    callGas(url, { action: 'saveKoushuCalendar', periodId: pageId, entries: calEntries }, function(res2) {
+    // 2026-08-21 差分保存：全置換をやめ、サーバー値と違う日×教室だけを upsert する。
+    // 触っていない日は送らない＝他の人が同じ期間の別の日を直していても消さない。
+    var calDiff = koushuCalDiff_(calEntries);
+    if (calDiff.length === 0) { _koushuCalendar = calEntries; finishSave(); return; } // 変更なし＝送らない
+    saveKoushuCalendarDiff_(url, pageId, calDiff, calEntries, function(res2) {
       if (!res2 || !res2.success) { miniToast('カレンダー保存エラー: ' + (res2 && res2.error || '不明') + '（期間自体は保存済み）'); return; }
       _koushuCalendar = calEntries;
       finishSave();
+    });
+  }
+
+  // 2026-08-21 期間保存のディスパッチ。
+  //  ・新規は従来どおり saveKoushuPeriod（appendRow なので上書き事故が起きない）。ただしPOSTで送る。
+  //  ・既存は差分action。この画面で編集できるのは 名称/日付/コマ枠/目標回数 なのでそれだけ送る。
+  //  ・GAS未反映のときだけ従来actionへフォールバック。
+  if (isNew) {
+    callGas(url, { action: 'saveKoushuPeriod', period: JSON.stringify(updatedPeriod) }, afterPeriodSaved_, 'POST');
+  } else {
+    callGas(url, {
+      action: 'updateKoushuPeriodFields',
+      id: pageId,
+      fields: JSON.stringify({
+        name: name.trim(), startDate: start, endDate: end,
+        komaFrames: komaFrames, gradeGoals: gradeGoals
+      })
+    }, function(res) {
+      var msg = res && res.error ? String(res.error) : '';
+      if (res && !res.success &&
+          (msg.indexOf('unknown action') !== -1 || msg.indexOf('不明なアクション') !== -1)) {
+        console.warn('[koushu] updateKoushuPeriodFields 未対応のため従来の全体保存に切り替えます');
+        callGas(url, { action: 'saveKoushuPeriod', period: JSON.stringify(updatedPeriod) }, afterPeriodSaved_, 'POST');
+        return;
+      }
+      afterPeriodSaved_(res);
     }, 'POST');
-  });
+  }
 }
 
 function openKoushuDetail(periodId) {
@@ -7474,14 +7627,32 @@ function saveKoushuDetail(periodId) {
   }
 
   // 期間→カレンダーの順に直列送信（同時送信はGASロック競合でタイムアウトするため禁止）
-  callGas(url, { action: 'saveKoushuPeriod', period: Object.assign({}, period, { komaFrames: komaFrames, gradeGoals: gradeGoals }) }, function(res) {
+  // 2026-08-21 差分保存：この画面で編集できるのは コマ枠・目標回数・開閉校 の3つだけ。
+  // 名称や日付は送らない＝他の人が直前に変えた期間名・日程を巻き戻さない。
+  var _kdFull_ = Object.assign({}, period, { komaFrames: komaFrames, gradeGoals: gradeGoals });
+  function _kdAfterPeriod_(res) {
     if (!res || !res.success) { miniToast('期間保存エラー'); return; }
     onSaved();
-    callGas(url, { action: 'saveKoushuCalendar', periodId: periodId, entries: calEntries }, function(res2) {
+    var kdDiff = koushuCalDiff_(calEntries);
+    if (kdDiff.length === 0) { _koushuCalendar = calEntries; onSaved(); return; }
+    saveKoushuCalendarDiff_(url, periodId, kdDiff, calEntries, function(res2) {
       if (!res2 || !res2.success) { miniToast('カレンダー保存エラー'); return; }
       _koushuCalendar = calEntries;
       onSaved();
-    }, 'POST');
+    });
+  }
+  callGas(url, {
+    action: 'updateKoushuPeriodFields',
+    id: periodId,
+    fields: JSON.stringify({ komaFrames: komaFrames, gradeGoals: gradeGoals })
+  }, function(res) {
+    var msg = res && res.error ? String(res.error) : '';
+    if (res && !res.success &&
+        (msg.indexOf('unknown action') !== -1 || msg.indexOf('不明なアクション') !== -1)) {
+      callGas(url, { action: 'saveKoushuPeriod', period: _kdFull_ }, _kdAfterPeriod_, 'POST');
+      return;
+    }
+    _kdAfterPeriod_(res);
   }, 'POST');
 }
 
@@ -8592,6 +8763,13 @@ function deleteSchoolEvent(eventId) {
 // =====================================================
 // 学校ワークチェック保存
 // =====================================================
+// 2026-08-21 複数端末対策：checks（その学校×学年の全8教科）を丸ごと送るのをやめる。
+// 丸ごと送ると、別の先生が先にチェックした教科を、こちらの古い画面の値で巻き戻してしまう。
+// 送るのは触った1教科だけ（action: saveSchoolWorkChecks）。GAS側がシートの最新JSONを
+// 読み直して、その教科だけ差し替える。戻り値のマージ後 checks を _schoolWorks に取り込む。
+// GASが新actionに未対応（「不明なアクション」）のときだけ、従来の saveSchoolWork に落ちる。
+var _workCheckDiffUnsupported = false;
+
 function saveWorkCheck(select) {
   var school  = select.getAttribute('data-school');
   var grade   = select.getAttribute('data-grade');
@@ -8604,6 +8782,9 @@ function saveWorkCheck(select) {
   select.style.background = bgColor;
   select.style.color = textColor;
 
+  // 対象が取れないセルは保存しない（空キーでシートのJSONを汚さない）
+  if (!school || !grade || !subject) { miniToast('保存できません（対象不明）'); return; }
+
   // _schoolWorks を更新
   var work = _schoolWorks.find(function(w) { return w.school === school && w.grade === grade; });
   if (!work) {
@@ -8614,10 +8795,37 @@ function saveWorkCheck(select) {
 
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
-  callGas(url, { action: 'saveSchoolWork', work: JSON.stringify({ school: school, grade: grade, checks: work.checks }) }, function(res) {
+
+  // ── 従来action（GAS未対応時のフォールバック）──
+  var saveWorkCheckLegacy_ = function() {
+    callGas(url, { action: 'saveSchoolWork', work: JSON.stringify({ school: school, grade: grade, checks: work.checks }) }, function(res) {
+      if (res && res.success) {
+        miniToast('保存 ✓');
+      } else miniToast('保存エラー');
+    }, 'POST');
+  };
+  if (_workCheckDiffUnsupported) { saveWorkCheckLegacy_(); return; }
+
+  // ── 差分保存（変えた1教科だけ）──
+  var oneCheck = {};
+  oneCheck[subject] = val;
+  callGas(url, { action: 'saveSchoolWorkChecks', school: school, grade: grade, checks: JSON.stringify(oneCheck) }, function(res) {
     if (res && res.success) {
+      // 戻り値はマージ後の最新＝他の先生が入れた教科もここで取り込む。
+      // 開いているモーダルは作り直さない（再描画すると操作中のセルが飛ぶ）。次に開いたときに反映される。
+      if (res.checks && typeof res.checks === 'object') work.checks = res.checks;
+      if (res.workId) work.workId = res.workId;
       miniToast('保存 ✓');
-    } else miniToast('保存エラー');
+      return;
+    }
+    var msg = res && res.error ? String(res.error) : '';
+    if (res && (msg.indexOf('不明なアクション') !== -1 || msg.indexOf('unknown action') !== -1)) {
+      _workCheckDiffUnsupported = true;
+      console.warn('[schoolWork] saveSchoolWorkChecks 未対応のため saveSchoolWork に切り替えます');
+      saveWorkCheckLegacy_();
+      return;
+    }
+    miniToast('保存エラー');
   }, 'POST');
 }
 
@@ -8625,12 +8833,12 @@ function submitAddSchool() {
   var name = document.getElementById('new-school-name').value.trim();
   if (!name) { miniToast('学校名を入力してください'); return; }
   if (_schoolInfo.find(function(si) { return si.school === name; })) { miniToast('すでに登録されています'); return; }
-  _schoolInfo.push({ school: name, memo: '' });
-  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
-  if (url) {
-    callGas(url, { action: 'saveSchoolInfo', info: JSON.stringify(_schoolInfo) }, function() {
-    }, 'POST');
-  }
+  // 2026-08-21：GASが読む本文キーは note（memo ではない）。memo で push していたため
+  //   追加した学校の本文が保存経路に載っていなかった。
+  var info = { school: name, grade: '', note: '' };
+  _schoolInfo.push(info);
+  // 2026-08-21：追加も1レコードupsert。全件配列は送らない（他の学校の行に触らない）。
+  saveSchoolInfoOne_(info, function(ok) { if (!ok) miniToast('保存エラー'); });
   closeModal('modal-add-school');
   miniToast('学校を追加しました ✓');
   renderSchool();
