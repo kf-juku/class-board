@@ -7239,6 +7239,15 @@ function saveKoushuPage(pageId) {
     name: name.trim(), type: type, startDate: start, endDate: end,
     komaFrames: komaFrames, gradeGoals: gradeGoals
   });
+  // 2026-08-21：新規作成のIDはここで採番して送る。
+  // 【なぜ】callGas の POST は通信失敗時に最大2回まで自動再送する。
+  //   GAS側の新規作成は appendRow なので、サーバーで成功したのに応答だけ落ちた場合、
+  //   再送でもう1本できてしまう（1本目は開閉校も割付も空の幽霊期間になり、
+  //   起動時の期間判定がシート行順で先に来る幽霊を拾って時間割が空になる）。
+  //   先にIDを決めて送れば、再送はGAS側の「既存行を探す」に当たって同じ行を上書きするだけになる。
+  if (isNew && !updatedPeriod.id) {
+    updatedPeriod.id = 'kp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  }
 
   function finishSave() {
     miniToast('保存しました ✓（' + start + '〜' + end + '）');
