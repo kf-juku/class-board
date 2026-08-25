@@ -217,6 +217,12 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 /* テスト対策：対面授業と重なるコマ（川上さん確定 2026-08-25）。押すと確認が出て強行できる */
 .kse-cell-btn.kse-cell-lock { background:#e5e7eb !important; border-color:#d1d5db !important; color:#6b7280 !important; font-size:10px; font-weight:700; }
 .kse-cell-btn.kse-cell-lock:hover { background:#d1d5db !important; }
+/* チェックリストの読み込み中・失敗表示（川上さん指示 2026-08-25） */
+.cl-loading { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); background:var(--bg-sub,#f8fafc); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-top:10px; }
+.cl-spin { width:12px; height:12px; border:2px solid #d1d5db; border-top-color:#3C3489; border-radius:50%; display:inline-block; animation:cl-spin 0.8s linear infinite; }
+@keyframes cl-spin { to { transform:rotate(360deg); } }
+.cl-loaderr { display:flex; align-items:center; flex-wrap:wrap; font-size:12px; color:#991b1b; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:8px 12px; margin-top:10px; }
+@media print { .cl-loading, .cl-loaderr { display:none !important; } }
 .kse-cell-btn.kse-cell-forced.kse-cell-on { background:#7c3aed !important; border-color:#7c3aed !important; color:#fff !important; }
 .koushu-drop-target { outline: 2px dashed var(--crimson); outline-offset: -2px; background: rgba(220,38,38,0.05); }
 
@@ -1621,6 +1627,9 @@ var _tasks = [];
 var _taskAssignees = []; // タスクマネージャーGASから取得した担当者マスター
 var _pendingDeleteIds = {}; // 削除中のタスクID一時保持（競合状態対策）
 var _checklists = [];
+// チェックリストの読み込み状態（川上さん指示 2026-08-25：帯ごと消えると「消えた」と誤解されるため）
+var _checklistsLoaded = false;   // GASの応答が返ってきたか（成功・失敗どちらでも true）
+var _checklistsFailed = false;   // 応答が失敗だったか
 var _customBadges = [];  // 川上さん指示(2026-06-17)：手動カスタムバッジ。会員管理GASのカスタムバッジシートから取得（社員間同期）
 var _schoolInfo = [];
 var _schoolInfoLoaded = false;   // 2026-08-21：getSchoolInfo が成功したか。未読込のまま全件保存に落ちるのを防ぐ
@@ -7577,7 +7586,7 @@ function renderKoushuSummaryUI_(period) {
  * 絞り込みはプルダウンではなくチップ。並び替えは見出しの ▲▼。
  * 生徒名の右には通塾コマを常時表示する（ホバーだけにしない）。 */
 var _ksPeriod = null;
-var _ksF = { cr: '', gr: '', sc: '' };
+var _ksF = { cr: '', gr: '', sc: '', reg: '' }; // reg: '' | '未登録' | '登録済み'
 var _ksSort = { key: 'grade', asc: true };
 function ksSetF(kind, val) { _ksF[kind] = val; ksRender_(); }
 function ksSortBy(key) {
@@ -7603,6 +7612,23 @@ function ksKomaChips_(s) {
       esc((k.youbi || '') + String(k.time || '').split('〜')[0] + lab) + '</span>';
   }).join('');
 }
+/* チップの母集団（川上さん指示 2026-08-25）
+ * テスト対策期間：在籍（退会・休会でない）× 塾コース(attrJuku) × 中学生・高校生
+ * それ以外（講習）：在籍している生徒すべて
+ * 一括登録の生徒リストと同じ条件にそろえてある。 */
+function ksTargetStudents_(period) {
+  var isTest = !!(period && period.type === 'test');
+  return (_students || []).filter(function(s) {
+    if (!s) return false;
+    var st = String(s.status || '');
+    if (st === '退会' || st === '休会') return false;
+    if (!isTest) return true;
+    if (!s.attrJuku) return false;
+    var g = String(s.grade || '');
+    return g.indexOf('中') === 0 || g.indexOf('高') === 0;
+  });
+}
+
 function ksRows_(period) {
   var isTestS = period.type === 'test';
   var countMap = {}, jishuMap = {}, nameMap = {}, seenC = {}, seenJ = {};
@@ -7613,23 +7639,46 @@ function ksRows_(period) {
     else { if (!seenC[dk]) { seenC[dk] = true; countMap[a.studentId]++; } }
   });
   var goals = period.gradeGoals || {};
-  return Object.keys(countMap).map(function(sid) {
+  var rows = Object.keys(countMap).map(function(sid) {
     var s = _students.find(function(st) { return st.id === sid || st.name === nameMap[sid]; }) || { name: nameMap[sid] };
     var grade = s.grade || '';
     return { s: s, sid: sid, name: nameMap[sid], grade: grade, goal: goals[grade] || 0,
              count: countMap[sid], jishu: jishuMap[sid] || 0, isTest: isTestS };
   });
+  // 川上さん指示(2026-08-25)：テスト対策期間は「まだ1コマも登録していない生徒」も0回として出す。
+  //  登録済みの生徒しか出ないと、未登録の子を「あと4回」として拾えず取りこぼす。
+  //  講習期間は従来どおり登録済みのみ（母集団が在籍生徒全員で多すぎるため）。
+  if (isTestS) {
+    var have = {};
+    rows.forEach(function(r) { if (r.sid) have[r.sid] = 1; if (r.name) have[r.name] = 1; if (r.s && r.s.id) have[r.s.id] = 1; });
+    ksTargetStudents_(period).forEach(function(s) {
+      if (have[s.id] || have[s.name]) return;
+      rows.push({ s: s, sid: s.id, name: s.name, grade: s.grade || '', goal: goals[s.grade] || 0,
+                  count: 0, jishu: 0, isTest: true });
+    });
+  }
+  return rows;
 }
 function ksRender_() {
   var body = document.getElementById('ks-body');
   if (!body || !_ksPeriod) return;
   var period = _ksPeriod, isTestS = period.type === 'test';
   var all = ksRows_(period);
-  /* チップの候補は「登録済みの生徒」から作る */
-  function uniq(arr) { var o = []; arr.forEach(function(v) { if (v && o.indexOf(v) < 0) o.push(v); }); return o; }
-  var crs = uniq(all.map(function(r) { return r.s.classroom || ''; })).sort();
-  var grs = uniq(all.map(function(r) { return r.grade; })).sort(function(a, b) { return cbGradeRank_(a) - cbGradeRank_(b); });
-  var scs = uniq(all.map(function(r) { return r.s.school || ''; })).sort();
+  /* 川上さん指示(2026-08-25)：チップの候補は登録済みの生徒ではなく、
+     「在籍していて塾コースの中高生」（会員管理の生徒マスタ）から作る。
+     テスト対策以外の期間（講習）は在籍生徒全員を母集団にする。 */
+  var pool = ksTargetStudents_(period);
+  function cntBy(fn) { var c = {}; pool.forEach(function(s) { var v = fn(s); if (v) c[v] = (c[v] || 0) + 1; }); return c; }
+  var crCnt = cntBy(function(s) { return s.classroom || ''; });
+  var crs = Object.keys(crCnt).sort(function(a, b) { return (crCnt[b] - crCnt[a]) || (a < b ? -1 : 1); });
+  var grs = Object.keys(cntBy(function(s) { return s.grade || ''; })).sort(function(a, b) { return cbGradeRank_(a) - cbGradeRank_(b); });
+  var scCnt = cntBy(function(s) {
+    var name = String(s.school || '').trim();
+    if (!name) return '';
+    if (/小(学校)?$/.test(name)) return '';   // 小学校は出さない
+    return name;
+  });
+  var scs = Object.keys(scCnt).sort(function(a, b) { return (scCnt[b] - scCnt[a]) || (a < b ? -1 : 1); });
   function chipRow(label, items, kind) {
     var cur = _ksF[kind];
     return '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px">' +
@@ -7643,12 +7692,16 @@ function ksRender_() {
       }).join('') + '</div>';
   }
   var chipsEl = document.getElementById('ks-chips');
-  if (chipsEl) chipsEl.innerHTML = chipRow('教室', crs, 'cr') + chipRow('学年', grs, 'gr') + (isTestS || scs.length > 1 ? chipRow('中学校', scs, 'sc') : '');
+  if (chipsEl) chipsEl.innerHTML = chipRow('教室', crs, 'cr') + chipRow('学年', grs, 'gr') +
+    (scs.length ? chipRow('中学校', scs, 'sc') : '') +
+    (isTestS ? chipRow('登録', ['未登録', '登録済み'], 'reg') : '');
 
   var rows = all.filter(function(r) {
     if (_ksF.cr && (r.s.classroom || '') !== _ksF.cr) return false;
     if (_ksF.gr && r.grade !== _ksF.gr) return false;
     if (_ksF.sc && (r.s.school || '') !== _ksF.sc) return false;
+    if (_ksF.reg === '未登録' && (r.count + r.jishu) > 0) return false;
+    if (_ksF.reg === '登録済み' && (r.count + r.jishu) === 0) return false;
     return true;
   });
   var k = _ksSort.key, sg = _ksSort.asc ? 1 : -1;
@@ -7661,7 +7714,11 @@ function ksRender_() {
     return d * sg || String(a.name).localeCompare(String(b.name), 'ja');
   });
   var cntEl = document.getElementById('ks-cnt');
-  if (cntEl) cntEl.textContent = '（' + rows.length + '名' + (rows.length !== all.length ? ' / 全' + all.length + '名' : '') + '）';
+  if (cntEl) {
+    var noneN = all.filter(function(r) { return (r.count + r.jishu) === 0; }).length;
+    cntEl.textContent = '（' + rows.length + '名' + (rows.length !== all.length ? ' / 全' + all.length + '名' : '') +
+      (isTestS && noneN ? '・未登録' + noneN + '名' : '') + '）';
+  }
 
   function th(label, key, center) {
     var act = (_ksSort.key === key);
@@ -7684,12 +7741,13 @@ function ksRender_() {
       '<td style="padding:4px 8px;font-size:13px">' + chip +
         '<span style="margin-left:10px">' + ksKomaChips_(r.s) + '</span></td>' +
       '<td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">' + (r.grade || '—') + '</td>' +
-      '<td style="padding:4px 8px;font-size:13px;text-align:center">' + r.count + ' / ' + (r.goal || '—') + '</td>' +
+      '<td style="padding:4px 8px;font-size:13px;text-align:center">' +
+        ((r.count + r.jishu) === 0 ? '<span style="font-size:11px;background:#f3f4f6;color:#6b7280;border-radius:4px;padding:1px 6px">未登録</span>' : r.count + ' / ' + (r.goal || '—')) + '</td>' +
       (isTestS ? '<td style="padding:4px 8px;font-size:13px;text-align:center;color:#166534">' + r.jishu + '</td>' : '') +
       '<td style="padding:4px 8px;font-size:12px;text-align:center">' +
         (lack ? '<span style="color:#dc2626;font-weight:600">あと' + (r.goal - r.count) + '回</span>' : '<span style="color:#059669">✓</span>') +
       '</td></tr>';
-  }).join('');
+  }).join('') || '<tr><td colspan="' + (isTestS ? 5 : 4) + '" style="padding:10px;font-size:12px;color:var(--text-muted)">この絞り込みに当てはまる生徒はいません</td></tr>';
 }
 
 // 講習コマ枠 共通ヘルパー（2026-07-08 川上さん指示：自由入力→時刻ピッカー＋照合正規化）
@@ -9588,14 +9646,18 @@ var _currentClId = null; // 詳細モーダルで開いているチェックリ�
 
 // ── 初期化：起動時にGASからチェックリスト取得 ──
 function loadChecklists(taskUrl, callback) {
-  if (!taskUrl) { callback([]); return; }
+  if (!taskUrl) { _checklistsLoaded = true; _checklistsFailed = true; callback([]); return; }
   callGas(taskUrl, { action: 'getChecklists' }, function(res) {
+    // 川上さん指示(2026-08-25)：読み込み中と読み込み失敗を画面で分かるようにする
+    _checklistsLoaded = true;
     if (res && res.ok && Array.isArray(res.data)) {
+      _checklistsFailed = false;
       callback(res.data);
     } else {
+      _checklistsFailed = true;
       callback([]);
     }
-  });
+  }, 'GET', false, 2);
 }
 
 // 未来開始カードのバッジ文言（2026-08-18）。startDate は作成直後は 'YYYY-MM-DD'、
@@ -9609,6 +9671,19 @@ function clFutureLabel_(cl) {
 
 // ── チェックリスト帯HTML（本日タブ・今週タブ共通） ──
 function checklistBarHtml() {
+  // 川上さん指示(2026-08-25)：読み込みが終わるまでは帯ごと消さず「読み込み中」を出す。
+  //  以前は _checklists が空＝'' を返していたため、起動直後は帯が丸ごと無くなり「消えた」と見えた。
+  if (!_checklistsLoaded) {
+    return '<div class="cl-loading">' +
+      '<span class="cl-spin"></span>チェックリストを読み込み中…' +
+      '</div>';
+  }
+  if (_checklistsFailed) {
+    return '<div class="cl-loaderr">' +
+      '<span>&#9888; チェックリストを読み込めませんでした（表示されていないだけで、データは消えていません）</span>' +
+      '<button class="btn-sm" onclick="reloadAll()" style="margin-left:8px;border:1px solid #dc2626;color:#dc2626;background:#fff;border-radius:5px;padding:2px 8px;cursor:pointer">&#128260; 再読み込み</button>' +
+      '</div>';
+  }
   var todayIso = isoDate(new Date());
   var active = _checklists.filter(function(cl) {
     return cl.status !== 'done' && cl.startDate <= todayIso;
