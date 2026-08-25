@@ -221,6 +221,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cl-loading { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); background:var(--bg-sub,#f8fafc); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-top:10px; }
 .cl-spin { width:12px; height:12px; border:2px solid #d1d5db; border-top-color:#3C3489; border-radius:50%; display:inline-block; animation:cl-spin 0.8s linear infinite; }
 @keyframes cl-spin { to { transform:rotate(360deg); } }
+.cb-loading-note { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); background:var(--bg-sub,#f8fafc); border:1px dashed var(--border); border-radius:8px; padding:10px 12px; }
+.cb-spin { width:12px; height:12px; border:2px solid #d1d5db; border-top-color:#3C3489; border-radius:50%; display:inline-block; animation:cl-spin 0.8s linear infinite; }
+.cb-fail-note { font-size:12px; color:#991b1b; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:10px 12px; font-weight:600; }
+.cb-period-hint { font-size:11px; color:var(--text-muted); background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px; padding:6px 10px; margin-top:6px; line-height:1.6; }
+@media print { .cb-loading-note, .cb-fail-note, .cb-period-hint { display:none !important; } }
 .cl-loaderr { display:flex; align-items:center; flex-wrap:wrap; font-size:12px; color:#991b1b; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:8px 12px; margin-top:10px; }
 @media print { .cl-loading, .cl-loaderr { display:none !important; } }
 .kse-cell-btn.kse-cell-forced.kse-cell-on { background:#7c3aed !important; border-color:#7c3aed !important; color:#fff !important; }
@@ -1651,6 +1656,11 @@ var _koushuAssignments = [];  // 現在の期間の生徒割付
 var _activeKoushuPeriodId = null; // 設定タブで選択中の期間ID
 var _koushuMode = false;      // 講習モード表示中かどうか（今日・今週タブ）
 var _koushuModeUserOverride = null; // null=自動, true=手動ON, false=手動OFF
+// 川上さん指示(2026-08-25)：読み込めていないのを「データが無い」と誤認させない。
+//  各データが「まだ来ていない(false)」「来た(true)」を持ち、失敗は _cbFail に立てる。
+//  空表示の分岐は必ず cbEmptyHtml_ を通す（直接「ありません」を返さない）。
+var _cbLoaded = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false };
+var _cbFail   = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false };
 var _cbCriticalLoadFailed = false; // 2026-08-04：生徒/講習期間の取得失敗（null応答）を検知。firstPaintで失敗バナー表示に使う
 var CB_VIEW_PERIOD_KEY = 'cb_view_period_id';
 var _selectedViewPeriodId = localStorage.getItem(CB_VIEW_PERIOD_KEY) || '__auto__'; // 期間選択プルダウン：'__auto__'=自動（進行中）, ''=通常表示固定, その他=期間ID（2026-06-10）
@@ -1996,6 +2006,7 @@ window.addEventListener('DOMContentLoaded', function() {
 function loadAll() {
   showLoading(true);
   _cbCriticalLoadFailed = false; // 2026-08-04：重要データ取得失敗の検知フラグをリセット
+  ['students','absence','periods','assigns','works','examCards'].forEach(function(k) { _cbLoaded[k] = false; _cbFail[k] = false; });
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var taskUrl    = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
 
@@ -2042,12 +2053,12 @@ function loadAll() {
       { action: 'getSchoolTasks',    apply: function(r){ if (r && r.success && r.tasks)      _schoolTasks = r.tasks; } },
       { action: 'getTestRecords',    apply: function(r){ if (r && r.success && r.records)    _testRecords = r.records; } },
       { action: 'getSchoolEvents',   apply: function(r){ if (r && r.success && r.events)     _schoolEvents = r.events; } },
-      { action: 'getSchoolWorks',    apply: function(r){ if (r && r.success && r.works)      _schoolWorks = r.works; } },
+      { action: 'getSchoolWorks',    apply: function(r){ _cbLoaded.works = true; if (r && r.success && r.works) _schoolWorks = r.works; else _cbFail.works = true; } },
       { action: 'getExamStrategies', apply: function(r){ if (r && r.success && r.strategies) _examStrategies = r.strategies; } },
       { action: 'getExamSchedules',  apply: function(r){ if (r && r.success && r.schedules)  _examSchedules = r.schedules; } },
       { action: 'getCustomBadges',   apply: function(r){ if (r && r.success && r.badges) { _customBadges = r.badges; rebuildCustomBadgeIndex_(); } } },
       // 定期テスト対策カード（2026-08-17 カード自由記述方式）。重要度は中なので retries は付けない。
-      { action: 'getExamCards',      apply: function(r){ if (r && r.success && r.cards) { _examCards = r.cards; _xcLastFetch = Date.now(); } } }
+      { action: 'getExamCards',      apply: function(r){ _cbLoaded.examCards = true; if (r && r.success && r.cards) { _examCards = r.cards; _xcLastFetch = Date.now(); } else { _cbFail.examCards = true; } } }
     ];
     jobs.forEach(function(job) {
       p2++;
@@ -2056,7 +2067,7 @@ function loadAll() {
     if (_koushuFixPid) { // フェーズ1で先読みした期間と実アクティブ期間が違った場合の取り直し
       p2++;
       callGas(studentUrl, { action: 'getKoushuAssignments', periodId: _koushuFixPid }, function(r) {
-        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _koushuFixPid; } d2();
+        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _koushuFixPid; _cbLoaded.assigns = true; } d2();
       }, 'GET', true);
       p2++;
       callGas(studentUrl, { action: 'getKoushuCalendar', periodId: _koushuFixPid }, function(rc) {
@@ -2079,15 +2090,18 @@ function loadAll() {
           });
         });
         _students = res.students;
+        _cbLoaded.students = true;
       } else {
         _cbCriticalLoadFailed = true; // 生徒データ取得に失敗（null応答＝通信失敗/コールドスタート）
+        _cbLoaded.students = true; _cbFail.students = true;
       }
       d1();
     }, 'GET', false, 2);
     // 欠席・振替
     p1++;
     callGas(studentUrl, { action: 'getAbsenceRecords' }, function(res) {
-      if (res && res.success && res.records) { _absenceRecords = res.records.map(normalizeAbsenceRecord_); }
+      if (res && res.success && res.records) { _absenceRecords = res.records.map(normalizeAbsenceRecord_); _cbLoaded.absence = true; }
+      else { _cbLoaded.absence = true; _cbFail.absence = true; }
       d1();
     }, 'GET', false, 2);
     // 講習：前回のアクティブ期間IDをキャッシュして割付・カレンダーを並列先読み（getKoushuPeriodsを待たない）
@@ -2098,7 +2112,8 @@ function loadAll() {
       _koushuLoadedPid = _cachedPid;
       p1++;
       callGas(studentUrl, { action: 'getKoushuAssignments', periodId: _cachedPid }, function(r) {
-        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _cachedPid; }
+        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = _cachedPid; _cbLoaded.assigns = true; }
+        else { _cbLoaded.assigns = true; _cbFail.assigns = true; }
         d1();
       }, 'GET', false, 2);
       p1++;
@@ -2110,8 +2125,8 @@ function loadAll() {
     // 講習期間（モード判定に必須）
     p1++;
     callGas(studentUrl, { action: 'getKoushuPeriods' }, function(res) {
-      if (res && res.success && res.periods) { _koushuPeriods = res.periods; }
-      else if (!res || !res.success) { _cbCriticalLoadFailed = true; } // 講習期間取得に失敗＝モード判定・プルダウンが出せない
+      if (res && res.success && res.periods) { _koushuPeriods = res.periods; _cbLoaded.periods = true; }
+      else if (!res || !res.success) { _cbCriticalLoadFailed = true; _cbLoaded.periods = true; _cbFail.periods = true; } // 講習期間取得に失敗＝モード判定・プルダウンが出せない
       var todayIso_ = isoDate(new Date());
       var activePeriod = _koushuPeriods.find(function(p) { return p.startDate <= todayIso_ && todayIso_ <= p.endDate; });
       if (!activePeriod) {
@@ -2130,7 +2145,8 @@ function loadAll() {
             // 先読みゼロ（初回等）：フェーズ1で取得して描画に間に合わせる
             p1++;
             callGas(studentUrl, { action: 'getKoushuAssignments', periodId: activePeriod.id }, function(r) {
-              if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = activePeriod.id; }
+              if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = activePeriod.id; _cbLoaded.assigns = true; }
+              else { _cbLoaded.assigns = true; _cbFail.assigns = true; }
               d1();
             }, 'GET', false, 2);
             p1++;
@@ -3352,7 +3368,7 @@ function renderToday() {
             '</div>' });
         });
       } else if (!normalKomas.length) {
-        _tblocks.push({ t: 0, html: '<div class="koma-empty">本日の講習登録はありません</div>' });
+        _tblocks.push({ t: 0, html: cbEmptyHtml_(['students','periods','assigns'], 'コマ割り', '<div class="koma-empty">本日の講習登録はありません</div>', false) });
       }
 
       var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
@@ -3424,11 +3440,15 @@ function renderToday() {
               '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + (function(){var _o=[];var _tkA={};if(getActiveTestPeriod_()){(_koushuAssignments||[]).forEach(function(a){if(a.date!==todayIso||a.classroom!==cr||a.komaTime!==kt)return;if(!_tkA[a.studentName])_tkA[a.studentName]=a.type||'taisaku';});}var _tkUsed={};ss.forEach(function(s){var _tb=_tkA[s.name];if(_tb)_tkUsed[s.name]=1;_o.push({html:studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso,testBadge:_tb}),key:attendSortKey_(s,{komaType:_komaTypeOf_(_matchedKoma_(s,cr,todayYoubi,kt))})});});(_absenceRecords||[]).filter(function(r){return r.substituteDate===todayIso&&r.substituteKomaTime===kt&&r.substituteClassroom===cr&&r.status==='scheduled'&&!ss.find(function(s){return s.name===r.studentName;});}).forEach(function(r){var stu=(_students||[]).find(function(s){return s.name===r.studentName;})||{name:r.studentName};var _ok=(stu.komas||[]).find(function(k){return k.time===r.komaTime;});var _tb2=_tkA[r.studentName];if(_tb2)_tkUsed[r.studentName]=1;_o.push({html:studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso,testBadge:_tb2}),key:attendSortKey_(stu,{isSub:true,subOrigType:_komaTypeOf_(_ok)})});});if(getActiveTestPeriod_()){(_koushuAssignments||[]).forEach(function(a){if(a.date!==todayIso||a.classroom!==cr||a.komaTime!==kt)return;if(_tkUsed[a.studentName])return;/* 川上さん確定(2026-08-25)：通常コマと重なる対策は1チップにまとめる（強行登録の分） */var _ts=_students.find(function(st){return st.id===a.studentId||st.name===a.studentName;})||{name:a.studentName};if(_ts.status==='退会'||_ts.status==='休会')return;_o.push({html:studentChipHtml(_ts,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso,testBadge:a.type||'taisaku'}),key:attendSortKey_(_ts,{assignType:a.type||'taisaku'})});});}_o.sort(function(a,b){return attendCmp_(a.key,b.key);});return _o.map(function(x){return x.html;}).join('');})() + jukenBlock + '</div>' +
               '</div>';
           }).join('')
-        : '<div class="koma-empty">本日の授業はありません</div>';
+        : cbEmptyHtml_(['students','periods','assigns'], '時間割', '<div class="koma-empty">本日の授業はありません</div>', false);
       var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
       return '<div class="classroom-block' + crCls + '"><div class="classroom-block-header">🏫 ' + cr + '</div>' + komaHtml + '</div>';
     }).join('');
   }
+
+  // 川上さん指示(2026-08-25)：両方の教室とも1人も出ないときだけ、期間の説明を1回出す
+  //  （片方の教室が空なだけで毎日出すとうるさいため）
+  if (crHtml.indexOf('student-chip') < 0) crHtml = cbPeriodHintHtml_() + crHtml;
 
   // 授業内・授業外・期限切れでフィルタ（taskType設定済みのみ）
   // classroom が一致するもの／空欄は両教室に表示
@@ -3952,7 +3972,14 @@ function renderWeek() {
     '</span>' +
     '</div>' +
     '<div class="print-header">今週の時間割　' + weekLabel + '　' + _currentClassroom + '</div>' +
-    '<div class="week-grid-wrap">' + buildWeekGrid(days, todayIso) + '</div>' +
+    (function() {
+      // 川上さん指示(2026-08-25)：今週タブも「空＝データが無い」と誤認させない
+      var _wg = buildWeekGrid(days, todayIso);
+      var _wEmpty = (_wg.indexOf('student-chip') < 0);
+      var _note = cbEmptyHtml_(['students','periods','assigns'], '時間割',
+        _wEmpty ? '<div class="koma-empty">この期間に表示するコマがありません</div>' : '', _wEmpty);
+      return (_note ? '<div style="margin:8px 0">' + _note + '</div>' : '') + '<div class="week-grid-wrap">' + _wg + '</div>';
+    })() +
     checklistBarHtml();
 
   document.getElementById('main-content').innerHTML = html;
@@ -7569,10 +7596,16 @@ function renderKoushuCalendarUI_(period) {
  * 受講状況サマリーUI（割付済み生徒の回数カウント）
  */
 function renderKoushuSummaryUI_(period) {
+  // 川上さん指示(2026-08-25)：期間が変わったら絞り込みを既定に戻す。
+  //  テスト対策＝はじめから未登録も見せる／講習＝登録済みだけ見せて、[未登録] を押したときに出す。
+  if (_ksPeriodId !== (period && period.id)) {
+    _ksPeriodId = (period && period.id) || '';
+    _ksF = { cr: '', gr: '', sc: '', reg: (period && period.type === 'test') ? '' : '登録済み' };
+  }
   _ksPeriod = period;
   if (_koushuAssignments.length === 0) {
     return '<div style="margin-bottom:16px">' +
-      '<p style="font-size:13px;color:var(--text-muted)">まだ登録データがありません。「👥 コマ割り登録（一括）」から生徒を登録してください。</p></div>';
+      cbEmptyHtml_(['students','assigns'], 'コマ割り', '<p style="font-size:13px;color:var(--text-muted)">まだ登録データがありません。「👥 コマ割り登録（一括）」から生徒を登録してください。</p>', false) + '</div>';
   }
   setTimeout(ksRender_, 0);
   return '<div style="margin-bottom:16px">' +
@@ -7586,6 +7619,7 @@ function renderKoushuSummaryUI_(period) {
  * 絞り込みはプルダウンではなくチップ。並び替えは見出しの ▲▼。
  * 生徒名の右には通塾コマを常時表示する（ホバーだけにしない）。 */
 var _ksPeriod = null;
+var _ksPeriodId = '';
 var _ksF = { cr: '', gr: '', sc: '', reg: '' }; // reg: '' | '未登録' | '登録済み'
 var _ksSort = { key: 'grade', asc: true };
 function ksSetF(kind, val) { _ksF[kind] = val; ksRender_(); }
@@ -7647,14 +7681,15 @@ function ksRows_(period) {
   });
   // 川上さん指示(2026-08-25)：テスト対策期間は「まだ1コマも登録していない生徒」も0回として出す。
   //  登録済みの生徒しか出ないと、未登録の子を「あと4回」として拾えず取りこぼす。
-  //  講習期間は従来どおり登録済みのみ（母集団が在籍生徒全員で多すぎるため）。
-  if (isTestS) {
+  //  講習期間も未登録を持つが、母集団が在籍生徒全員（小学生・CAの子も来る）で多いため、
+  //  既定の絞り込みを「登録済み」にして、[未登録] を押したときだけ見えるようにする（川上さん指示 2026-08-25）。
+  {
     var have = {};
     rows.forEach(function(r) { if (r.sid) have[r.sid] = 1; if (r.name) have[r.name] = 1; if (r.s && r.s.id) have[r.s.id] = 1; });
     ksTargetStudents_(period).forEach(function(s) {
       if (have[s.id] || have[s.name]) return;
       rows.push({ s: s, sid: s.id, name: s.name, grade: s.grade || '', goal: goals[s.grade] || 0,
-                  count: 0, jishu: 0, isTest: true });
+                  count: 0, jishu: 0, isTest: isTestS });
     });
   }
   return rows;
@@ -7694,7 +7729,7 @@ function ksRender_() {
   var chipsEl = document.getElementById('ks-chips');
   if (chipsEl) chipsEl.innerHTML = chipRow('教室', crs, 'cr') + chipRow('学年', grs, 'gr') +
     (scs.length ? chipRow('中学校', scs, 'sc') : '') +
-    (isTestS ? chipRow('登録', ['未登録', '登録済み'], 'reg') : '');
+    chipRow('登録', ['未登録', '登録済み'], 'reg');
 
   var rows = all.filter(function(r) {
     if (_ksF.cr && (r.s.classroom || '') !== _ksF.cr) return false;
@@ -7717,7 +7752,7 @@ function ksRender_() {
   if (cntEl) {
     var noneN = all.filter(function(r) { return (r.count + r.jishu) === 0; }).length;
     cntEl.textContent = '（' + rows.length + '名' + (rows.length !== all.length ? ' / 全' + all.length + '名' : '') +
-      (isTestS && noneN ? '・未登録' + noneN + '名' : '') + '）';
+      (noneN ? '・未登録' + noneN + '名' : '') + '）';
   }
 
   function th(label, key, center) {
@@ -9191,6 +9226,40 @@ function _gasLoadingText_(params) {
   return '保存中…';
 }
 // 2026-08-04：重要データ取得失敗バナーの表示切替。firstPaintから呼ぶ。
+/* ===== 「空」と「まだ読めていない」を区別する（川上さん指示 2026-08-25） =====
+ * 一覧が空になる場所では、必ず cbEmptyHtml_ を通して理由を出す。
+ *   まだ来ていない → 読み込み中／失敗 → 赤帯＋再読み込み／本当に空 → 通常メッセージ（＋期間の注記）
+ */
+function cbLoadingHtml_(label) {
+  return '<div class="cb-loading-note"><span class="cb-spin"></span>' + esc(label || 'データ') + 'を読み込み中…</div>';
+}
+function cbFailHtml_(label) {
+  return '<div class="cb-fail-note">&#9888; ' + esc(label || 'データ') + 'を読み込めませんでした' +
+    '<span style="font-weight:400">（表示されていないだけで、データは消えていません）</span>' +
+    '<button class="btn-sm" onclick="reloadAll()" style="margin-left:8px;border:1px solid #dc2626;color:#dc2626;background:#fff;border-radius:5px;padding:2px 8px;cursor:pointer">&#128260; 再読み込み</button></div>';
+}
+/* いま画面に出している期間の注記。期間を選んでいるせいで空に見えるときの説明 */
+function cbPeriodHintHtml_() {
+  var p = getActiveKoushuPeriod();
+  var others = (_koushuPeriods || []).filter(function(x) { return !p || x.id !== p.id; });
+  if (p) {
+    return '<div class="cb-period-hint">いま表示しているのは <b>' + esc(p.name) + '</b>' +
+      (p.type === 'test' ? '（テスト対策）' : '（講習）') + ' の期間です。' +
+      (others.length ? '別の期間のコマ割りは、画面上のプルダウンで切り替えると出ます。' : '') + '</div>';
+  }
+  if ((_koushuPeriods || []).length) {
+    return '<div class="cb-period-hint">いまは <b>通常表示</b> です。講習・テスト対策のコマ割りは、画面上のプルダウンで期間を選ぶと出ます。</div>';
+  }
+  return '';
+}
+/* keys: 依存しているデータのキー配列。空表示の直前に必ず通す */
+function cbEmptyHtml_(keys, label, emptyHtml, withPeriodHint) {
+  keys = keys || [];
+  for (var i = 0; i < keys.length; i++) { if (!_cbLoaded[keys[i]]) return cbLoadingHtml_(label); }
+  for (var j = 0; j < keys.length; j++) { if (_cbFail[keys[j]]) return cbFailHtml_(label); }
+  return emptyHtml + (withPeriodHint ? cbPeriodHintHtml_() : '');
+}
+
 function showLoadErrorBanner_(show) {
   var el = document.getElementById('cb-load-error');
   if (!el) return;
@@ -11528,6 +11597,9 @@ function xcRender() {
   if (_xcSchool === null) { var sc = xcSchools(); _xcSchool = sc.length ? sc[0] : ''; }
 
   var html = xcBarHtml();
+  // 川上さん指示(2026-08-25)：カードがまだ来ていないのを「入力されていない」と誤認させない
+  var _xcNote = cbEmptyHtml_(['students','examCards'], '定期テスト対策の入力', '', false);
+  if (_xcNote) html += '<div style="margin:8px 0">' + _xcNote + '</div>';
   if (xcHasFilter())              html += xcSearchHtml();
   else if (_xcView === 'input')   html += xcInputHtml();
   else if (_xcView === 'school')  html += xcSchoolHtml();
