@@ -7483,12 +7483,17 @@ function openKoushuDetail(periodId) {
     if (loaded >= 2) renderKoushuDetailModal_(period);
   }
 
+  // 🚨 川上さん報告(2026-08-25)：失敗しても空で上書きしない（フルページ版と同じ修正）
+  _cbLoaded.cal = false; _cbFail.cal = false;
+  _cbLoaded.assigns = false; _cbFail.assigns = false;
   callGas(url, { action: 'getKoushuCalendar', periodId: periodId }, function(res) {
-    _koushuCalendar = (res && res.success) ? res.entries : [];
+    if (res && res.success) { _koushuCalendar = res.entries || []; _cbLoaded.cal = true; }
+    else { _cbLoaded.cal = true; _cbFail.cal = true; }
     tryRender();
   }, 'POST');
   callGas(url, { action: 'getKoushuAssignments', periodId: periodId }, function(res) {
-    _koushuAssignments = (res && res.success) ? res.assignments : [];
+    if (res && res.success) { _koushuAssignments = res.assignments || []; window.__koushuDataPid = periodId; _cbLoaded.assigns = true; }
+    else { _cbLoaded.assigns = true; _cbFail.assigns = true; }
     tryRender();
   }, 'POST');
 }
@@ -9064,8 +9069,10 @@ function submitKoushuBulkAssign(periodId) {
   callGas(url, { action: 'bulkSaveKoushuAssignments', assignments: assignments }, function(res) {
     if (res && res.success) {
       miniToast('登録完了 ✓ 追加:' + res.added + '件' + (res.updated ? ' 教室更新:' + res.updated + '件' : '') + ' スキップ:' + res.skipped + '件');
+      // 🚨 川上さん報告(2026-08-25)：取り直しに失敗しても空で上書きしない（登録は成功しているのに画面から消える）
       callGas(url, { action: 'getKoushuAssignments', periodId: periodId }, function(r) {
-        _koushuAssignments = (r && r.success) ? r.assignments : [];
+        if (r && r.success) { _koushuAssignments = r.assignments || []; window.__koushuDataPid = periodId; _cbLoaded.assigns = true; _cbFail.assigns = false; }
+        else { _cbFail.assigns = true; miniToast('登録はできましたが、画面の取り直しに失敗しました。再読み込みしてください'); }
         if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
       }, 'POST');
     } else {
