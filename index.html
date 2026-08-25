@@ -214,6 +214,10 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kse-cell-on { background:#CECBF6 !important;border-color:#7F77DD !important;color:#3C3489 !important;font-weight:700; }
 .kse-cell-on:hover:not(:disabled) { background:#AFA9EC !important; }
 .kse-cell-btn.kse-cell-jishu { background:#dcfce7 !important; border-color:#16a34a !important; color:#166534 !important; }
+/* テスト対策：対面授業と重なるコマ（川上さん確定 2026-08-25）。押すと確認が出て強行できる */
+.kse-cell-btn.kse-cell-lock { background:#e5e7eb !important; border-color:#d1d5db !important; color:#6b7280 !important; font-size:10px; font-weight:700; }
+.kse-cell-btn.kse-cell-lock:hover { background:#d1d5db !important; }
+.kse-cell-btn.kse-cell-forced.kse-cell-on { background:#7c3aed !important; border-color:#7c3aed !important; color:#fff !important; }
 .koushu-drop-target { outline: 2px dashed var(--crimson); outline-offset: -2px; background: rgba(220,38,38,0.05); }
 
 /* ホバーポップアップ */
@@ -1765,10 +1769,75 @@ function testAssignChips_(cr, kt, dateIso, youbi) {
 // テスト対策：指定セルの割付人数（テストモードのみ）
 function testAssignCount_(cr, kt, dateIso) {
   if (!getActiveTestPeriod_()) return 0;
+  // 川上さん確定(2026-08-25)：通常コマ・振替で既に数えている生徒は二重に数えない（1チップにまとめるため）
+  var _yb = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
+  var _norm = {};
+  getStudentsForKoma(cr, _yb, kt).forEach(function(s) { _norm[s.name] = 1; });
+  (_absenceRecords || []).forEach(function(r) {
+    if (r.substituteDate === dateIso && r.substituteKomaTime === kt && r.substituteClassroom === cr && r.status === 'scheduled') _norm[r.studentName] = 1;
+  });
   return _koushuAssignments.filter(function(a) {
-    return a.date === dateIso && a.classroom === cr && a.komaTime === kt;
+    return a.date === dateIso && a.classroom === cr && a.komaTime === kt && !_norm[a.studentName];
   }).length;
 }
+
+/* ===== テスト対策の重複チェック（川上さん確定 2026-08-25） =====
+ * テスト対策・自習は「追加コマ」。対面授業と時間帯が重なるコマには入れない。
+ * ・対象＝オンライン以外の通塾コマ（通常・演習回・英検・受験特訓・CA・土曜演習）＋振替来塾
+ * ・オンライン(koma.online)は数えない（川上さん指示：重複を避けるのは対面学習だけ）
+ * ・テスト対策期間(period.type==='test')のときだけ動く。講習は中高生の通常授業が講習に
+ *   置き換わるため判定しない（川上さん指示 2026-08-25）
+ * ・完全ブロックではない。呼び出し側で「承知のうえで登録（強行）」を選べる
+ */
+function tkHM_(hm) { var m = String(hm || '').match(/^(\d{1,2}):(\d{2})$/); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+function tkRange_(t) {
+  var p = normKomaTime_(t).split('〜');
+  var a = tkHM_(padHM_(p[0] || '')), b = tkHM_(padHM_(p[1] || ''));
+  return (a === null || b === null) ? null : [a, b];
+}
+function tkTimeOverlap_(t1, t2) {
+  var A = tkRange_(t1), B = tkRange_(t2);
+  if (!A || !B) return normKomaTime_(t1) === normKomaTime_(t2); // 時刻が読めないときは文字列一致
+  return A[0] < B[1] && B[0] < A[1];
+}
+/* その生徒が dateIso の komaTime に「すでに対面で来ている」理由を返す（空配列＝重複なし） */
+function tkFaceConflicts_(s, dateIso, komaTime) {
+  if (!s || !dateIso || !komaTime) return [];
+  var youbi = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
+  var out = [];
+  (s.komas || []).forEach(function(k) {
+    if (k.online) return;
+    var matches;
+    if (k.satType === 'hira' && k.hiraKoma) {
+      var hv = k.hiraKoma; if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
+      matches = (hv === (youbi + k.time));
+    } else {
+      matches = (k.youbi === youbi);
+    }
+    if (!matches) return;
+    if (!tkTimeOverlap_(k.time, komaTime)) return;
+    var label = (k.id || '').indexOf('ca_') === 0 ? 'CA'
+      : k.satType === 'eiken' ? '英検'
+      : k.satType === 'juken' ? '受験特訓'
+      : (k.satType === 'enshuu' || k.satType === 'hira') ? '演習回'
+      : k.satType === 'sat' ? '土曜演習' : '塾';
+    out.push({ label: label, time: k.time, classroom: k.classroom || '' });
+  });
+  (_absenceRecords || []).forEach(function(r) {
+    if (r.studentName !== (s.name || '')) return;
+    if (r.status !== 'scheduled') return;
+    if (r.substituteDate !== dateIso) return;
+    if (!tkTimeOverlap_(r.substituteKomaTime, komaTime)) return;
+    out.push({ label: '振替', time: r.substituteKomaTime, classroom: r.substituteClassroom || '' });
+  });
+  return out;
+}
+function tkConflictText_(list) {
+  return (list || []).map(function(c) { return c.label + '（' + c.time + (c.classroom ? '・' + c.classroom : '') + '）'; }).join('・');
+}
+/* テスト対策期間のときだけ重複チェックを動かす */
+function tkCheckOn_(period) { return !!(period && period.type === 'test'); }
+var _tkBulkMode = ''; // '' | 'skip' | 'force'（一括登録の重複ダイアログの答え）
 
 // トップバーのタイトルエリアを更新（モードバッジ付き）
 function updateTopTitle(tab) {
@@ -3343,7 +3412,7 @@ function renderToday() {
             }
             return '<div class="koma-block">' +
               '<div class="koma-time">⏰ ' + esc(kt) + countHtml + '</div>' +
-              '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + (function(){var _o=[];ss.forEach(function(s){_o.push({html:studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso}),key:attendSortKey_(s,{komaType:_komaTypeOf_(_matchedKoma_(s,cr,todayYoubi,kt))})});});(_absenceRecords||[]).filter(function(r){return r.substituteDate===todayIso&&r.substituteKomaTime===kt&&r.substituteClassroom===cr&&r.status==='scheduled'&&!ss.find(function(s){return s.name===r.studentName;});}).forEach(function(r){var stu=(_students||[]).find(function(s){return s.name===r.studentName;})||{name:r.studentName};var _ok=(stu.komas||[]).find(function(k){return k.time===r.komaTime;});_o.push({html:studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso}),key:attendSortKey_(stu,{isSub:true,subOrigType:_komaTypeOf_(_ok)})});});if(getActiveTestPeriod_()){(_koushuAssignments||[]).forEach(function(a){if(a.date!==todayIso||a.classroom!==cr||a.komaTime!==kt)return;var _ts=_students.find(function(st){return st.id===a.studentId||st.name===a.studentName;})||{name:a.studentName};if(_ts.status==='退会'||_ts.status==='休会')return;_o.push({html:studentChipHtml(_ts,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso,testBadge:a.type||'taisaku'}),key:attendSortKey_(_ts,{assignType:a.type||'taisaku'})});});}_o.sort(function(a,b){return attendCmp_(a.key,b.key);});return _o.map(function(x){return x.html;}).join('');})() + jukenBlock + '</div>' +
+              '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + (function(){var _o=[];var _tkA={};if(getActiveTestPeriod_()){(_koushuAssignments||[]).forEach(function(a){if(a.date!==todayIso||a.classroom!==cr||a.komaTime!==kt)return;if(!_tkA[a.studentName])_tkA[a.studentName]=a.type||'taisaku';});}var _tkUsed={};ss.forEach(function(s){var _tb=_tkA[s.name];if(_tb)_tkUsed[s.name]=1;_o.push({html:studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso,testBadge:_tb}),key:attendSortKey_(s,{komaType:_komaTypeOf_(_matchedKoma_(s,cr,todayYoubi,kt))})});});(_absenceRecords||[]).filter(function(r){return r.substituteDate===todayIso&&r.substituteKomaTime===kt&&r.substituteClassroom===cr&&r.status==='scheduled'&&!ss.find(function(s){return s.name===r.studentName;});}).forEach(function(r){var stu=(_students||[]).find(function(s){return s.name===r.studentName;})||{name:r.studentName};var _ok=(stu.komas||[]).find(function(k){return k.time===r.komaTime;});var _tb2=_tkA[r.studentName];if(_tb2)_tkUsed[r.studentName]=1;_o.push({html:studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso,testBadge:_tb2}),key:attendSortKey_(stu,{isSub:true,subOrigType:_komaTypeOf_(_ok)})});});if(getActiveTestPeriod_()){(_koushuAssignments||[]).forEach(function(a){if(a.date!==todayIso||a.classroom!==cr||a.komaTime!==kt)return;if(_tkUsed[a.studentName])return;/* 川上さん確定(2026-08-25)：通常コマと重なる対策は1チップにまとめる（強行登録の分） */var _ts=_students.find(function(st){return st.id===a.studentId||st.name===a.studentName;})||{name:a.studentName};if(_ts.status==='退会'||_ts.status==='休会')return;_o.push({html:studentChipHtml(_ts,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso,testBadge:a.type||'taisaku'}),key:attendSortKey_(_ts,{assignType:a.type||'taisaku'})});});}_o.sort(function(a,b){return attendCmp_(a.key,b.key);});return _o.map(function(x){return x.html;}).join('');})() + jukenBlock + '</div>' +
               '</div>';
           }).join('')
         : '<div class="koma-empty">本日の授業はありません</div>';
@@ -4164,9 +4233,13 @@ function buildWeekGrid(days, todayIso) {
       // ── 通常モード ──
       // 川上さん確定(2026-07-21)：通常＋振替＋テスト対策を1つの並び順ルールで統合ソート（受験特訓は別枠）
       var _wObjs = [];
-      ss.forEach(function(s){ _wObjs.push({ html: studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso}), key: attendSortKey_(s, { komaType: _komaTypeOf_(_matchedKoma_(s, cr, YOUBIS[i], kt)) }) }); });
-      subStudents.forEach(function(r){ var stu=(_students||[]).find(function(x){return x.name===r.studentName;})||{name:r.studentName}; var _ok=(stu.komas||[]).find(function(k){return k.time===r.komaTime;}); _wObjs.push({ html: studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso, absenceCourse:r.absenceCourse||''}), key: attendSortKey_(stu, { isSub:true, subOrigType:_komaTypeOf_(_ok) }) }); });
-      if (getActiveTestPeriod_()) { (_koushuAssignments||[]).forEach(function(a){ if(a.date!==iso||a.classroom!==cr||a.komaTime!==kt)return; var _ts=_students.find(function(st){return st.id===a.studentId||st.name===a.studentName;})||{name:a.studentName}; if(_ts.status==='退会'||_ts.status==='休会')return; _wObjs.push({ html: studentChipHtml(_ts,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso,testBadge:a.type||'taisaku'}), key: attendSortKey_(_ts, { assignType:a.type||'taisaku' }) }); }); }
+      // 川上さん確定(2026-08-25)：通常コマと重なる対策/自習は1チップにまとめる（人数も1人）
+      var _tkAw = {};
+      if (getActiveTestPeriod_()) { (_koushuAssignments||[]).forEach(function(a){ if(a.date!==iso||a.classroom!==cr||a.komaTime!==kt)return; if(!_tkAw[a.studentName])_tkAw[a.studentName]=a.type||'taisaku'; }); }
+      var _tkUsedW = {};
+      ss.forEach(function(s){ var _tb=_tkAw[s.name]; if(_tb)_tkUsedW[s.name]=1; _wObjs.push({ html: studentChipHtml(s,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso,testBadge:_tb}), key: attendSortKey_(s, { komaType: _komaTypeOf_(_matchedKoma_(s, cr, YOUBIS[i], kt)) }) }); });
+      subStudents.forEach(function(r){ var stu=(_students||[]).find(function(x){return x.name===r.studentName;})||{name:r.studentName}; var _ok=(stu.komas||[]).find(function(k){return k.time===r.komaTime;}); var _tb2=_tkAw[r.studentName]; if(_tb2)_tkUsedW[r.studentName]=1; _wObjs.push({ html: studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso, absenceCourse:r.absenceCourse||'', testBadge:_tb2}), key: attendSortKey_(stu, { isSub:true, subOrigType:_komaTypeOf_(_ok) }) }); });
+      if (getActiveTestPeriod_()) { (_koushuAssignments||[]).forEach(function(a){ if(a.date!==iso||a.classroom!==cr||a.komaTime!==kt)return; if(_tkUsedW[a.studentName])return; var _ts=_students.find(function(st){return st.id===a.studentId||st.name===a.studentName;})||{name:a.studentName}; if(_ts.status==='退会'||_ts.status==='休会')return; _wObjs.push({ html: studentChipHtml(_ts,{classroom:cr,komaTime:kt,youbi:YOUBIS[i],dateStr:iso,testBadge:a.type||'taisaku'}), key: attendSortKey_(_ts, { assignType:a.type||'taisaku' }) }); }); }
       _wObjs.sort(function(a,b){ return attendCmp_(a.key,b.key); });
       var allChips = _wObjs.map(function(o){ return o.html; });
       var _wCnt = komaCountLabel_(ss, iso, kt, cr);
@@ -4533,6 +4606,11 @@ function printKoushuPeriod() {
           var badge = '';
           if (isTestPr) badge = (a.type === 'jishu') ? 'jishu' : 'taisaku';
           else if (isNormalKomaInKoushu_(s, '')) badge = 'koushu'; // 通常コマで来ている子の追加受講
+          // 川上さん確定(2026-08-25)：テスト対策期間は、通常コマで既に出ている子に対策バッジを足すだけにする（1人扱い）
+          if (isTestPr) {
+            var _exIt = items.filter(function(it) { return it.name === (a.studentName || s.name || ''); })[0];
+            if (_exIt) { _exIt.badge = badge; return; }
+          }
           items.push({ name: a.studentName || s.name || '', grade: s.grade || '', badge: badge, type: (badge === 'taisaku' ? 'taisaku' : badge === 'jishu' ? 'jishu' : 'koushu'), absent: _tkAbsent_(a.studentName || s.name || '', iso, kt, cr), sortKey: attendSortKey_({ grade: s.grade || '' }, { assignType: (badge === 'taisaku' ? 'taisaku' : badge === 'jishu' ? 'jishu' : 'normal') }) });
         });
         // 振替来塾（画面と同じ：その日・そのコマ・その教室の振替確定。既出・退会休会は除く）2026-07-14
@@ -7482,55 +7560,136 @@ function renderKoushuCalendarUI_(period) {
  * 受講状況サマリーUI（割付済み生徒の回数カウント）
  */
 function renderKoushuSummaryUI_(period) {
+  _ksPeriod = period;
   if (_koushuAssignments.length === 0) {
     return '<div style="margin-bottom:16px">' +
       '<p style="font-size:13px;color:var(--text-muted)">まだ登録データがありません。「👥 コマ割り登録（一括）」から生徒を登録してください。</p></div>';
   }
+  setTimeout(ksRender_, 0);
+  return '<div style="margin-bottom:16px">' +
+    '<div id="ks-chips" style="margin-bottom:6px"></div>' +
+    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">生徒名クリックでコマ登録、ホバーで予定を確認できます。見出しの ▲▼ で並び替え。<span id="ks-cnt"></span></div>' +
+    '<div style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
+    '<table style="width:100%;border-collapse:collapse"><thead id="ks-head"></thead><tbody id="ks-body"></tbody></table></div></div>';
+}
 
-  // 生徒ごとにカウント集計（この期間のみ）。テスト対策は対策/自習を分離
+/* 受講状況の絞り込み・並び替え（川上さん確定 2026-08-25）
+ * 絞り込みはプルダウンではなくチップ。並び替えは見出しの ▲▼。
+ * 生徒名の右には通塾コマを常時表示する（ホバーだけにしない）。 */
+var _ksPeriod = null;
+var _ksF = { cr: '', gr: '', sc: '' };
+var _ksSort = { key: 'grade', asc: true };
+function ksSetF(kind, val) { _ksF[kind] = val; ksRender_(); }
+function ksSortBy(key) {
+  if (_ksSort.key === key) _ksSort.asc = !_ksSort.asc; else { _ksSort.key = key; _ksSort.asc = true; }
+  ksRender_();
+}
+/* 通塾コマの小チップ（オンラインは薄く出す＝重複の対象外） */
+function ksKomaChips_(s) {
+  var ks = (s.komas || []).slice().sort(function(a, b) {
+    var yo = ['日','月','火','水','木','金','土'];
+    return (yo.indexOf(a.youbi) - yo.indexOf(b.youbi)) || String(a.time).localeCompare(String(b.time));
+  });
+  return ks.map(function(k) {
+    var lab = k.online ? 'オン'
+      : (k.id || '').indexOf('ca_') === 0 ? 'CA'
+      : k.satType === 'eiken' ? '英'
+      : k.satType === 'juken' ? '特'
+      : (k.satType === 'enshuu' || k.satType === 'hira') ? '演'
+      : k.satType === 'sat' ? '土' : '塾';
+    var st = k.online ? 'border:1px solid var(--border);background:#f3f4f6;color:#9ca3af'
+                      : 'border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8';
+    return '<span style="display:inline-block;font-size:10px;border-radius:3px;padding:0 4px;margin:1px 3px 1px 0;white-space:nowrap;' + st + '">' +
+      esc((k.youbi || '') + String(k.time || '').split('〜')[0] + lab) + '</span>';
+  }).join('');
+}
+function ksRows_(period) {
   var isTestS = period.type === 'test';
-  var countMap = {};
-  var jishuMap = {};
-  var nameMap  = {};
-  // 川上さん指示(2026-06-19)：二重レコード対策。生徒ごと×種別ごとに日付×コマでユニーク化して数える
-  var _seenCount = {}; // sid|date|koma（対策・通常用）
-  var _seenJishu = {}; // sid|date|koma（自習用）
-  _koushuAssignments.filter(function(a){ return a.periodId === period.id; }).forEach(function(a) {
+  var countMap = {}, jishuMap = {}, nameMap = {}, seenC = {}, seenJ = {};
+  _koushuAssignments.filter(function(a) { return a.periodId === period.id; }).forEach(function(a) {
     if (!(a.studentId in countMap)) { countMap[a.studentId] = 0; jishuMap[a.studentId] = 0; nameMap[a.studentId] = a.studentName; }
     var dk = a.studentId + '|' + a.date + '|' + a.komaTime;
-    if (isTestS && a.type === 'jishu') {
-      if (!_seenJishu[dk]) { _seenJishu[dk] = true; jishuMap[a.studentId]++; }
-    } else {
-      if (!_seenCount[dk]) { _seenCount[dk] = true; countMap[a.studentId]++; }
-    }
+    if (isTestS && a.type === 'jishu') { if (!seenJ[dk]) { seenJ[dk] = true; jishuMap[a.studentId]++; } }
+    else { if (!seenC[dk]) { seenC[dk] = true; countMap[a.studentId]++; } }
   });
+  var goals = period.gradeGoals || {};
+  return Object.keys(countMap).map(function(sid) {
+    var s = _students.find(function(st) { return st.id === sid || st.name === nameMap[sid]; }) || { name: nameMap[sid] };
+    var grade = s.grade || '';
+    return { s: s, sid: sid, name: nameMap[sid], grade: grade, goal: goals[grade] || 0,
+             count: countMap[sid], jishu: jishuMap[sid] || 0, isTest: isTestS };
+  });
+}
+function ksRender_() {
+  var body = document.getElementById('ks-body');
+  if (!body || !_ksPeriod) return;
+  var period = _ksPeriod, isTestS = period.type === 'test';
+  var all = ksRows_(period);
+  /* チップの候補は「登録済みの生徒」から作る */
+  function uniq(arr) { var o = []; arr.forEach(function(v) { if (v && o.indexOf(v) < 0) o.push(v); }); return o; }
+  var crs = uniq(all.map(function(r) { return r.s.classroom || ''; })).sort();
+  var grs = uniq(all.map(function(r) { return r.grade; })).sort(function(a, b) { return cbGradeRank_(a) - cbGradeRank_(b); });
+  var scs = uniq(all.map(function(r) { return r.s.school || ''; })).sort();
+  function chipRow(label, items, kind) {
+    var cur = _ksF[kind];
+    return '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px">' +
+      '<span style="font-size:11px;color:var(--text-muted);width:44px;flex-shrink:0">' + label + '</span>' +
+      [''].concat(items).map(function(v) {
+        var on = (cur === v);
+        return '<button onclick="ksSetF(\'' + kind + '\',\'' + esc(v).replace(/'/g, '') + '\')" ' +
+          'style="border:1px solid ' + (on ? 'var(--crimson)' : 'var(--border)') + ';color:' + (on ? 'var(--crimson)' : 'var(--text)') +
+          ';font-weight:' + (on ? '700' : '400') + ';background:#fff;border-radius:999px;padding:3px 12px;font-size:12px;cursor:pointer">' +
+          (v === '' ? 'すべて' : esc(v)) + '</button>';
+      }).join('') + '</div>';
+  }
+  var chipsEl = document.getElementById('ks-chips');
+  if (chipsEl) chipsEl.innerHTML = chipRow('教室', crs, 'cr') + chipRow('学年', grs, 'gr') + (isTestS || scs.length > 1 ? chipRow('中学校', scs, 'sc') : '');
 
-  var gradeGoals = period.gradeGoals || {};
-  var rows = Object.keys(countMap).map(function(sid) {
-    var s = _students.find(function(st) { return st.id === sid || st.name === nameMap[sid]; });
-    var grade = s ? s.grade : '';
-    var goal  = gradeGoals[grade] || 0;
-    var count = countMap[sid];
-    var lack  = goal > 0 && count < goal;
+  var rows = all.filter(function(r) {
+    if (_ksF.cr && (r.s.classroom || '') !== _ksF.cr) return false;
+    if (_ksF.gr && r.grade !== _ksF.gr) return false;
+    if (_ksF.sc && (r.s.school || '') !== _ksF.sc) return false;
+    return true;
+  });
+  var k = _ksSort.key, sg = _ksSort.asc ? 1 : -1;
+  rows.sort(function(a, b) {
+    var d = 0;
+    if (k === 'grade') d = cbGradeRank_(a.grade) - cbGradeRank_(b.grade);
+    else if (k === 'count') d = a.count - b.count;
+    else if (k === 'jishu') d = a.jishu - b.jishu;
+    else if (k === 'lack') d = ((a.goal || 0) - a.count) - ((b.goal || 0) - b.count);
+    return d * sg || String(a.name).localeCompare(String(b.name), 'ja');
+  });
+  var cntEl = document.getElementById('ks-cnt');
+  if (cntEl) cntEl.textContent = '（' + rows.length + '名' + (rows.length !== all.length ? ' / 全' + all.length + '名' : '') + '）';
+
+  function th(label, key, center) {
+    var act = (_ksSort.key === key);
+    return '<th style="padding:4px 8px;font-size:11px;cursor:pointer;user-select:none;text-align:' + (center ? 'center' : 'left') +
+      ';color:' + (act ? 'var(--crimson)' : 'inherit') + '" onclick="ksSortBy(\'' + key + '\')">' + label +
+      '<span style="font-size:9px;margin-left:2px;color:' + (act ? 'var(--crimson)' : '#c7cad1') + '">' + (act ? (_ksSort.asc ? '▲' : '▼') : '▲▼') + '</span></th>';
+  }
+  var head = document.getElementById('ks-head');
+  if (head) head.innerHTML = '<tr style="background:#f8fafc">' +
+    '<th style="padding:4px 8px;font-size:11px;text-align:left">生徒</th>' +
+    th('学年', 'grade') + th(isTestS ? '対策/目標' : '受講/目標', 'count', true) +
+    (isTestS ? th('自習', 'jishu', true) : '') + th('状況', 'lack', true) + '</tr>';
+
+  body.innerHTML = rows.map(function(r) {
+    var lack = r.goal > 0 && r.count < r.goal;
+    var chip = r.s.id || r.s.grade
+      ? '<div style="display:inline-block">' + studentChipHtml(r.s, { forcePeriod: period }) + '</div>'
+      : esc(r.name);
     return '<tr style="' + (lack ? 'background:#fff5f5' : '') + '">' +
-      '<td style="padding:4px 8px;font-size:13px">' + (s ? '<div style="display:inline-block">' + studentChipHtml(s, { forcePeriod: period }) + '</div>' : esc(nameMap[sid])) + '</td>' +
-      '<td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">' + (grade || '—') + '</td>' +
-      '<td style="padding:4px 8px;font-size:13px;text-align:center">' + count + ' / ' + (goal || '—') + '</td>' +
-      (isTestS ? '<td style="padding:4px 8px;font-size:13px;text-align:center;color:#166534">' + (jishuMap[sid] || 0) + '</td>' : '') +
-      '<td style="padding:4px 8px;font-size:12px;text-align:center">' + (lack ? '<span style="color:#dc2626;font-weight:600">あと' + (goal - count) + '回</span>' : '<span style="color:#059669">✓</span>') + '</td>' +
-      '</tr>';
+      '<td style="padding:4px 8px;font-size:13px">' + chip +
+        '<span style="margin-left:10px">' + ksKomaChips_(r.s) + '</span></td>' +
+      '<td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">' + (r.grade || '—') + '</td>' +
+      '<td style="padding:4px 8px;font-size:13px;text-align:center">' + r.count + ' / ' + (r.goal || '—') + '</td>' +
+      (isTestS ? '<td style="padding:4px 8px;font-size:13px;text-align:center;color:#166534">' + r.jishu + '</td>' : '') +
+      '<td style="padding:4px 8px;font-size:12px;text-align:center">' +
+        (lack ? '<span style="color:#dc2626;font-weight:600">あと' + (r.goal - r.count) + '回</span>' : '<span style="color:#059669">✓</span>') +
+      '</td></tr>';
   }).join('');
-
-  return '<div style="margin-bottom:16px">' +
-    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">生徒名クリックでコマ登録、ホバーで予定を確認できます</div>' +
-    '<div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
-    '<table style="width:100%;border-collapse:collapse">' +
-    '<thead><tr style="background:#f8fafc"><th style="padding:4px 8px;font-size:11px;text-align:left">生徒</th>' +
-    '<th style="padding:4px 8px;font-size:11px;text-align:left">学年</th>' +
-    '<th style="padding:4px 8px;font-size:11px">' + (isTestS ? '対策/目標' : '受講/目標') + '</th>' +
-    (isTestS ? '<th style="padding:4px 8px;font-size:11px">自習</th>' : '') +
-    '<th style="padding:4px 8px;font-size:11px">状況</th></tr></thead>' +
-    '<tbody>' + rows + '</tbody></table></div></div>';
 }
 
 // 講習コマ枠 共通ヘルパー（2026-07-08 川上さん指示：自由入力→時刻ピッカー＋照合正規化）
@@ -7892,6 +8051,10 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   });
   if (week.length) weeks.push(week);
 
+  // 川上さん確定(2026-08-25)：テスト対策期間は「対面授業と重なるコマ」を灰色にして、押したら確認を出す
+  var _kseS = _students.find(function(st) { return st.id === studentId || st.name === studentName; }) || { name: studentName };
+  var _kseCheck = (period.type === 'test');
+
   // グリッドHTML
   var gridHtml = '<div style="overflow-x:auto;margin-bottom:12px"><table style="border-collapse:collapse;font-size:12px;min-width:100%">';
   weeks.forEach(function(wDays, wi) {
@@ -7926,16 +8089,19 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
           gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
             '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
         } else {
+          // 既に登録済み(isOn)のコマは触らない。未登録のコマだけ重複チェックする
+          var _cf = (_kseCheck && !isOn) ? tkFaceConflicts_(_kseS, ds, kf) : [];
+          var _cfShort = _cf.length ? ({ '塾': '塾', 'CA': 'CA', '英検': '英', '演習回': '演', '受験特訓': '特', '土曜演習': '土', '振替': '振' }[_cf[0].label] || '済') : '';
           gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
-            '<button class="kse-cell-btn' + (isOn ? ' kse-cell-on' : '') + (aRec2 && aRec2.type === 'jishu' ? ' kse-cell-jishu' : '') + '"' +
+            '<button class="kse-cell-btn' + (isOn ? ' kse-cell-on' : '') + (aRec2 && aRec2.type === 'jishu' ? ' kse-cell-jishu' : '') + (_cf.length ? ' kse-cell-lock' : '') + '"' +
+            (_cf.length ? ' data-conf="' + esc(tkConflictText_(_cf)) + '" data-tooltip="' + esc(ds + '（' + YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()] + '）はすでに対面授業があります\n' + tkConflictText_(_cf) + '\nクリックすると、承知のうえで登録するか確認が出ます') + '"' : '') +
             ' data-ds="' + esc(ds) + '" data-kf="' + esc(kf) + '"' +
             ' data-aid="' + esc(aid) + '"' +
             (aRec2 ? ' data-atype="' + esc(aRec2.type || 'taisaku') + '" data-acr="' + esc(aRec2.classroom || '') + '"' : '') +
             ' data-sid="' + esc(studentId) + '"' +
             ' data-sname="' + esc(studentName) + '"' +
             ' data-pid="' + esc(periodId) + '"' +
-            ' onclick="kseToggleCell(this)">' +
-            (isOn ? '&#10003;' : '') +
+            (_cf.length ? ' onclick="kseForceAsk(this)">' + _cfShort : ' onclick="kseToggleCell(this)">' + (isOn ? '&#10003;' : '')) +
             '</button></td>';
         }
       });
@@ -7994,6 +8160,48 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
 }
 
 // セルトグル（個別編集モーダル）- data属性からIDを取得
+/* 対面授業と重なるコマを押したとき（川上さん確定 2026-08-25）
+ * ふだんは入れないが、元データを直すのが間に合わないときのために「それでも登録する」を残す。 */
+function kseForceAsk(btn) {
+  var ds = btn.dataset.ds || '', kf = btn.dataset.kf || '', nm = btn.dataset.sname || '';
+  var yb = ds ? YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()] : '';
+  var body =
+    '<p style="font-size:13px;margin:0 0 8px"><b>' + esc(nm) + '</b>さん　' + esc(ds) + '（' + esc(yb) + '） ' + esc(kf) + '</p>' +
+    '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12px">すでに ' + esc(btn.dataset.conf || '') + ' があります。</div>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">テスト対策は追加コマなので、ふだんはここに入れません。元データを直すのが間に合わないときだけ、承知のうえで登録できます。</p>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
+      '<button class="btn-secondary" onclick="closeModal(\'modal-kseforce\')">やめる</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="kseForceDo()">&#9888; それでも対策として登録する</button>' +
+    '</div>';
+  _kseForceBtn = btn;
+  var ex = document.getElementById('modal-kseforce');
+  if (ex) ex.remove();
+  var modal = document.createElement('div');
+  modal.id = 'modal-kseforce';
+  modal.className = 'modal-overlay';
+  modal.onclick = function(e) { if (e.target === modal) closeModal('modal-kseforce'); };
+  modal.innerHTML =
+    '<div class="modal" style="max-width:520px;width:92vw">' +
+    '<div class="modal-header"><span>&#9888; このコマは対面授業と重なります</span>' +
+    '<span class="modal-close" onclick="closeModal(\'modal-kseforce\')">&#215;</span></div>' +
+    '<div class="modal-body">' + body + '</div></div>';
+  document.body.appendChild(modal);
+  openModal('modal-kseforce');
+}
+var _kseForceBtn = null;
+function kseForceDo() {
+  var btn = _kseForceBtn;
+  closeModal('modal-kseforce');
+  if (!btn) return;
+  btn.classList.remove('kse-cell-lock');
+  btn.classList.add('kse-cell-forced');
+  btn.setAttribute('onclick', 'kseToggleCell(this)');
+  btn.onclick = null;
+  btn.innerHTML = '';
+  kseToggleCell(btn);
+  _kseForceBtn = null;
+}
+
 function kseToggleCell(btn) {
   // クリック時はローカルのみ更新。保存はkseSave()で行う
   var isOn = btn.classList.contains('kse-cell-on');
@@ -8025,7 +8233,8 @@ function kseToggleCell(btn) {
 // 行一括トグル（2026-06-11：講習は毎日同じ時間帯が多いので、横1列まとめてチェック）
 // 全週・期間中の同じ時間帯セルを対象。全部ONなら全OFF、それ以外は全ON
 function kseToggleRow(kf) {
-  var cells = Array.prototype.slice.call(document.querySelectorAll('#modal-kse .kse-cell-btn[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]')).filter(function(c) { return !c.disabled; });
+  // 川上さん確定(2026-08-25)：対面授業と重なるコマ(.kse-cell-lock)は「⇒全」の対象にしない（強行は1つずつ）
+  var cells = Array.prototype.slice.call(document.querySelectorAll('#modal-kse .kse-cell-btn[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]')).filter(function(c) { return !c.disabled && !c.classList.contains('kse-cell-lock'); });
   if (!cells.length) return;
   var allOn = cells.every(function(c) { return c.classList.contains('kse-cell-on'); });
   var period0 = _koushuPeriods.find(function(p) { return p.id === (cells[0].dataset.pid || ''); });
@@ -8645,6 +8854,47 @@ function bulkCalToggle(btn) {
   if (el) el.textContent = cnt + 'セル選択中';
 }
 
+/* 一括登録の重複ダイアログ（川上さん確定 2026-08-25）
+ * 「戻って選び直す」「重複を外して登録」「重複ごと登録（強行）」の3択。
+ * 選択後は同じ submitKoushuBulkAssign を _tkBulkMode 付きで呼び直す（画面の選択状態はそのまま使う）。 */
+function tkShowBulkConflictDialog_(total, confList, periodId) {
+  var rows = confList.map(function(a) {
+    var d = a.date ? a.date.slice(5).replace('-', '/') : '';
+    var yb = a.date ? YOUBI_MAP[new Date(a.date + 'T00:00:00').getDay()] : '';
+    return '<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed #fecaca">' +
+      '<b>' + esc(a.studentName || '') + '</b>　' + esc(d) + '(' + esc(yb) + ') ' + esc(a.komaTime || '') +
+      '　／　すでに ' + esc(a.__conf || '') + '</div>';
+  }).join('');
+  var body =
+    '<p style="font-size:13px;margin:0 0 8px">テスト対策は追加コマです。<b>すでに対面の授業があるコマ</b>が ' + confList.length + ' 件あります。<br>' +
+    '<span style="font-size:12px;color:var(--text-muted)">（オンラインは重複に数えていません）</span></p>' +
+    '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;max-height:260px;overflow-y:auto">' + rows + '</div>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">登録予定 ' + total + ' 件のうち ' + confList.length + ' 件が重複しています。</p>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:12px">' +
+      '<button class="btn-secondary" onclick="closeModal(\'modal-tkconf\')">戻って選び直す</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="tkBulkAnswer(\'force\',\'' + esc(periodId) + '\')">&#9888; 重複ごと ' + total + '件を登録（強行）</button>' +
+      '<button class="btn-primary" onclick="tkBulkAnswer(\'skip\',\'' + esc(periodId) + '\')">重複を外して ' + (total - confList.length) + '件を登録</button>' +
+    '</div>';
+  var ex = document.getElementById('modal-tkconf');
+  if (ex) ex.remove();
+  var modal = document.createElement('div');
+  modal.id = 'modal-tkconf';
+  modal.className = 'modal-overlay';
+  modal.onclick = function(e) { if (e.target === modal) closeModal('modal-tkconf'); };
+  modal.innerHTML =
+    '<div class="modal" style="max-width:640px;width:92vw">' +
+    '<div class="modal-header"><span>&#9888; 対面授業と重なっています（' + confList.length + '件）</span>' +
+    '<span class="modal-close" onclick="closeModal(\'modal-tkconf\')">&#215;</span></div>' +
+    '<div class="modal-body" style="overflow-y:auto;max-height:calc(90vh - 90px)">' + body + '</div></div>';
+  document.body.appendChild(modal);
+  openModal('modal-tkconf');
+}
+function tkBulkAnswer(mode, periodId) {
+  _tkBulkMode = mode;
+  closeModal('modal-tkconf');
+  submitKoushuBulkAssign(periodId);
+}
+
 function submitKoushuBulkAssign(periodId) {
   var checkedCells = Array.from(document.querySelectorAll('.bulk-cal-cell.kse-cell-on'));
   var studentEls   = Array.from(document.querySelectorAll('.bulk-student-cb:checked'));
@@ -8666,11 +8916,18 @@ function submitKoushuBulkAssign(periodId) {
       var date  = btn.dataset.ds;
       var koma  = btn.dataset.kf;
       var youbi = ['日','月','火','水','木','金','土'][new Date(date+'T00:00:00').getDay()];
-      if (isElemOrCa && s) {
+      // 講習モードの従来ガード（小学生・CAの通常コマ）。テスト対策期間では下の tkFaceConflicts_ に任せる
+      if (!isTestB && isElemOrCa && s) {
         var hasNormalKoma = (s.komas || []).some(function(k){ return k.youbi === youbi && k.time === koma; });
         if (hasNormalKoma) { conflicts.push(el.dataset.name + '（' + date + ' ' + koma + '）'); return; }
       }
-      assignments.push({ periodId: periodId, studentId: el.value, studentName: el.dataset.name, classroom: bulkCrFix || el.dataset.cr, date: date, komaTime: koma, type: bulkType });
+      var _a = { periodId: periodId, studentId: el.value, studentName: el.dataset.name, classroom: bulkCrFix || el.dataset.cr, date: date, komaTime: koma, type: bulkType };
+      // 川上さん確定(2026-08-25)：テスト対策は追加コマ。対面授業と重なるコマは基本ブロック（強行は可）
+      if (isTestB) {
+        var _cf = tkFaceConflicts_(s || { name: el.dataset.name }, date, koma);
+        if (_cf.length) _a.__conf = tkConflictText_(_cf);
+      }
+      assignments.push(_a);
     });
   });
 
@@ -8678,9 +8935,20 @@ function submitKoushuBulkAssign(periodId) {
     miniToast('通常コマ重複：' + conflicts.slice(0,3).join(' / ') + (conflicts.length > 3 ? ' 他' + (conflicts.length-3) + '件' : ''));
     return;
   }
+  // ── テスト対策の重複（対面授業と重なる）。基本は止めて一覧を出し、外して登録／強行を選ばせる ──
+  var _tkConf = assignments.filter(function(a) { return a.__conf; });
+  if (_tkConf.length && _tkBulkMode !== 'force' && _tkBulkMode !== 'skip') {
+    tkShowBulkConflictDialog_(assignments.length, _tkConf, periodId);
+    return;
+  }
+  if (_tkBulkMode === 'skip') assignments = assignments.filter(function(a) { return !a.__conf; });
+  var _tkForced = (_tkBulkMode === 'force') ? _tkConf.length : 0;
+  _tkBulkMode = '';
+  assignments = assignments.map(function(a) { var o = {}; for (var k in a) { if (k !== '__conf') o[k] = a[k]; } return o; });
+  if (!assignments.length) { miniToast('登録するコマがありません'); return; }
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
-  miniToast('登録中... ' + assignments.length + '件');
+  miniToast('登録中... ' + assignments.length + '件' + (_tkForced ? '（うち重複' + _tkForced + '件）' : ''));
   callGas(url, { action: 'bulkSaveKoushuAssignments', assignments: assignments }, function(res) {
     if (res && res.success) {
       miniToast('登録完了 ✓ 追加:' + res.added + '件' + (res.updated ? ' 教室更新:' + res.updated + '件' : '') + ' スキップ:' + res.skipped + '件');
