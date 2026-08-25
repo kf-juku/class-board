@@ -1659,8 +1659,8 @@ var _koushuModeUserOverride = null; // null=自動, true=手動ON, false=手動O
 // 川上さん指示(2026-08-25)：読み込めていないのを「データが無い」と誤認させない。
 //  各データが「まだ来ていない(false)」「来た(true)」を持ち、失敗は _cbFail に立てる。
 //  空表示の分岐は必ず cbEmptyHtml_ を通す（直接「ありません」を返さない）。
-var _cbLoaded = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false };
-var _cbFail   = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false };
+var _cbLoaded = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false, cal: false };
+var _cbFail   = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false, cal: false };
 var _cbCriticalLoadFailed = false; // 2026-08-04：生徒/講習期間の取得失敗（null応答）を検知。firstPaintで失敗バナー表示に使う
 var CB_VIEW_PERIOD_KEY = 'cb_view_period_id';
 var _selectedViewPeriodId = localStorage.getItem(CB_VIEW_PERIOD_KEY) || '__auto__'; // 期間選択プルダウン：'__auto__'=自動（進行中）, ''=通常表示固定, その他=期間ID（2026-06-10）
@@ -2006,7 +2006,7 @@ window.addEventListener('DOMContentLoaded', function() {
 function loadAll() {
   showLoading(true);
   _cbCriticalLoadFailed = false; // 2026-08-04：重要データ取得失敗の検知フラグをリセット
-  ['students','absence','periods','assigns','works','examCards'].forEach(function(k) { _cbLoaded[k] = false; _cbFail[k] = false; });
+  ['students','absence','periods','assigns','works','examCards','cal'].forEach(function(k) { _cbLoaded[k] = false; _cbFail[k] = false; });
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var taskUrl    = localStorage.getItem(GAS_TASK_URL_KEY)    || '';
 
@@ -7268,13 +7268,19 @@ function openKoushuPage(periodId) {
     miniToast('読み込み中...');
     var loaded = 0;
     function tryRender() { loaded++; if (loaded >= 2) renderPage(); }
+    // 🚨 川上さん報告(2026-08-25)：ここが失敗すると _koushuCalendar/_koushuAssignments を
+    //  空配列で上書きしてしまい、「まだ登録データがありません」＝データが消えたように見えていた。
+    //  失敗したら空で上書きせず、失敗フラグを立てて画面に出す（保存もさせない）。
+    _cbLoaded.cal = false; _cbFail.cal = false;
+    _cbLoaded.assigns = false; _cbFail.assigns = false;
     callGas(url, { action: 'getKoushuCalendar', periodId: periodId }, function(res) {
-      _koushuCalendar = (res && res.success) ? res.entries : [];
+      if (res && res.success) { _koushuCalendar = res.entries || []; _cbLoaded.cal = true; }
+      else { _cbLoaded.cal = true; _cbFail.cal = true; }
       tryRender();
     }, 'POST');
     callGas(url, { action: 'getKoushuAssignments', periodId: periodId }, function(res) {
-      _koushuAssignments = (res && res.success) ? res.assignments : [];
-      if (res && res.success) window.__koushuDataPid = periodId;
+      if (res && res.success) { _koushuAssignments = res.assignments || []; window.__koushuDataPid = periodId; _cbLoaded.assigns = true; }
+      else { _cbLoaded.assigns = true; _cbFail.assigns = true; }
       tryRender();
     }, 'POST');
   }
@@ -7286,6 +7292,8 @@ function openKoushuPage(periodId) {
 function saveKoushuPage(pageId) {
   var isNew = (pageId === 'new');
   var period = isNew ? null : _koushuPeriods.find(function(p) { return p.id === pageId; });
+  // 川上さん報告(2026-08-25)：読み込み失敗のまま保存すると開閉校を既定値で上書きしてしまう
+  if (!isNew && _cbFail.cal) { miniToast('開閉校カレンダーを読み込めていないため保存できません。再読み込みしてください'); return; }
 
   var name  = (document.getElementById('kp-name')  || {}).value || '';
   var start = (document.getElementById('kp-start') || {}).value || '';
@@ -7553,6 +7561,9 @@ function renderKoushuCalendarUI_(period) {
   var start = new Date(period.startDate);
   var end   = new Date(period.endDate);
   if (isNaN(start) || isNaN(end)) return '';
+  // 🚨 川上さん報告(2026-08-25)：取得に失敗すると「日曜以外は開校」の既定で描かれる。
+  //  そのまま保存すると本当の開閉校を上書きしてしまうので、失敗しているときは必ず出す。
+  var _calFailNote = _cbFail.cal ? cbFailHtml_('開閉校カレンダー') + '<div style="font-size:11px;color:#991b1b;margin-bottom:6px">この状態では保存できません（既定値で上書きしてしまうため）。再読み込みしてください。</div>' : '';
 
   var classrooms = ['北久里浜', '久里浜'];
   // カレンダーデータをMapに変換 {date_classroom: isOpen}
@@ -7582,7 +7593,7 @@ function renderKoushuCalendarUI_(period) {
     d.setDate(d.getDate() + 1);
   }
 
-  return '<div style="margin-bottom:16px">' +
+  return _calFailNote + '<div style="margin-bottom:16px">' +
     '<div style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">' +
     '<table style="width:100%;border-collapse:collapse">' +
     '<thead><tr style="background:#f8fafc;position:sticky;top:0">' +
@@ -7603,9 +7614,15 @@ function renderKoushuSummaryUI_(period) {
     _ksF = { cr: '', gr: '', sc: '', reg: (period && period.type === 'test') ? '' : '登録済み' };
   }
   _ksPeriod = period;
-  if (_koushuAssignments.length === 0) {
-    return '<div style="margin-bottom:16px">' +
-      cbEmptyHtml_(['students','assigns'], 'コマ割り', '<p style="font-size:13px;color:var(--text-muted)">まだ登録データがありません。「👥 コマ割り登録（一括）」から生徒を登録してください。</p>', false) + '</div>';
+  // 川上さん報告(2026-08-25)：全体の件数ではなく「この期間の割付」で判定する。
+  //  取得に失敗した／別の期間のデータを持っているときに「登録データがありません」と出さない。
+  var _mine = (_koushuAssignments || []).filter(function(a) { return a.periodId === period.id; });
+  if (_mine.length === 0) {
+    var _inner;
+    if (_cbFail.assigns) _inner = cbFailHtml_('コマ割り');
+    else if (!_cbLoaded.assigns || (window.__koushuDataPid && window.__koushuDataPid !== period.id)) _inner = cbLoadingHtml_('この期間のコマ割り');
+    else _inner = '<p style="font-size:13px;color:var(--text-muted)">まだ登録データがありません。「👥 コマ割り登録（一括）」から生徒を登録してください。</p>';
+    return '<div style="margin-bottom:16px">' + _inner + '</div>';
   }
   setTimeout(ksRender_, 0);
   return '<div style="margin-bottom:16px">' +
@@ -7841,6 +7858,8 @@ function removeKoushuKoma(idx) {
 function saveKoushuDetail(periodId) {
   var period = _koushuPeriods.find(function(p) { return p.id === periodId; });
   if (!period) return;
+  // 川上さん報告(2026-08-25)：読み込みに失敗した状態で保存すると開閉校を既定値で上書きしてしまう
+  if (_cbFail.cal) { miniToast('開閉校カレンダーを読み込めていないため保存できません。再読み込みしてください'); return; }
 
   // コマ枠収集（.kd-koma-row の 開始/終了 time から HH:MM〜HH:MM を生成）
   var komaFrames = collectKomaFrames_();
