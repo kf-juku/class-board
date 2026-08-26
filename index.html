@@ -136,7 +136,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .work-check-table tr:hover td { background: #fafbfc; }
 
 /* アラートバナー */
-.alert-banner { border-radius: var(--radius); padding: 8px 12px; margin-bottom: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: default; border-left-width: 4px; border-left-style: solid; border-top: 1px solid; border-right: 1px solid; border-bottom: 1px solid; }
+.alert-banner { border-radius: var(--radius); padding: 8px 12px; margin-bottom: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: default; border-left-width: 4px; border-left-style: solid; border-top: 1px solid; border-right: 1px solid; border-bottom: 1px solid; min-width: 0; }
+/* 川上さん報告(2026-08-26)：小テストのバナーが右端で見切れる。グリッドの子は min-width:auto だと
+   中身より小さくなれず横に突き抜ける。本文側にも折り返しを許して、長い文面でも必ず中に収める。 */
+.alert-banner > span { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
+.alert-banner > span.alert-popup { min-width: 220px; }
 .alert-popup {
   display: none;
   position: absolute;
