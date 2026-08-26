@@ -3624,79 +3624,53 @@ function renderToday() {
   if (isKoushuModeActive() && getActiveKoushuPeriod() && !getActiveTestPeriod_() && isDateInViewPeriod_(todayIso)) {
     // 講習モード（夏期等）：通常コマ（小学生・CA）＋講習割付コマ を両方表示（今日が期間内のときだけ。期間外は通常表示 2026-06-10）
     // ※テスト対策（type=test）は通常モード表示＋上乗せのため通常分岐に流す
-    var todayAssign = _koushuAssignments.filter(function(a) { return a.date === todayIso; });
     crHtml = ['北久里浜','久里浜'].map(function(cr) {
-      var _tblocks = [];
-
-      // ── 1. 通常コマ（小学生・CAの授業）をそのまま表示（塾の中高生は除外）──
-      var normalKomas = getKomasForClassroom(cr).filter(function(kt) {
-        return getStudentsForKoma(cr, todayYoubi, kt).some(function(s){ return isNormalKomaInKoushu_(s, kt); });
+      // 川上さん確定(2026-08-26)：今週グリッドと同じく1コマ1ブロックに統合する。
+      //  以前は「⏰通常（小学生・CA）」と「🎓講習割付」を別ブロックで出し、人数は割付の件数
+      //  （assigns.length）をそのまま出していた。そのため本日タブだけ数え方が違い（欠席も数える・
+      //  通常残コマの子を数えない）、定員警告の基準ともずれていた。顔ぶれ・人数・内訳は
+      //  cbKoushuObjs_ / cbKoushuItems_ / cbCellCount_ に寄せる（今週・期間印刷・定員と同じ数）。
+      var komaSet = {};
+      getKomasForClassroom(cr).forEach(function(kt) {
+        if (getStudentsForKoma(cr, todayYoubi, kt).some(function(s){ return isNormalKomaInKoushu_(s, kt); })) komaSet[kt] = 1;
       });
-      normalKomas.forEach(function(kt) {
-        var _todayKAssigns = (_koushuAssignments||[]).filter(function(a){ return a.date===todayIso && a.classroom===cr && a.komaTime===kt; });
-        var _todayKIds = _todayKAssigns.map(function(a){ return a.studentId; }).filter(Boolean);
-        var _todayKNms = _todayKAssigns.map(function(a){ return a.studentName; }).filter(Boolean);
-        var ss = getStudentsForKoma(cr, todayYoubi, kt).filter(function(s){
-          if (!isNormalKomaInKoushu_(s, kt)) return false;
-          if (s.id   && _todayKIds.indexOf(s.id)   >= 0) return false;
-          if (s.name && _todayKNms.indexOf(s.name) >= 0) return false;
-          return true;
+      (_koushuAssignments || []).forEach(function(a) {
+        if (a.date === todayIso && a.classroom === cr) komaSet[a.komaTime] = 1;
+      });
+      (_absenceRecords || []).forEach(function(r) {
+        if (r.substituteDate === todayIso && r.substituteClassroom === cr && r.status === 'scheduled') komaSet[r.substituteKomaTime] = 1;
+      });
+      var _tblocks = [];
+      Object.keys(komaSet).forEach(function(kt) {
+        var objs = cbKoushuObjs_(cr, kt, todayIso, todayYoubi);
+        if (!objs.length) return;
+        objs.forEach(function(o) {
+          if (o.isSub) o._sk = attendSortKey_(o.s, { isSub: true, subOrigType: o.subOrigType });
+          else if (o.assignId !== undefined) o._sk = attendSortKey_(o.s, { assignType: o.assignType || 'normal' });
+          else o._sk = attendSortKey_(o.s, { komaType: _komaTypeOf_(_matchedKoma_(o.s, cr, todayYoubi, kt)) });
         });
-        ss.sort(function(a, b){ return attendCmp_(attendSortKey_(a, { komaType: _komaTypeOf_(_matchedKoma_(a, cr, todayYoubi, kt)) }), attendSortKey_(b, { komaType: _komaTypeOf_(_matchedKoma_(b, cr, todayYoubi, kt)) })); });
-        var chips = ss.map(function(s) {
-          return studentChipHtml(s, {classroom:cr, komaTime:kt, youbi:todayYoubi, dateStr:todayIso, koushuNormalMode:true});
+        objs.sort(function(a, b){ return attendCmp_(a._sk, b._sk); });
+        var items = cbKoushuItems_(objs, cr, kt, todayIso, todayYoubi);
+        var _cnt = cbCellCount_(items);
+        var _cls = _cnt.total >= CB_SEAT_LIMIT ? ' count-danger' : _cnt.total >= CB_SEAT_WARN ? ' count-warn' : '';
+        var _title = ' title="' + _cnt.tooltip + ' / ' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤" style="cursor:help"';
+        var countHtml = _cnt.total > 0 ? ' <span class="koma-count' + _cls + '"' + _title + '>' + _cnt.label + '</span>' : '';
+        var chips = objs.map(function(o, n) {
+          if (items[n] && items[n].cat === 'online') return '';   // オンラインはまとめ行へ
+          if (o.isSub) return studentChipHtml(o.s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso });
+          // 川上さん指示(2026-06-14)：講習コマに登録された子は全員「講習」扱い
+          if (o.assignId !== undefined) return koushuChipHtml(o.s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: o.assignId, assignType: o.assignType });
+          return studentChipHtml(o.s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, koushuNormalMode: true });
         }).join('');
         _tblocks.push({ t: _tkTimeKey_(kt), html: '<div class="koma-block">' +
-          '<div class="koma-time">' + esc(kt) + ' <span style="font-size:10px;color:#6b7280">（通常）</span></div>' +
-          '<div class="koma-students">' + chips + '</div>' +
+          '<div class="koma-time">⏰ ' + esc(kt) + countHtml + '</div>' +
+          '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' +
+            chips + cbOnlineRowHtml_(_cnt.onlineNames) + '</div>' +
           '</div>' });
       });
-
-      // ── 2. 講習割付コマを表示 ──
-      var crAssign = todayAssign.filter(function(a) {
-        if (a.classroom !== cr) return false;
-        // 川上さん指示(2026-06-14)：退会・休会の生徒は表示しない
-        var as = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
-        if (as && (as.status === '退会' || as.status === '休会')) return false;
-        return true;
-      });
-      var komaMap = {};
-      crAssign.forEach(function(a) {
-        if (!komaMap[a.komaTime]) komaMap[a.komaTime] = [];
-        komaMap[a.komaTime].push(a);
-      });
-      var komaTimes = Object.keys(komaMap).sort();
-      // 振替来塾：振替生徒しかいないコマ枠も行に追加
-      (_absenceRecords || []).forEach(function(r) {
-        if (r.substituteDate === todayIso && r.substituteClassroom === cr && r.status === 'scheduled') {
-          if (komaTimes.indexOf(r.substituteKomaTime) === -1) komaTimes.push(r.substituteKomaTime);
-        }
-      });
-      komaTimes.sort(function(k1, k2) {
-        return (parseInt((k1||'').replace(':','').substring(0,4))||0) - (parseInt((k2||'').replace(':','').substring(0,4))||0);
-      });
-      if (komaTimes.length) {
-        komaTimes.forEach(function(kt) {
-          var assigns = komaMap[kt] || [];
-          var cntCls = assigns.length >= CB_SEAT_LIMIT ? ' count-danger' : assigns.length >= CB_SEAT_WARN ? ' count-warn' : '';
-          var countHtml = assigns.length > 0 ? ' <span class="koma-count' + cntCls + '" title="' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤">（計' + assigns.length + '人）</span>' : '';
-          var _ko = [];
-          assigns.forEach(function(a) {
-            var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
-            _ko.push({ html: koushuChipHtml(s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: a.id, assignType: a.type }), key: attendSortKey_(s, { assignType: a.type || 'normal' }) });
-          });
-          (_absenceRecords||[]).filter(function(r){return r.substituteDate===todayIso&&r.substituteKomaTime===kt&&r.substituteClassroom===cr&&r.status==='scheduled'&&!( _koushuAssignments.find(function(a){return a.date===todayIso&&a.komaTime===kt&&a.classroom===cr&&(a.studentName===r.studentName);}) );}).forEach(function(r){ var stu=(_students||[]).find(function(s){return s.name===r.studentName;})||{name:r.studentName}; var _ok=(stu.komas||[]).find(function(k){return k.time===r.komaTime;}); _ko.push({ html: studentChipHtml(stu,{classroom:cr,komaTime:kt,youbi:todayYoubi,dateStr:todayIso}), key: attendSortKey_(stu,{isSub:true,subOrigType:_komaTypeOf_(_ok)}) }); });
-          _ko.sort(function(a,b){ return attendCmp_(a.key,b.key); });
-          var chips = _ko.map(function(x){ return x.html; }).join('');
-          _tblocks.push({ t: _tkTimeKey_(kt), html: '<div class="koma-block">' +
-            '<div class="koma-time">🎓 ' + esc(kt) + countHtml + '</div>' +
-            '<div class="koma-students" data-date="' + todayIso + '" data-koma="' + esc(kt) + '" data-classroom="' + esc(cr) + '">' + chips + '</div>' +
-            '</div>' });
-        });
-      } else if (!normalKomas.length) {
+      if (!_tblocks.length) {
         _tblocks.push({ t: 0, html: cbEmptyHtml_(['students','periods','assigns'], 'コマ割り', '<div class="koma-empty">本日の講習登録はありません</div>', false) });
       }
-
       var crCls = cr === '北久里浜' ? ' cr-kita' : ' cr-kuri';
       var komaBlocksHtml = _tblocks.sort(function(a,b){ return a.t - b.t; }).map(function(x){ return x.html; }).join('');
       return '<div class="classroom-block' + crCls + '"><div class="classroom-block-header">🏫 ' + cr + '</div>' + komaBlocksHtml + '</div>';
