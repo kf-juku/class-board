@@ -2099,7 +2099,13 @@ function loadAll() {
   var _koushuFixPid = null; // フェーズ2で取り直す期間ID（違っていた場合のみ）
 
   // ===== フェーズ1 =====
-  if (studentUrl) {
+  // 川上さん確定(2026-08-26)：起動時の取得を1往復にまとめる。
+  //  本番実測で「1リクエストあたり約2秒の固定コスト」が遅さの正体だった
+  //  （52KB返す getStudentsForClassBoard が2.17秒、何もしない空打ちが3.66秒）。
+  //  中身を軽くしても速くならないので、本数を減らす。生徒GAS5本＋タスクGAS3本 → 各1本。
+  //  GASに getClassBoardBootstrap が無い／通信に失敗したときは、下の従来経路にそのまま落ちる。
+  //  ★従来経路は消さない。GASを貼り替える前でもHTMLだけ先に出せるようにするため。
+  function legacyStudentPhase1() {
     // 生徒
     p1++;
     callGas(studentUrl, { action: 'getStudentsForClassBoard' }, function(res) {
@@ -2186,8 +2192,8 @@ function loadAll() {
       d1();
     }, 'GET', false, 2);
   }
+  function legacyTaskPhase1() {
 
-  if (taskUrl) {
     // チェックリスト
     p1++;
     loadChecklists(taskUrl, function(cls) { _checklists = cls; d1(); });
@@ -2219,6 +2225,24 @@ function loadAll() {
     });
   }
 
+  if (studentUrl) {
+    p1++;
+    callGas(studentUrl, { action: 'getClassBoardBootstrap', periodId: cbBootPid_() }, function(res) {
+      if (res && res.success && Array.isArray(res.students)) cbApplyStudentBootstrap_(res);
+      else legacyStudentPhase1();   // p1を積んでから下のd1()が走る（順番を入れ替えないこと）
+      d1();
+    }, 'GET', false, 2);
+  }
+
+  if (taskUrl) {
+    p1++;
+    callGas(taskUrl, { action: 'getClassBoardBootstrap' }, function(res) {
+      if (res && res.success && Array.isArray(res.tasks)) cbApplyTaskBootstrap_(res, taskUrl);
+      else legacyTaskPhase1();
+      d1();
+    }, 'GET', false, 2);
+  }
+
   if (p1 <= 0) { firstPaint(); }
 
   // タイムアウトフォールバック：10秒経っても読み込み中なら強制解除
@@ -2228,6 +2252,74 @@ function loadAll() {
       showLoading(false); renderCurrent(); updateLastLoaded();
     }
   }, 10000);
+}
+
+/* ===== 起動まとめ取得（getClassBoardBootstrap）2026-08-26 =====
+ * 遅さの正体は1リクエストあたりの固定コスト（本番実測 約2秒）。本数を減らすのが唯一効く手。
+ * GAS側が未対応でも従来の個別取得に落ちるので、貼り替え前でも壊れない。
+ * 失敗したキーは null で来る（空配列ではない）＝「取れなかった」を空で塗り潰さない。
+ */
+function cbBootPid_() {
+  // 画面で期間を選んでいればそれ。なければ前回のアクティブ期間。無ければ空でGASに判定を任せる。
+  if (_selectedViewPeriodId && _selectedViewPeriodId !== '__auto__') return _selectedViewPeriodId;
+  try { return localStorage.getItem('cb_active_pid_cache') || ''; } catch (e) { return ''; }
+}
+
+function cbApplyStudentBootstrap_(res) {
+  if (Array.isArray(res.students)) {
+    res.students.forEach(function(s) {
+      (s.komas || []).forEach(function(k) {
+        if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
+      });
+    });
+    _students = res.students;
+    _cbLoaded.students = true;
+  } else {
+    _cbCriticalLoadFailed = true; _cbLoaded.students = true; _cbFail.students = true;
+  }
+
+  if (Array.isArray(res.absenceRecords)) {
+    _absenceRecords = res.absenceRecords.map(normalizeAbsenceRecord_); _cbLoaded.absence = true;
+  } else { _cbLoaded.absence = true; _cbFail.absence = true; }
+
+  if (Array.isArray(res.periods)) { _koushuPeriods = res.periods; _cbLoaded.periods = true; }
+  else { _cbCriticalLoadFailed = true; _cbLoaded.periods = true; _cbFail.periods = true; }
+
+  var pid = res.activePeriodId || '';
+  try {
+    if (pid) localStorage.setItem('cb_active_pid_cache', pid);
+    else localStorage.removeItem('cb_active_pid_cache');
+  } catch (e) {}
+
+  if (Array.isArray(res.assignments)) {
+    _koushuAssignments = res.assignments; window.__koushuDataPid = pid; _cbLoaded.assigns = true;
+  } else { _cbLoaded.assigns = true; _cbFail.assigns = true; }
+
+  // 開閉校カレンダー：失敗を空で塗り潰すと「日曜以外は開校」の既定で描かれ、保存すると本物を消す（2026-08-25）
+  if (Array.isArray(res.calendar)) { _koushuCalendar = res.calendar; _cbLoaded.cal = true; _cbFail.cal = false; }
+  else { _cbFail.cal = true; }
+}
+
+function cbApplyTaskBootstrap_(res, taskUrl) {
+  if (Array.isArray(res.tasks)) {
+    var localMap = {};
+    (_tasks || []).forEach(function(t) { localMap[t.id] = t; });
+    _tasks = res.tasks.filter(function(t) {
+      var local = localMap[t.id];
+      return (!local || local.status !== 'done') && !_pendingDeleteIds[t.id];
+    }).map(function(t) {
+      var local = localMap[t.id];
+      if (local && local.dueDate && local.dueDate > t.dueDate) {
+        return Object.assign({}, t, { dueDate: local.dueDate });
+      }
+      return t;
+    });
+    autoCarryOverTasks(taskUrl);
+  }
+  if (res.assignees && res.assignees.length > 0) _taskAssignees = res.assignees;
+  _checklistsLoaded = true;
+  if (Array.isArray(res.checklists)) { _checklistsFailed = false; _checklists = res.checklists; }
+  else { _checklistsFailed = true; _checklists = []; }
 }
 
 function reloadAll() {
