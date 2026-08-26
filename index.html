@@ -3080,7 +3080,8 @@ function cbOnlToggle(btn) { if (btn && btn.parentNode) btn.parentNode.classList.
  * 返り値: [{ name, grade, cat, absent, html, key }]（並び替え済み）
  * cat: 'juku'|'ca'|'eiken'|'enshuu'|'online'|'taisaku'|'jishu'|'fu_*'
  */
-function cbNormalRoster_(cr, kt, iso, youbi) {
+/* countOnly=true のとき、チップHTMLを作らない（定員チェックは人数しか使わないので重い生成を省く） */
+function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
   var ss = getStudentsForKoma(cr, youbi, kt);
   var out = [], used = {}, tkA = {};
   if (getActiveTestPeriod_()) {
@@ -3099,7 +3100,7 @@ function cbNormalRoster_(cr, kt, iso, youbi) {
       // 川上さん確定(2026-08-26)：通常コマがオンラインでも、対策・自習の割付があれば教室に来る＝席を使う
       cat: tb ? tb : ktype,
       absent: _tkAbsent_(s.name, iso, kt, cr),
-      html: studentChipHtml(s, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, testBadge: tb, hideOnlineBadge: !!tb }),
+      html: countOnly ? '' : studentChipHtml(s, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, testBadge: tb, hideOnlineBadge: !!tb }),
       key: tb ? attendSortKey_(s, { assignType: tb }) : attendSortKey_(s, { komaType: ktype })
     });
   });
@@ -3118,7 +3119,7 @@ function cbNormalRoster_(cr, kt, iso, youbi) {
       name: r.studentName, grade: stu.grade || '',
       cat: tb ? tb : cbFurikaeCat_(r),
       absent: _tkAbsent_(r.studentName, iso, kt, cr),
-      html: studentChipHtml(stu, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, absenceCourse: r.absenceCourse || '', testBadge: tb }),
+      html: countOnly ? '' : studentChipHtml(stu, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, absenceCourse: r.absenceCourse || '', testBadge: tb }),
       key: attendSortKey_(stu, { isSub: true, subOrigType: _komaTypeOf_(ok) })
     });
   });
@@ -3134,7 +3135,7 @@ function cbNormalRoster_(cr, kt, iso, youbi) {
       out.push({
         name: a.studentName, grade: ts.grade || '', cat: tb,
         absent: _tkAbsent_(a.studentName, iso, kt, cr),
-        html: studentChipHtml(ts, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, testBadge: tb }),
+        html: countOnly ? '' : studentChipHtml(ts, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, testBadge: tb }),
         key: attendSortKey_(ts, { assignType: tb })
       });
     });
@@ -3148,6 +3149,160 @@ function cbJukenItems_(students, iso) {
   return (students || []).map(function(s) {
     return { name: s.name, grade: s.grade || '', cat: 'juken', absent: _tkAbsent_(s.name, iso, '19:00〜21:30', null) };
   });
+}
+
+/* ===== コマの定員（席数の上限）【川上さん確定 2026-08-26】=====
+ * 15人で赤くなるコマに、振替・テスト対策・講習で新たに人を入れるときは確認を出す。
+ *  ・判定は「入れた結果」。14人のコマに1人入れて15人になるときも出る
+ *  ・完全ブロックにはしない。「承知のうえで登録（強行）」を必ず残す（対面重複の確認と同じ考え方）
+ *  ・数える基準は画面の「計N人」と同じ（オンラインは数えない・欠席は数えない）
+ * 数字を変えるときはこの2つの定数だけ直す（色分けも同じ定数を見ている）。
+ * 川上さん確定：設定画面は作らない。HTMLに直接書く。
+ */
+var CB_SEAT_WARN  = 12;  // これ以上でオレンジ
+var CB_SEAT_LIMIT = 15;  // これ以上で赤＋登録時に確認ダイアログ
+
+/* 割付名とマスタ名の表記揺れ対策（「倉茂（ハリス）エイサン」vs「ハリスエイサン倉茂」）
+ * 週グリッドの講習分岐と cbKoushuObjs_ が共用する */
+function cbFindStudentLoose_(a) {
+  var s = _students.find(function(st){ return st.id === a.studentId || st.name === a.studentName; });
+  if (!s && a.studentName) {
+    s = _students.find(function(st){
+      var an = a.studentName.replace(/[（）\(\)\s]/g,''); var sn = (st.name||'').replace(/[（）\(\)\s]/g,'');
+      return an && sn && (an.indexOf(sn) >= 0 || sn.indexOf(an) >= 0);
+    });
+    if (!s) {
+      s = _students.find(function(st){
+        var an = a.studentName.replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
+        var sn = (st.name||'').replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
+        return an.length >= 2 && sn.length >= 2 && an === sn;
+      });
+    }
+  }
+  return s || { name: a.studentName };
+}
+
+/* 講習モードのコマの顔ぶれ（オブジェクト）。週グリッドの講習分岐と定員チェックが共用する。
+ * ここを直したら講習分岐の表示も変わる＝人数と表示がずれない。 */
+function cbKoushuObjs_(cr, kt, iso, youbi) {
+  var ss = getStudentsForKoma(cr, youbi, kt);
+  var kAssigns = (_koushuAssignments || []).filter(function(a) {
+    if (a.date !== iso || a.classroom !== cr || normKomaTime_(a.komaTime) !== normKomaTime_(kt)) return false;
+    var as = _students.find(function(st){ return st.id === a.studentId || st.name === a.studentName; });
+    if (as && (as.status === '退会' || as.status === '休会')) return false;   // 川上さん指示(2026-06-14)
+    return true;
+  });
+  var ids = kAssigns.map(function(a){ return a.studentId; }).filter(Boolean);
+  var nms = kAssigns.map(function(a){ return a.studentName; }).filter(Boolean);
+  var normals = ss.filter(function(s){
+    if (!isNormalKomaInKoushu_(s, kt)) return false;
+    if (s.id && ids.indexOf(s.id) >= 0) return false;
+    if (s.name && nms.indexOf(s.name) >= 0) return false;
+    return true;
+  }).map(function(s){ return { s: s, assignType: undefined }; });
+  var assignObjs = kAssigns.map(function(a) {
+    return { s: cbFindStudentLoose_(a), assignType: a.type, assignId: a.id };
+  });
+  var subs = (_absenceRecords || []).filter(function(r) {
+    return r.substituteDate === iso && r.substituteKomaTime === kt && r.substituteClassroom === cr &&
+           r.status === 'scheduled' && !ss.find(function(x){ return x.name === r.studentName; });
+  }).map(function(r) {
+    var stu = (_students || []).find(function(x){ return x.name === r.studentName; }) || { name: r.studentName };
+    var _rok = (stu.komas || []).find(function(k){ return k.time === r.komaTime; });
+    return { s: stu, assignType: undefined, isSub: true, subOrigType: _komaTypeOf_(_rok), r: r };
+  });
+  return normals.concat(assignObjs).concat(subs);
+}
+
+/* 講習モードの objs → 人数カウント用 item */
+function cbKoushuItems_(objs, cr, kt, iso, youbi) {
+  return (objs || []).map(function(o) {
+    var cat;
+    if (o.isSub) cat = o.r ? cbFurikaeCat_(o.r) : ('fu_' + (o.subOrigType || 'juku'));
+    else if (o.assignId !== undefined) cat = (o.assignType === 'taisaku') ? 'taisaku' : (o.assignType === 'jishu') ? 'jishu' : 'koushu';
+    else cat = _komaTypeOf_(_matchedKoma_(o.s, cr, youbi, kt));
+    return { name: (o.s && o.s.name) || '', grade: (o.s && o.s.grade) || '', cat: cat,
+             absent: _tkAbsent_((o.s && o.s.name) || '', iso, kt, cr) };
+  });
+}
+
+/* そのコマの今の席数。返り値の names は「もう数えている生徒」（二重に足さないため）。
+ * モードの判定は画面と同じ（講習期間の日は講習の顔ぶれ、それ以外は通常の顔ぶれ）。 */
+function cbSeatCount_(cr, kt, iso) {
+  if (!cr || !kt || !iso) return { total: 0, names: {} };
+  var youbi = '';
+  try { youbi = YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()]; } catch (e) { return { total: 0, names: {} }; }
+  if (!youbi) return { total: 0, names: {} };
+  var items;
+  if (isKoushuModeActive() && !getActiveTestPeriod_() && isDateInViewPeriod_(iso)) {
+    items = cbKoushuItems_(cbKoushuObjs_(cr, kt, iso, youbi), cr, kt, iso, youbi);
+  } else {
+    items = cbNormalRoster_(cr, kt, iso, youbi, true).map(function(o) {
+      return { name: o.name, grade: o.grade, cat: o.cat, absent: o.absent };
+    });
+  }
+  var c = cbCellCount_(items);
+  var names = {};
+  items.forEach(function(it){ if (it.cat !== 'online' && !it.absent) names[it.name] = 1; });
+  return { total: c.total, names: names };
+}
+
+/* 定員チェック。addNames＝そのコマに新しく入れる生徒名
+ * → { before, after, add, over }。over が true なら確認を出す。 */
+function cbSeatCheck_(cr, kt, iso, addNames) {
+  var cur = cbSeatCount_(cr, kt, iso);
+  var add = 0;
+  (addNames || []).forEach(function(n){ if (n && !cur.names[n]) { cur.names[n] = 1; add++; } });
+  var after = cur.total + add;
+  return { before: cur.total, after: after, add: add, limit: CB_SEAT_LIMIT, over: (add > 0 && after >= CB_SEAT_LIMIT) };
+}
+
+/* 定員オーバーの確認ダイアログ（2択：戻る／このまま登録）。
+ * rows = [{ who, when, before, after }] */
+var _cbSeatOnForce = null;
+function cbSeatRowsHtml_(rows) {
+  return rows.map(function(r) {
+    return '<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed #fed7aa">' +
+      '<b>' + esc(r.who || '') + '</b>　' + esc(r.when || '') +
+      '　／　' + r.before + '人 → <b style="color:#b45309">' + r.after + '人</b></div>';
+  }).join('');
+}
+function cbSeatAsk_(rows, forceLabel, onForce) {
+  _cbSeatOnForce = onForce;
+  var body =
+    '<p style="font-size:13px;margin:0 0 8px">このコマは <b>' + CB_SEAT_LIMIT + '人以上</b>になります。席が足りるか確認してください。<br>' +
+    '<span style="font-size:12px;color:var(--text-muted)">（オンラインと欠席は数えていません）</span></p>' +
+    '<div style="border:1px solid #fed7aa;background:#fffbeb;border-radius:6px;padding:8px 10px;max-height:260px;overflow-y:auto">' +
+    cbSeatRowsHtml_(rows) + '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">' +
+      '<button class="btn-secondary" onclick="closeModal(\'modal-cbseat\')">戻って選び直す</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="cbSeatForceDo()">&#9888; ' + esc(forceLabel || 'このまま登録') + '</button>' +
+    '</div>';
+  var ex = document.getElementById('modal-cbseat');
+  if (ex) ex.remove();
+  var modal = document.createElement('div');
+  modal.id = 'modal-cbseat';
+  modal.className = 'modal-overlay';
+  modal.onclick = function(e){ if (e.target === modal) closeModal('modal-cbseat'); };
+  modal.innerHTML =
+    '<div class="modal" style="max-width:560px;width:92vw">' +
+    '<div class="modal-header"><span>&#9888; 定員（' + CB_SEAT_LIMIT + '人）に達します（' + rows.length + '件）</span>' +
+    '<span class="modal-close" onclick="closeModal(\'modal-cbseat\')">&#215;</span></div>' +
+    '<div class="modal-body">' + body + '</div></div>';
+  document.body.appendChild(modal);
+  openModal('modal-cbseat');
+}
+function cbSeatForceDo() {
+  var fn = _cbSeatOnForce;
+  _cbSeatOnForce = null;
+  closeModal('modal-cbseat');
+  if (typeof fn === 'function') fn();
+}
+/* 日付の見せ方：8/28(金) 18:40〜20:00 北久里浜 */
+function cbSeatWhen_(iso, kt, cr) {
+  var d = '', yb = '';
+  try { d = iso.slice(5).replace('-', '/'); yb = YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()]; } catch (e) {}
+  return d + '(' + yb + ') ' + (kt || '') + ' ' + (cr || '');
 }
 
 
@@ -3523,8 +3678,8 @@ function renderToday() {
       if (komaTimes.length) {
         komaTimes.forEach(function(kt) {
           var assigns = komaMap[kt] || [];
-          var cntCls = assigns.length >= 15 ? ' count-danger' : assigns.length >= 12 ? ' count-warn' : '';
-          var countHtml = assigns.length > 0 ? ' <span class="koma-count' + cntCls + '" title="12人以上：黄色 / 15人以上：赤">（計' + assigns.length + '人）</span>' : '';
+          var cntCls = assigns.length >= CB_SEAT_LIMIT ? ' count-danger' : assigns.length >= CB_SEAT_WARN ? ' count-warn' : '';
+          var countHtml = assigns.length > 0 ? ' <span class="koma-count' + cntCls + '" title="' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤">（計' + assigns.length + '人）</span>' : '';
           var _ko = [];
           assigns.forEach(function(a) {
             var s = _students.find(function(st) { return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
@@ -3581,8 +3736,8 @@ function renderToday() {
                 && getMainClassroom(s) === cr;
             }) : [];
             var _cnt = cbCellCount_(_roster.concat(cbJukenItems_(jukenStudents, todayIso)));
-            var _cntCls = _cnt.total >= 15 ? ' count-danger' : _cnt.total >= 12 ? ' count-warn' : '';
-            var _cntTitle = ' title="' + _cnt.tooltip + ' / 12人以上：黄色 / 15人以上：赤" style="cursor:help"';
+            var _cntCls = _cnt.total >= CB_SEAT_LIMIT ? ' count-danger' : _cnt.total >= CB_SEAT_WARN ? ' count-warn' : '';
+            var _cntTitle = ' title="' + _cnt.tooltip + ' / ' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤" style="cursor:help"';
             var countHtml = _cnt.total > 0 ? ' <span class="koma-count' + _cntCls + '"' + _cntTitle + '>' + _cnt.label + '</span>' : '';
             var jukenBlock = '';
             if (jukenStudents.length) {
@@ -4350,52 +4505,8 @@ function buildWeekGrid(days, todayIso) {
           var r = lessonRankCommon_(s, assignType, dateIso, komaT, cr_, matchFn);
           return r;
         }
-        // 講習割付の生徒をオブジェクト化
-        var kAssigns = _koushuAssignments.filter(function(a) {
-          if (a.date !== iso || a.classroom !== cr || normKomaTime_(a.komaTime) !== normKomaTime_(kt)) return false;
-          // 川上さん指示(2026-06-14)：退会・休会の生徒は表示しない
-          var as = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
-          if (as && (as.status === '退会' || as.status === '休会')) return false;
-          return true;
-        });
-        // normalChips の生徒をオブジェクト化
-        // kAssigns に含まれる生徒のid/name両方を重複チェック用に収集
-        var kAssignIds   = kAssigns.map(function(a){ return a.studentId; }).filter(Boolean);
-        var kAssignNms   = kAssigns.map(function(a){ return a.studentName; }).filter(Boolean);
-        var normalStudentsK = ss.filter(function(s){
-          if (!isNormalKomaInKoushu_(s, kt)) return false;
-          // kAssignObjs に既にいる生徒は除外（重複防止）
-          if (s.id   && kAssignIds.indexOf(s.id)     >= 0) return false;
-          if (s.name && kAssignNms.indexOf(s.name)   >= 0) return false;
-          return true;
-        }).map(function(s){ return { s: s, assignType: undefined }; });
-        var kAssignObjs = kAssigns.map(function(a) {
-          // まずid・完全一致で検索、なければ表示名の部分一致でフォールバック
-          var s = _students.find(function(st){ return st.id===a.studentId||st.name===a.studentName; });
-          if (!s && a.studentName) {
-            // 割付名とマスタ名の表記揺れ対策（例：「倉茂（ハリス）エイサン」vs「ハリスエイサン倉茂」）
-            // ① 部分一致（順序が同じ場合）
-            s = _students.find(function(st){
-              var an = a.studentName.replace(/[（）\(\)\s]/g,'');
-              var sn = (st.name||'').replace(/[（）\(\)\s]/g,'');
-              return an && sn && (an.indexOf(sn) >= 0 || sn.indexOf(an) >= 0);
-            });
-            // ② 文字セット一致（順序が違う場合：「倉茂ハリスエイサン」vs「ハリスエイサン倉茂」）
-            if (!s) {
-              s = _students.find(function(st){
-                var an = a.studentName.replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
-                var sn = (st.name||'').replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
-                return an.length >= 2 && sn.length >= 2 && an === sn;
-              });
-            }
-          }
-          if (!s) s = { name: a.studentName };
-          return { s: s, assignType: a.type, assignId: a.id };
-        });
-        // 振替生徒（通常コマ以外から来た場合のみ）
-        var subObjsK = subChips; // subChips はすでにHTML文字列なので後で結合
-        // normalStudentsK + kAssignObjs を統合してソート
-        var allKObjs = normalStudentsK.concat(kAssignObjs).concat(subObjs);
+        // 川上さん確定(2026-08-26)：顔ぶれの組み立ては cbKoushuObjs_ に集約（定員チェックと同じ関数を使う）
+        var allKObjs = cbKoushuObjs_(cr, kt, iso, YOUBIS[i]);
         allKObjs.forEach(function(o){
           if (o.isSub) o._sk = attendSortKey_(o.s, { isSub: true, subOrigType: o.subOrigType });
           else if (o.assignId !== undefined) o._sk = attendSortKey_(o.s, { assignType: o.assignType || 'normal' });
@@ -4418,17 +4529,10 @@ function buildWeekGrid(days, todayIso) {
           return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso, koushuNormalMode: true });
         });
         // 川上さん確定(2026-08-26)：人数と内訳は通常モードと同じ cbCellCount_ で出す（欠席は席数から外す）
-        var _kItems = allKObjs.map(function(o) {
-          var cat;
-          if (o.isSub) cat = o.r ? cbFurikaeCat_(o.r) : ('fu_' + (o.subOrigType || 'juku'));
-          else if (o.assignId !== undefined) cat = (o.assignType === 'taisaku') ? 'taisaku' : (o.assignType === 'jishu') ? 'jishu' : 'koushu';
-          else cat = _komaTypeOf_(_matchedKoma_(o.s, cr, YOUBIS[i], kt));
-          return { name: (o.s && o.s.name) || '', grade: (o.s && o.s.grade) || '', cat: cat,
-                   absent: _tkAbsent_((o.s && o.s.name) || '', iso, kt, cr) };
-        });
+        var _kItems = cbKoushuItems_(allKObjs, cr, kt, iso, YOUBIS[i]);
         var _kCnt = cbCellCount_(_kItems);
-        var kCntCls = _kCnt.total >= 15 ? ' count-danger' : _kCnt.total >= 12 ? ' count-warn' : '';
-        var _kTitle = ' title="' + _kCnt.tooltip + ' / 12人以上：黄色 / 15人以上：赤" style="cursor:help"';
+        var kCntCls = _kCnt.total >= CB_SEAT_LIMIT ? ' count-danger' : _kCnt.total >= CB_SEAT_WARN ? ' count-warn' : '';
+        var _kTitle = ' title="' + _kCnt.tooltip + ' / ' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤" style="cursor:help"';
         var kCountDiv = _kCnt.total > 0 ? '<div class="wg-count' + kCntCls + '"' + _kTitle + '>' + _kCnt.label + '</div>' : '';
         // 講習モードは isNormalKomaInKoushu_ がオンラインコマを除外するので、まとめ行は通常出ない（保険で置く）
         var _kOnlRow = cbOnlineRowHtml_(_kCnt.onlineNames);
@@ -4450,8 +4554,8 @@ function buildWeekGrid(days, todayIso) {
           && getMainClassroom(s) === cr;
       }) : [];
       var _wCnt = cbCellCount_(_wRoster.concat(cbJukenItems_(jukenStu, iso)));
-      var _wCls = _wCnt.total >= 15 ? ' count-danger' : _wCnt.total >= 12 ? ' count-warn' : '';
-      var _wTitle = ' title="' + _wCnt.tooltip + ' / 12人以上：黄色 / 15人以上：赤" style="cursor:help"';
+      var _wCls = _wCnt.total >= CB_SEAT_LIMIT ? ' count-danger' : _wCnt.total >= CB_SEAT_WARN ? ' count-warn' : '';
+      var _wTitle = ' title="' + _wCnt.tooltip + ' / ' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤" style="cursor:help"';
       var wgCountDiv = _wCnt.total > 0 ? '<div class="wg-count' + _wCls + '"' + _wTitle + '>' + _wCnt.label + '</div>' : '';
       // 川上さん確定(2026-08-26)：オンラインだけの子はチップを出さず、コマの一番下にまとめる
       var allChips = _wRoster.filter(function(o){ return o.cat !== 'online'; }).map(function(o){ return o.html; });
@@ -6670,6 +6774,7 @@ function absTaskMemo_(d, userMemo) {
   return userMemo ? pre + '\n' + userMemo : pre;
 }
 
+var _subSeatForced = false;   // 定員の確認で「このまま確定」を選んだ直後だけ true（2026-08-26）
 function saveSubstitute(recordId, uid) {
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
@@ -6694,6 +6799,20 @@ function saveSubstitute(recordId, uid) {
     miniToast('⚠️ この生徒はその日時に既に振替予定があります');
     return;
   }
+
+  // 川上さん確定(2026-08-26)：振替先が定員（CB_SEAT_LIMIT人）に達するときは確認を出す（強行は可）
+  if (!_subSeatForced) {
+    var _sc = cbSeatCheck_(subCr, subKoma, subDate, [rec.studentName]);
+    if (_sc.over) {
+      cbSeatAsk_([{ who: rec.studentName, when: cbSeatWhen_(subDate, subKoma, subCr), before: _sc.before, after: _sc.after }],
+        'このまま確定', function() {
+          _subSeatForced = true;
+          try { saveSubstitute(recordId, uid); } finally { _subSeatForced = false; }
+        });
+      return;
+    }
+  }
+  _subSeatForced = false;
 
   // 楽観的UI
   var prev = { substituteDate: rec.substituteDate, substituteKomaTime: rec.substituteKomaTime, substituteClassroom: rec.substituteClassroom, status: rec.status };
@@ -8460,6 +8579,7 @@ function kseForceAsk(btn) {
   openModal('modal-kseforce');
 }
 var _kseForceBtn = null;
+var _kseSeatForced = false;   // 定員の確認で「このまま保存」を選んだ直後だけ true（2026-08-26）
 function kseForceDo() {
   var btn = _kseForceBtn;
   closeModal('modal-kseforce');
@@ -8657,6 +8777,23 @@ function kseSave(studentId, studentName, periodId) {
     miniToast('変更はありません');
     return;
   }
+
+  // 川上さん確定(2026-08-26)：入れた結果 CB_SEAT_LIMIT 人以上になるコマは確認を出す（強行は可）
+  if (toAdd.length && !_kseSeatForced) {
+    var _seatRows = [];
+    toAdd.forEach(function(t) {
+      var _r = cbSeatCheck_(t.data.classroom, t.data.komaTime, t.data.date, [t.data.studentName]);
+      if (_r.over) _seatRows.push({ who: t.data.studentName, when: cbSeatWhen_(t.data.date, t.data.komaTime, t.data.classroom), before: _r.before, after: _r.after });
+    });
+    if (_seatRows.length) {
+      cbSeatAsk_(_seatRows, 'このまま保存', function() {
+        _kseSeatForced = true;
+        try { kseSave(studentId, studentName, periodId); } finally { _kseSeatForced = false; }
+      });
+      return;
+    }
+  }
+  _kseSeatForced = false;
 
   // スピナー表示
   var saveBtn = document.getElementById('kse-save-btn');
@@ -8894,6 +9031,19 @@ document.addEventListener('drop', function(e) {
     return;
   }
 
+  // 川上さん確定(2026-08-26)：移動先が定員（CB_SEAT_LIMIT人）に達するときは確認を出す（強行は可）
+  var _dcCr = newClassroom || a.classroom;
+  var _dc = cbSeatCheck_(_dcCr, newKoma, newDate, [a.studentName]);
+  if (_dc.over) {
+    cbSeatAsk_([{ who: a.studentName, when: cbSeatWhen_(newDate, newKoma, _dcCr), before: _dc.before, after: _dc.after }],
+      'このまま移動', function() { ddMoveAssign_(a, newDate, newKoma, newClassroom); });
+    return;
+  }
+  ddMoveAssign_(a, newDate, newKoma, newClassroom);
+});
+
+/* 割付のコマ移動を実行（ドロップ本体と定員の確認ダイアログから呼ぶ） */
+function ddMoveAssign_(a, newDate, newKoma, newClassroom) {
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
 
@@ -8917,7 +9067,7 @@ document.addEventListener('drop', function(e) {
       miniToast(a.studentName + ' を ' + newKoma + ' に移動しました ✓');
     }
   }, 'POST');
-});
+}
 // ──────────────────────────────────────────────────────────────
 
 function closeKoushuBulkAssign() {
@@ -9125,27 +9275,50 @@ function bulkCalToggle(btn) {
   if (el) el.textContent = cnt + 'セル選択中';
 }
 
-/* 一括登録の重複ダイアログ（川上さん確定 2026-08-25）
- * 「戻って選び直す」「重複を外して登録」「重複ごと登録（強行）」の3択。
+/* 一括登録の確認ダイアログ（重複＋定員）
+ * 2026-08-25：対面授業と重なるコマ（__conf）
+ * 2026-08-26：入れると定員 CB_SEAT_LIMIT 人以上になるコマ（__seat）を追加
+ * 「戻って選び直す」「問題のあるコマを外して登録」「全部登録（強行）」の3択。
  * 選択後は同じ submitKoushuBulkAssign を _tkBulkMode 付きで呼び直す（画面の選択状態はそのまま使う）。 */
-function tkShowBulkConflictDialog_(total, confList, periodId) {
-  var rows = confList.map(function(a) {
+function tkShowBulkConflictDialog_(assignments, periodId) {
+  var total    = assignments.length;
+  var confList = assignments.filter(function(a){ return a.__conf; });
+  var seatList = assignments.filter(function(a){ return a.__seat; });
+  var badCount = assignments.filter(function(a){ return a.__conf || a.__seat; }).length;
+  function when_(a) {
     var d = a.date ? a.date.slice(5).replace('-', '/') : '';
     var yb = a.date ? YOUBI_MAP[new Date(a.date + 'T00:00:00').getDay()] : '';
-    return '<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed #fecaca">' +
-      '<b>' + esc(a.studentName || '') + '</b>　' + esc(d) + '(' + esc(yb) + ') ' + esc(a.komaTime || '') +
-      '　／　すでに ' + esc(a.__conf || '') + '</div>';
-  }).join('');
-  var body =
-    '<p style="font-size:13px;margin:0 0 8px">テスト対策は追加コマです。<b>すでに対面の授業があるコマ</b>が ' + confList.length + ' 件あります。<br>' +
-    '<span style="font-size:12px;color:var(--text-muted)">（オンラインは重複に数えていません）</span></p>' +
-    '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;max-height:260px;overflow-y:auto">' + rows + '</div>' +
-    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">登録予定 ' + total + ' 件のうち ' + confList.length + ' 件が重複しています。</p>' +
+    return esc(d) + '(' + esc(yb) + ') ' + esc(a.komaTime || '');
+  }
+  var sec = '';
+  if (confList.length) {
+    sec += '<p style="font-size:13px;margin:0 0 6px"><b>すでに対面の授業があるコマ</b>　' + confList.length + '件<br>' +
+      '<span style="font-size:12px;color:var(--text-muted)">テスト対策は追加コマです。（オンラインは重複に数えていません）</span></p>' +
+      '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;max-height:200px;overflow-y:auto;margin-bottom:10px">' +
+      confList.map(function(a) {
+        return '<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed #fecaca">' +
+          '<b>' + esc(a.studentName || '') + '</b>　' + when_(a) + '　／　すでに ' + esc(a.__conf || '') + '</div>';
+      }).join('') + '</div>';
+  }
+  if (seatList.length) {
+    sec += '<p style="font-size:13px;margin:0 0 6px"><b>定員（' + CB_SEAT_LIMIT + '人）に達するコマ</b>　' + seatList.length + '件<br>' +
+      '<span style="font-size:12px;color:var(--text-muted)">オンラインと欠席は数えていません。</span></p>' +
+      '<div style="border:1px solid #fed7aa;background:#fffbeb;border-radius:6px;padding:8px 10px;max-height:200px;overflow-y:auto;margin-bottom:10px">' +
+      seatList.map(function(a) {
+        return '<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed #fed7aa">' +
+          '<b>' + esc(a.studentName || '') + '</b>　' + when_(a) + '　／　この子を入れて <b style="color:#b45309">' + a.__seat + '人</b></div>';
+      }).join('') + '</div>';
+  }
+  var body = sec +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">登録予定 ' + total + ' 件のうち ' + badCount + ' 件が該当します。</p>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:12px">' +
       '<button class="btn-secondary" onclick="closeModal(\'modal-tkconf\')">戻って選び直す</button>' +
-      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="tkBulkAnswer(\'force\',\'' + esc(periodId) + '\')">&#9888; 重複ごと ' + total + '件を登録（強行）</button>' +
-      '<button class="btn-primary" onclick="tkBulkAnswer(\'skip\',\'' + esc(periodId) + '\')">重複を外して ' + (total - confList.length) + '件を登録</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="tkBulkAnswer(\'force\',\'' + esc(periodId) + '\')">&#9888; そのまま ' + total + '件を登録（強行）</button>' +
+      '<button class="btn-primary" onclick="tkBulkAnswer(\'skip\',\'' + esc(periodId) + '\')">該当を外して ' + (total - badCount) + '件を登録</button>' +
     '</div>';
+  var head = [];
+  if (confList.length) head.push('対面授業と重なる ' + confList.length + '件');
+  if (seatList.length) head.push('定員に達する ' + seatList.length + '件');
   var ex = document.getElementById('modal-tkconf');
   if (ex) ex.remove();
   var modal = document.createElement('div');
@@ -9154,7 +9327,7 @@ function tkShowBulkConflictDialog_(total, confList, periodId) {
   modal.onclick = function(e) { if (e.target === modal) closeModal('modal-tkconf'); };
   modal.innerHTML =
     '<div class="modal" style="max-width:640px;width:92vw">' +
-    '<div class="modal-header"><span>&#9888; 対面授業と重なっています（' + confList.length + '件）</span>' +
+    '<div class="modal-header"><span>&#9888; ' + esc(head.join(' ／ ')) + '</span>' +
     '<span class="modal-close" onclick="closeModal(\'modal-tkconf\')">&#215;</span></div>' +
     '<div class="modal-body" style="overflow-y:auto;max-height:calc(90vh - 90px)">' + body + '</div></div>';
   document.body.appendChild(modal);
@@ -9206,20 +9379,33 @@ function submitKoushuBulkAssign(periodId) {
     miniToast('通常コマ重複：' + conflicts.slice(0,3).join(' / ') + (conflicts.length > 3 ? ' 他' + (conflicts.length-3) + '件' : ''));
     return;
   }
-  // ── テスト対策の重複（対面授業と重なる）。基本は止めて一覧を出し、外して登録／強行を選ばせる ──
+  // ── 定員チェック（川上さん確定 2026-08-26）──
+  // 同じコマに複数人まとめて入れる分は積み上げて数える（1人ずつ見ると定員を超えても気づけない）
+  var _seatCache = {};
+  assignments.forEach(function(a) {
+    var key = a.date + '|' + a.komaTime + '|' + a.classroom;
+    if (!_seatCache[key]) _seatCache[key] = cbSeatCount_(a.classroom, a.komaTime, a.date);
+    var c = _seatCache[key];
+    if (!c.names[a.studentName]) { c.names[a.studentName] = 1; c.total++; }
+    if (c.total >= CB_SEAT_LIMIT) a.__seat = c.total;
+  });
+
+  // ── 対面授業と重なる／定員に達する。基本は止めて一覧を出し、外して登録／強行を選ばせる ──
   var _tkConf = assignments.filter(function(a) { return a.__conf; });
-  if (_tkConf.length && _tkBulkMode !== 'force' && _tkBulkMode !== 'skip') {
-    tkShowBulkConflictDialog_(assignments.length, _tkConf, periodId);
+  var _tkSeat = assignments.filter(function(a) { return a.__seat; });
+  if ((_tkConf.length || _tkSeat.length) && _tkBulkMode !== 'force' && _tkBulkMode !== 'skip') {
+    tkShowBulkConflictDialog_(assignments, periodId);
     return;
   }
-  if (_tkBulkMode === 'skip') assignments = assignments.filter(function(a) { return !a.__conf; });
-  var _tkForced = (_tkBulkMode === 'force') ? _tkConf.length : 0;
+  if (_tkBulkMode === 'skip') assignments = assignments.filter(function(a) { return !a.__conf && !a.__seat; });
+  var _tkForced = (_tkBulkMode === 'force') ? assignments.filter(function(a){ return a.__conf || a.__seat; }).length : 0;
   _tkBulkMode = '';
-  assignments = assignments.map(function(a) { var o = {}; for (var k in a) { if (k !== '__conf') o[k] = a[k]; } return o; });
+  // 内部フラグ（__conf / __seat）は必ず落としてから送る
+  assignments = assignments.map(function(a) { var o = {}; for (var k in a) { if (k !== '__conf' && k !== '__seat') o[k] = a[k]; } return o; });
   if (!assignments.length) { miniToast('登録するコマがありません'); return; }
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
-  miniToast('登録中... ' + assignments.length + '件' + (_tkForced ? '（うち重複' + _tkForced + '件）' : ''));
+  miniToast('登録中... ' + assignments.length + '件' + (_tkForced ? '（うち要確認' + _tkForced + '件）' : ''));
   callGas(url, { action: 'bulkSaveKoushuAssignments', assignments: assignments }, function(res) {
     if (res && res.success) {
       miniToast('登録完了 ✓ 追加:' + res.added + '件' + (res.updated ? ' 教室更新:' + res.updated + '件' : '') + ' スキップ:' + res.skipped + '件');
