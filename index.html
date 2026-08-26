@@ -4196,8 +4196,12 @@ function alertBannersHtml(todayStudents, todayIso) {
       var pen = '<button onclick="event.stopPropagation();openEditTestModal(' + JSON.stringify(editData).replace(/"/g,'\'') + ')" '
         + 'title="この日程を編集" style="background:none;border:none;padding:0 2px;cursor:pointer;color:#6b7280">'
         + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
-      return '<span style="white-space:nowrap">' + testMd_(t.dueDate) + ' ' + esc(t.taskName || '')
-        + '<strong' + (it.diff <= 7 ? ' style="color:#b91c1c"' : '') + '>（残' + it.diff + '日）</strong>' + pen + '</span>';
+      // 🚨 川上さん報告(2026-08-26)：小テストのバナーが右端で見切れる。
+      //  1件まるごとを white-space:nowrap で包んでいたため、教材名が長いと折り返せず横に突き抜けていた
+      //  （実測：ラベルの中身744px／入れ物357px）。日付だけ離れないようにして、本文は折り返せるようにする。
+      //  ★ここを1件まるごと nowrap に戻さないこと。
+      return '<span>' + '<span style="white-space:nowrap">' + testMd_(t.dueDate) + '</span> ' + esc(t.taskName || '')
+        + '<strong' + (it.diff <= 7 ? ' style="color:#b91c1c;white-space:nowrap"' : ' style="white-space:nowrap"') + '>（残' + it.diff + '日）</strong>' + pen + '</span>';
     });
     var label = '<strong>' + esc(school) + (grade ? ' ' + esc(grade) + '生' : '') + '</strong>：' + parts.join('　');
     var dateLabel = items.map(function(it) { return testMd_(it.task.dueDate) + ' ' + (it.task.taskName || ''); }).join(' / ');
