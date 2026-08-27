@@ -2080,27 +2080,21 @@ function loadAll() {
       // 定期テスト対策カード（2026-08-17 カード自由記述方式）。重要度は中なので retries は付けない。
       { action: 'getExamCards',      apply: function(r){ _cbLoaded.examCards = true; if (r && r.success && r.cards) { _examCards = r.cards; _xcLastFetch = Date.now(); } else { _cbFail.examCards = true; } } }
     ];
-    // 2026-08-27：この9本を1往復にまとめる（getClassBoardSchool）。
-    //  本番実測（同日朝）：フェーズ1完了5.61秒／フェーズ2完了10.24秒。同時実行が並列にさばかれる
-    //  時間帯は9本でも4.6秒で済むが、直列になる時間帯は1本あたり約2秒の固定コストが9本ぶん積み上がる。
-    //  GASに getClassBoardSchool が無い／通信に失敗したら、従来の9本にそのまま落ちる。
-    //  ★従来経路（legacyPhase2）は消さない。GASを貼り替える前でもHTMLだけ先に出せるようにするため。
-    //  ★まとめ取得の返り値は action名をキーに元の関数のJSONがそのまま入っているので、apply は無改造で使える。
+    // 2026-08-27：この9本を1往復にまとめる（getClassBoardSchool）を試したが【取り下げた】。
+    //  本番実測：まとめ取得1本が63.5秒かかり、JSONではなくエラーページ（7,700バイト）が返った。
+    //  2回目は80秒たっても返らず。個別9本なら並列で4.6秒で済んでいたものが、
+    //  1本にまとめると9つのシート読みが直列になり、桁違いに遅くなった。
+    //  ＝フェーズ1（生徒・欠席・期間・割付・開閉校＝5.06秒）で効いたのは、あちらのシート読みが軽かったから。
+    //    まとめ取得は「1リクエストあたりの固定コスト」より「シート読みの合計」が支配的だと負ける。
+    //  GAS側の getClassBoardSchool_ は残っているが、ここから呼んでいないので実行されない。
+    //  ★従来の9本（並列）に戻した。これが現在の正。
     function legacyPhase2() {
       jobs.forEach(function(job) {
         p2++;
         callGas(studentUrl, { action: job.action }, function(res) { try { job.apply(res); } catch(e){} d2(); }, 'GET', true);
       });
     }
-    p2++;
-    callGas(studentUrl, { action: 'getClassBoardSchool' }, function(res) {
-      if (res && res.success) {
-        jobs.forEach(function(job) { try { job.apply(res[job.action]); } catch(e){} });
-        d2();
-      } else {
-        legacyPhase2(); d2(); // ★先に9本を積んでから d2()。逆にすると p2 が0になって先に再描画が走る
-      }
-    }, 'GET', true);
+    legacyPhase2();
     if (_koushuFixPid) { // フェーズ1で先読みした期間と実アクティブ期間が違った場合の取り直し
       p2++;
       callGas(studentUrl, { action: 'getKoushuAssignments', periodId: _koushuFixPid }, function(r) {
