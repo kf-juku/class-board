@@ -603,11 +603,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 /* モーダル */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 300; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
-.modal { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-md); width: 440px; max-width: 95vw; }
-.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+.modal { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-md); width: 440px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; }  /* 2026-08-27：高さ上限が無く、中身が伸びるとフッター（保存ボタン）が画面外に出ていた。ui-standards §17 の標準形に統一。 */
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .modal-close { cursor: pointer; font-size: 20px; color: var(--text-muted); }
-.modal-body { padding: 20px; }
-.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+.modal-body { padding: 20px; overflow-y: auto; overflow-x: hidden; flex: 1 1 auto; min-height: 0; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
 .form-group { margin-bottom: 14px; }
 .form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; }
 .form-input { width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; font-size: 13px; }
@@ -5605,7 +5605,11 @@ function testRowHtml_() {
 }
 
 function addTestRow() {
-  document.getElementById('test-rows').insertAdjacentHTML('beforeend', testRowHtml_());
+  var box = document.getElementById('test-rows');
+  box.insertAdjacentHTML('beforeend', testRowHtml_());
+  // 2026-08-27：モーダル本文がスクロールするようになったので、足した行まで自動で送る
+  var last = box.lastElementChild;
+  if (last && last.scrollIntoView) { try { last.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
 }
 
 function removeTestRow(btn) {
