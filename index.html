@@ -234,12 +234,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kse-cell-btn.kse-cell-jishu { background:#dcfce7 !important; border-color:#16a34a !important; color:#166534 !important; }
 /* テスト対策：対面授業と重なるコマ（川上さん確定 2026-08-25）。押すと確認が出て強行できる */
 .kse-cell-btn.kse-cell-lock { background:#e5e7eb !important; border-color:#d1d5db !important; color:#6b7280 !important; font-size:10px; font-weight:700; }
-/* 川上さん確定(2026-08-28)：グレーで塗らない。ハイフンだけ置く（グレーアウトは見づらい） */
-.kse-cell-btn.kse-cell-nokoma { background:transparent !important; border-color:transparent !important; color:#9ca3af !important; font-size:13px; }
-.kse-cell-btn.kse-cell-nokoma:hover { background:#f1f5f9 !important; }
-/* オンラインもグレー塗りをやめ、枠と文字で見せる */
-.kse-cell-btn.kse-cell-onl { background:var(--bg,#fff) !important; border-color:#cbd5e1 !important; color:#64748b !important; font-size:10px; font-weight:700; }
-.kse-cell-btn.kse-cell-onl:hover { background:#f1f5f9 !important; }
+/* 川上さん確定(2026-08-28)：押せるセルは枠(□)を必ず残す。押せると分からなくなるため。
+   グレーで塗りつぶすのは「押せない理由がある」.kse-cell-lock だけ。
+   実在しない枠・オンラインは通常セルと同じ枠のまま、中の文字だけで違いを出す。 */
+.kse-cell-btn.kse-cell-nokoma { color:#9ca3af !important; font-size:13px; }
+.kse-cell-btn.kse-cell-onl { color:#64748b !important; font-size:10px; font-weight:700; }
 .kse-cell-btn.kse-cell-lock:hover { background:#d1d5db !important; }
 /* チェックリストの読み込み中・失敗表示（川上さん指示 2026-08-25） */
 .cl-loading { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); background:var(--bg-sub,#f8fafc); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-top:10px; }
@@ -1924,6 +1923,28 @@ function tkKomaOnDayAny_(dateIso, komaTime) {
   var yb = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
   return !!_tkKomaDayAny[yb + '|' + normKomaTime_(komaTime)];
 }
+/* その日・そのコマ枠に「振替で来る予定」があるか（川上さん確定 2026-08-28）
+ * 振替は日付単位なので曜日の実在表には入らない。他教室への振替だと、所属教室の実在表で
+ * 「コマなし」になって振替バッジが隠れてしまう（古林志都 9/14 月 17:15＝久里浜へ振替）。
+ * → 実在しない枠でも、その枠ちょうどに振替があるなら「実在する」扱いにして「振」を出す。
+ * 判定は時刻の完全一致。重なりで見ると、隣の無いコマ枠にまで振替バッジが出る。 */
+function tkSubstituteHere_(s, dateIso, komaTime) {
+  if (!s || !dateIso || !komaTime) return false;
+  var t = normKomaTime_(komaTime);
+  return (_absenceRecords || []).some(function(r) {
+    return r.status === 'scheduled' && r.studentName === (s.name || '') &&
+           r.substituteDate === dateIso && normKomaTime_(r.substituteKomaTime) === t;
+  });
+}
+/* 誰かの振替がその日・その枠にあるか（一括登録は生徒が1人に決まらないため） */
+function tkAnySubstituteHere_(dateIso, komaTime) {
+  if (!dateIso || !komaTime) return false;
+  var t = normKomaTime_(komaTime);
+  return (_absenceRecords || []).some(function(r) {
+    return r.status === 'scheduled' && r.substituteDate === dateIso &&
+           normKomaTime_(r.substituteKomaTime) === t;
+  });
+}
 /* その生徒が dateIso の komaTime に「オンラインで受けている」コマを返す（川上さん確定 2026-08-28）
  * オンラインは対面重複の対象外（ロックしない）。ただし教室に呼んで対策を優先することがあるので、
  * オンライン授業があること自体は見えるようにする。押すのは確認なしで従来どおり。 */
@@ -1939,6 +1960,96 @@ function tkOnlineKomas_(s, dateIso, komaTime) {
   });
   return out;
 }
+/* ===== 振替を確定するときの重なりチェック（川上さん確定 2026-08-28） =====
+ * これまで saveSubstitute が見ていたのは ①同じ生徒の同日同コマの振替（完全一致の文字列比較）
+ * ②定員 の2つだけで、テスト対策・自習の割付を見ていなかった＝防止が片側だけだった。
+ * 対策を入れるときは対面（通常コマ・振替）を見るのに、振替を入れるときは対策を見ない。
+ * 実際に髙橋蓮 9/4(金) 18:40〜20:00 で対策と振替が同じコマに入った（2026-08-28 発見）。
+ * ここでは「その生徒がその日その時間に、すでに何かで埋まっているか」を返す。強行は残す。
+ */
+function subConflicts_(studentName, dateIso, komaTime, excludeRecordId) {
+  if (!studentName || !dateIso || !komaTime) return [];
+  var out = [];
+  var s = (_students || []).find(function(x) { return x.name === studentName; });
+  var youbi = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
+
+  // 通常の通塾コマ（オンラインは教室に来ないので数えない＝対策の判定と同じ）
+  if (s) {
+    (s.komas || []).forEach(function(k) {
+      if (k.online) return;
+      var yb = k.youbi;
+      if (k.satType === 'hira' && k.hiraKoma) {
+        var hv = k.hiraKoma;
+        if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
+        yb = hv.charAt(0);
+      }
+      if (yb !== youbi) return;
+      if (!tkTimeOverlap_(k.time, komaTime)) return;
+      var label = (k.id || '').indexOf('ca_') === 0 ? 'CA'
+        : k.satType === 'eiken' ? '英検'
+        : k.satType === 'juken' ? '受験特訓'
+        : (k.satType === 'enshuu' || k.satType === 'hira') ? '演習回'
+        : k.satType === 'sat' ? '土曜演習' : '塾';
+      out.push({ label: label, time: k.time, classroom: k.classroom || '' });
+    });
+  }
+
+  // テスト対策・自習・講習の割付
+  (_koushuAssignments || []).forEach(function(a) {
+    if (!(a.studentName === studentName || (s && a.studentId === s.id))) return;
+    if (a.date !== dateIso) return;
+    if (!tkTimeOverlap_(a.komaTime, komaTime)) return;
+    var label = a.type === 'jishu' ? '自習' : a.type === 'taisaku' ? 'テスト対策' : '講習';
+    out.push({ label: label, time: a.komaTime, classroom: a.classroom || '' });
+  });
+
+  // ほかの振替（時間が重なればNG。以前は完全一致の文字列比較しか見ていなかった）
+  (_absenceRecords || []).forEach(function(r) {
+    if (r.id === excludeRecordId) return;
+    if (r.studentName !== studentName) return;
+    if (r.status !== 'scheduled') return;
+    if (r.substituteDate !== dateIso) return;
+    if (!tkTimeOverlap_(r.substituteKomaTime, komaTime)) return;
+    out.push({ label: 'ほかの振替', time: r.substituteKomaTime, classroom: r.substituteClassroom || '' });
+  });
+  return out;
+}
+/* 振替の重なり確認ダイアログ（2択・強行あり） */
+var _subConfOnForce = null;
+function subConfAsk_(name, dateIso, komaTime, classroom, list, onForce) {
+  _subConfOnForce = onForce;
+  var body =
+    '<p style="font-size:13px;margin:0 0 8px"><b>' + esc(name) + '</b>さん　' +
+      esc(cbSeatWhen_(dateIso, komaTime, classroom)) + '</p>' +
+    '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12px">' +
+      'この時間には、すでに ' + esc(tkConflictText_(list)) + ' があります。</div>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">同じ時間に2つ入れることになります。振替先を変えるか、承知のうえで確定してください。</p>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">' +
+      '<button class="btn-secondary" onclick="subConfCancel_()">戻って選び直す</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="subConfForceDo_()">&#9888; それでもこの日時で確定する</button>' +
+    '</div>';
+  var ex = document.getElementById('modal-subconf');
+  if (ex) ex.remove();
+  var modal = document.createElement('div');
+  modal.id = 'modal-subconf';
+  modal.className = 'modal-overlay';
+  modal.onclick = function(e) { if (e.target === modal) subConfCancel_(); };
+  modal.innerHTML =
+    '<div class="modal" style="max-width:520px;width:92vw">' +
+    '<div class="modal-header"><span>&#9888; その時間はすでに埋まっています</span>' +
+    '<span class="modal-close" onclick="subConfCancel_()">&#215;</span></div>' +
+    '<div class="modal-body">' + body + '</div></div>';
+  document.body.appendChild(modal);
+  openModal('modal-subconf');
+}
+function subConfCancel_() { _subConfForced = false; _subConfOnForce = null; closeModal('modal-subconf'); }
+function subConfForceDo_() {
+  var fn = _subConfOnForce;
+  _subConfOnForce = null;
+  closeModal('modal-subconf');
+  if (typeof fn === 'function') fn();
+}
+
 /* テスト対策期間のときだけ重複チェックを動かす */
 function tkCheckOn_(period) { return !!(period && period.type === 'test'); }
 var _tkBulkMode = ''; // '' | 'skip' | 'force'（一括登録の重複ダイアログの答え）
@@ -6929,6 +7040,7 @@ function absTaskMemo_(d, userMemo) {
 }
 
 var _subSeatForced = false;   // 定員の確認で「このまま確定」を選んだ直後だけ true（2026-08-26）
+var _subConfForced = false;   // 重なりの確認で「それでも確定」を選んだ直後だけ true（2026-08-28）
 function saveSubstitute(recordId, uid) {
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
@@ -6954,6 +7066,19 @@ function saveSubstitute(recordId, uid) {
     return;
   }
 
+  // 川上さん確定(2026-08-28)：振替先が通常コマ・テスト対策・自習・ほかの振替と時間で重なるときは確認を出す。
+  // これまで対策を入れるときしか重なりを見ておらず、片側だけの防止になっていた。強行は残す。
+  if (!_subConfForced) {
+    var _sconf = subConflicts_(rec.studentName, subDate, subKoma, recordId);
+    if (_sconf.length) {
+      subConfAsk_(rec.studentName, subDate, subKoma, subCr, _sconf, function() {
+        _subConfForced = true;
+        saveSubstitute(recordId, uid);
+      });
+      return;
+    }
+  }
+
   // 川上さん確定(2026-08-26)：振替先が定員（CB_SEAT_LIMIT人）に達するときは確認を出す（強行は可）
   if (!_subSeatForced) {
     var _sc = cbSeatCheck_(subCr, subKoma, subDate, [rec.studentName]);
@@ -6967,6 +7092,7 @@ function saveSubstitute(recordId, uid) {
     }
   }
   _subSeatForced = false;
+  _subConfForced = false;
 
   // 楽観的UI
   var prev = { substituteDate: rec.substituteDate, substituteKomaTime: rec.substituteKomaTime, substituteClassroom: rec.substituteClassroom, status: rec.status };
@@ -8638,7 +8764,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
           // 川上さん確定(2026-08-28)：判定は「実在しない枠 → 対面重複 → オンライン」の順。
           // 実在チェックを先にしないと、金曜の19:00〜21:30 のような無い枠に、隣の 18:40〜20:00 との
           // 時間の重なりで「塾」ロックが出て、表示がズレて見える（川上さん報告 2026-08-28）。
-          var _noK = (_kseCheck && !isOn) ? !tkKomaOnDay_(_kseCr, ds, kf) : false;
+          var _noK = (_kseCheck && !isOn) ? (!tkKomaOnDay_(_kseCr, ds, kf) && !tkSubstituteHere_(_kseS, ds, kf)) : false;
           var _cf = (_kseCheck && !isOn) ? tkFaceConflicts_(_kseS, ds, kf) : [];
           var _cfShort = _cf.length ? ({ '塾': '塾', 'CA': 'CA', '英検': '英', '演習回': '演', '受験特訓': '特', '土曜演習': '土', '振替': '振' }[_cf[0].label] || '済') : '';
           // オンライン授業があるコマは「オン」と出す。押すのは確認なし（テスト対策を優先できるように）
@@ -8872,6 +8998,42 @@ function kseToggleRow(kf) {
   kseRenderList();
 }
 
+/* 保存したあと、モーダルのセルに割付ID(data-aid)を貼り直す（川上さん報告 2026-08-28）
+ * bulkSaveKoushuAssignments は件数しか返さず、1件ずつのIDを返さない。
+ * そのため保存しても data-aid が空のままで、「選択中のコマ」の緑字「登録済み」が出なかった
+ * （保存自体は成功していて、モーダルを開き直せば出る＝表示だけの問題）。
+ * 保存直後の取り直し（getKoushuAssignments）が返ったところでここを呼び、IDを埋めて描き直す。 */
+function kseRemapAids_() {
+  var modal = document.getElementById('modal-kse');
+  if (!modal) return;
+  var cells = Array.prototype.slice.call(modal.querySelectorAll('.kse-cell-btn'));
+  if (!cells.length) return;
+  var pid  = cells[0].dataset.pid || '';
+  var sid  = cells[0].dataset.sid || '';
+  var snm  = cells[0].dataset.sname || '';
+  var idx = {};
+  (_koushuAssignments || []).forEach(function(a) {
+    if (a.periodId !== pid) return;
+    if (!(a.studentId === sid || a.studentName === snm)) return;
+    idx[a.date + '|' + a.komaTime] = a;
+  });
+  cells.forEach(function(btn) {
+    var a = idx[(btn.dataset.ds || '') + '|' + (btn.dataset.kf || '')];
+    if (a && a.id) {
+      btn.dataset.aid   = a.id;
+      btn.dataset.atype = a.type || 'taisaku';
+      btn.dataset.acr   = a.classroom || '';
+      delete btn.dataset.justsaved;
+    } else if (!a) {
+      // サーバーに無い＝消えた。ONのままなら手元の見た目も合わせる
+      btn.dataset.aid = '';
+      delete btn.dataset.justsaved;
+    }
+  });
+  kseRenderList();
+  kseUpdateCountBadgeLocal(sid, snm, pid);
+}
+
 // 選択中のコマ一覧（2026-06-10 UI刷新：行ごとに教室・区分をプルダウン変更）
 function kseRenderList() {
   var listEl = document.getElementById('kse-selected-list');
@@ -8892,7 +9054,8 @@ function kseRenderList() {
     var dateLabel = (d2.getMonth() + 1) + '/' + d2.getDate() + '(' + YB2[d2.getDay()] + ') ' + c.dataset.kf;
     var curType = c.dataset.modtype || c.dataset.newtype || c.dataset.atype || 'taisaku';
     var curCr   = c.dataset.modcr || c.dataset.newcr || c.dataset.acr || homeCr2;
-    var isSaved = !!c.dataset.aid;
+    // 保存直後はIDがまだ返ってきていないので justsaved でも「登録済み」を出す（2026-08-28）
+    var isSaved = !!(c.dataset.aid || c.dataset.justsaved);
     var typeStyle = curType === 'jishu'
       ? 'background:#dcfce7;color:#166534;border:1px solid #16a34a'
       : 'background:#fef9c3;color:#854d0e;border:1px solid #f59e0b';
@@ -8995,6 +9158,16 @@ function kseSave(studentId, studentName, periodId) {
     }
   });
 
+  // 川上さん報告(2026-08-28)：保存直後はIDがまだ返っていない（justsaved）。
+  // その状態で外して保存すると、消すためのIDが無いのでサーバーに残ってしまう。数秒待ってもらう。
+  var _pendingOff = Array.prototype.slice.call(allCells).some(function(btn) {
+    return btn.dataset.justsaved === '1' && !btn.dataset.aid && !btn.classList.contains('kse-cell-on');
+  });
+  if (_pendingOff) {
+    miniToast('⚠️ 直前に保存した分のIDを取得中です。数秒待ってからもう一度押してください');
+    return;
+  }
+
   if (toAdd.length === 0 && toDelete.length === 0 && toUpdate.length === 0) {
     miniToast('変更はありません');
     return;
@@ -9049,6 +9222,8 @@ function kseSave(studentId, studentName, periodId) {
           _koushuAssignments = r.assignments;
           window.__koushuDataPid = pidForReload;
           if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
+          // モーダルを開いたままなら、セルに本物の割付IDを貼り直して描き直す（2026-08-28）
+          kseRemapAids_();
         }
       }, 'POST');
     }
@@ -9086,7 +9261,14 @@ function kseSave(studentId, studentName, periodId) {
     callGas(url, { action: 'bulkSaveKoushuAssignments', assignments: addData }, function(res) {
       if (res && res.success) {
         // 手元には仮データを入れておく（finishKseSaveの裏取得で正しいidに置き換わる）
-        toAdd.forEach(function(item) { _koushuAssignments.push(item.data); });
+        // 川上さん報告(2026-08-28)：bulkSaveはIDを返さないので data-aid が空のままになり、
+        // 「選択中のコマ」に緑字の「登録済み」が出なかった。保存できたことがその場で分かるよう、
+        // 仮の印 justsaved を立てて先に描き直す（本物のIDは kseRemapAids_ で埋める）。
+        toAdd.forEach(function(item) {
+          _koushuAssignments.push(item.data);
+          item.btn.dataset.justsaved = '1';
+        });
+        kseRenderList();
       } else {
         errors.push('保存失敗: ' + (res && res.error ? res.error : '不明'));
         toAdd.forEach(function(item) {
@@ -9464,7 +9646,7 @@ function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
         } else {
           // 川上さん確定(2026-08-28)：テスト対策期間だけ、その曜日に実在しないコマ枠を薄いグレーにする。
           // 講習は専用のコマ枠（12:35など通常授業に無い時間）を使うので判定しない。
-          var _bNoK = (period.type === 'test') ? !tkKomaOnDayAny_(ds, kf) : false;
+          var _bNoK = (period.type === 'test') ? (!tkKomaOnDayAny_(ds, kf) && !tkAnySubstituteHere_(ds, kf)) : false;
           var _bYb  = YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()];
           html += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
             '<button class="kse-cell-btn bulk-cal-cell' + (_bNoK ? ' kse-cell-nokoma' : '') + '"' +
