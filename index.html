@@ -234,10 +234,12 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kse-cell-btn.kse-cell-jishu { background:#dcfce7 !important; border-color:#16a34a !important; color:#166534 !important; }
 /* テスト対策：対面授業と重なるコマ（川上さん確定 2026-08-25）。押すと確認が出て強行できる */
 .kse-cell-btn.kse-cell-lock { background:#e5e7eb !important; border-color:#d1d5db !important; color:#6b7280 !important; font-size:10px; font-weight:700; }
-.kse-cell-btn.kse-cell-nokoma { background:#fafafa !important; border-color:#eceff3 !important; color:#cbd5e1 !important; font-size:12px; }
-.kse-cell-btn.kse-cell-nokoma:hover { background:#eef2f7 !important; }
-.kse-cell-btn.kse-cell-onl { background:#f3f4f6 !important; border-color:#d1d5db !important; color:#9ca3af !important; font-size:10px; font-weight:700; }
-.kse-cell-btn.kse-cell-onl:hover { background:#e5e7eb !important; }
+/* 川上さん確定(2026-08-28)：グレーで塗らない。ハイフンだけ置く（グレーアウトは見づらい） */
+.kse-cell-btn.kse-cell-nokoma { background:transparent !important; border-color:transparent !important; color:#9ca3af !important; font-size:13px; }
+.kse-cell-btn.kse-cell-nokoma:hover { background:#f1f5f9 !important; }
+/* オンラインもグレー塗りをやめ、枠と文字で見せる */
+.kse-cell-btn.kse-cell-onl { background:var(--bg,#fff) !important; border-color:#cbd5e1 !important; color:#64748b !important; font-size:10px; font-weight:700; }
+.kse-cell-btn.kse-cell-onl:hover { background:#f1f5f9 !important; }
 .kse-cell-btn.kse-cell-lock:hover { background:#d1d5db !important; }
 /* チェックリストの読み込み中・失敗表示（川上さん指示 2026-08-25） */
 .cl-loading { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); background:var(--bg-sub,#f8fafc); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-top:10px; }
