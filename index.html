@@ -234,6 +234,10 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kse-cell-btn.kse-cell-jishu { background:#dcfce7 !important; border-color:#16a34a !important; color:#166534 !important; }
 /* テスト対策：対面授業と重なるコマ（川上さん確定 2026-08-25）。押すと確認が出て強行できる */
 .kse-cell-btn.kse-cell-lock { background:#e5e7eb !important; border-color:#d1d5db !important; color:#6b7280 !important; font-size:10px; font-weight:700; }
+.kse-cell-btn.kse-cell-nokoma { background:#fafafa !important; border-color:#eceff3 !important; color:#cbd5e1 !important; font-size:12px; }
+.kse-cell-btn.kse-cell-nokoma:hover { background:#eef2f7 !important; }
+.kse-cell-btn.kse-cell-onl { background:#f3f4f6 !important; border-color:#d1d5db !important; color:#9ca3af !important; font-size:10px; font-weight:700; }
+.kse-cell-btn.kse-cell-onl:hover { background:#e5e7eb !important; }
 .kse-cell-btn.kse-cell-lock:hover { background:#d1d5db !important; }
 /* チェックリストの読み込み中・失敗表示（川上さん指示 2026-08-25） */
 .cl-loading { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); background:var(--bg-sub,#f8fafc); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-top:10px; }
@@ -1874,6 +1878,65 @@ function tkFaceConflicts_(s, dateIso, komaTime) {
 function tkConflictText_(list) {
   return (list || []).map(function(c) { return c.label + '（' + c.time + (c.classroom ? '・' + c.classroom : '') + '）'; }).join('・');
 }
+/* ===== その曜日に実在するコマ枠かの判定（川上さん確定 2026-08-28） =====
+ * テスト対策期間のコマ枠リスト(period.komaFrames)は曜日に関係なく全日に並ぶため、
+ * 土曜だけの 19:00〜21:30 が金曜にも出て、隣の 18:40〜20:00 と時間が重なる結果
+ * 金曜の19:00行に「塾」ロックが付き、表示がズレて見えていた（川上さん報告 2026-08-28）。
+ * コマのマスタは無いので、在籍生徒の通塾コマから（教室×曜日×時刻）の実在表を作る。
+ * オンラインのコマも「その時間に授業がある」ので実在表には含める。
+ */
+var _tkKomaDaySet = null;
+var _tkKomaDayAny = null;
+function tkKomaDayBuild_() {
+  if (_tkKomaDaySet) return;
+  var set = {}, any = {};
+  (_students || []).forEach(function(s) {
+    if (s.status === '退会' || s.status === '休会') return;
+    (s.komas || []).forEach(function(k) {
+      var yb = k.youbi;
+      if (k.satType === 'hira' && k.hiraKoma) {
+        var hv = k.hiraKoma;
+        if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
+        yb = hv.charAt(0);
+      }
+      if (!yb || !k.time) return;
+      var cr = k.classroom || (typeof getMainClassroom === 'function' ? getMainClassroom(s) : (s.classroom || ''));
+      var t = normKomaTime_(k.time);
+      set[cr + '|' + yb + '|' + t] = 1;
+      any[yb + '|' + t] = 1;
+    });
+  });
+  _tkKomaDaySet = set; _tkKomaDayAny = any;
+}
+/* その教室・その曜日に、このコマ枠の授業が実在するか */
+function tkKomaOnDay_(classroom, dateIso, komaTime) {
+  if (!dateIso || !komaTime) return true;
+  tkKomaDayBuild_();
+  var yb = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
+  return !!_tkKomaDaySet[(classroom || '') + '|' + yb + '|' + normKomaTime_(komaTime)];
+}
+/* どこかの教室で、その曜日にこのコマ枠が実在するか（一括登録は教室が1つに決まらないため） */
+function tkKomaOnDayAny_(dateIso, komaTime) {
+  if (!dateIso || !komaTime) return true;
+  tkKomaDayBuild_();
+  var yb = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
+  return !!_tkKomaDayAny[yb + '|' + normKomaTime_(komaTime)];
+}
+/* その生徒が dateIso の komaTime に「オンラインで受けている」コマを返す（川上さん確定 2026-08-28）
+ * オンラインは対面重複の対象外（ロックしない）。ただし教室に呼んで対策を優先することがあるので、
+ * オンライン授業があること自体は見えるようにする。押すのは確認なしで従来どおり。 */
+function tkOnlineKomas_(s, dateIso, komaTime) {
+  if (!s || !dateIso || !komaTime) return [];
+  var youbi = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
+  var out = [];
+  (s.komas || []).forEach(function(k) {
+    if (!k.online) return;
+    if (k.youbi !== youbi) return;
+    if (!tkTimeOverlap_(k.time, komaTime)) return;
+    out.push({ label: 'オンライン', time: k.time, classroom: k.classroom || '' });
+  });
+  return out;
+}
 /* テスト対策期間のときだけ重複チェックを動かす */
 function tkCheckOn_(period) { return !!(period && period.type === 'test'); }
 var _tkBulkMode = ''; // '' | 'skip' | 'force'（一括登録の重複ダイアログの答え）
@@ -2126,7 +2189,7 @@ function loadAll() {
             if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
           });
         });
-        _students = res.students;
+        _students = res.students; _tkKomaDaySet = null;
         _cbLoaded.students = true;
       } else {
         _cbCriticalLoadFailed = true; // 生徒データ取得に失敗（null応答＝通信失敗/コールドスタート）
@@ -2283,7 +2346,7 @@ function cbApplyStudentBootstrap_(res) {
         if (k.satType === 'juken' && k.time !== '19:00〜21:30') k.time = '19:00〜21:30';
       });
     });
-    _students = res.students;
+    _students = res.students; _tkKomaDaySet = null;
     _cbLoaded.students = true;
   } else {
     _cbCriticalLoadFailed = true; _cbLoaded.students = true; _cbFail.students = true;
@@ -8533,6 +8596,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   // 川上さん確定(2026-08-25)：テスト対策期間は「対面授業と重なるコマ」を灰色にして、押したら確認を出す
   var _kseS = _students.find(function(st) { return st.id === studentId || st.name === studentName; }) || { name: studentName };
   var _kseCheck = (period.type === 'test');
+  var _kseCr = (_kseS && _kseS.classroom) || '';   // 実在コマ枠の判定に使う所属教室（2026-08-28）
 
   // グリッドHTML
   var gridHtml = '<div style="overflow-x:auto;margin-bottom:12px"><table style="border-collapse:collapse;font-size:12px;min-width:100%">';
@@ -8569,18 +8633,34 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
             '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
         } else {
           // 既に登録済み(isOn)のコマは触らない。未登録のコマだけ重複チェックする
+          // 川上さん確定(2026-08-28)：判定は「実在しない枠 → 対面重複 → オンライン」の順。
+          // 実在チェックを先にしないと、金曜の19:00〜21:30 のような無い枠に、隣の 18:40〜20:00 との
+          // 時間の重なりで「塾」ロックが出て、表示がズレて見える（川上さん報告 2026-08-28）。
+          var _noK = (_kseCheck && !isOn) ? !tkKomaOnDay_(_kseCr, ds, kf) : false;
           var _cf = (_kseCheck && !isOn) ? tkFaceConflicts_(_kseS, ds, kf) : [];
           var _cfShort = _cf.length ? ({ '塾': '塾', 'CA': 'CA', '英検': '英', '演習回': '演', '受験特訓': '特', '土曜演習': '土', '振替': '振' }[_cf[0].label] || '済') : '';
+          // オンライン授業があるコマは「オン」と出す。押すのは確認なし（テスト対策を優先できるように）
+          var _onl = (_kseCheck && !isOn && !_noK && !_cf.length) ? tkOnlineKomas_(_kseS, ds, kf) : [];
+          var _ybS = YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()];
+          var _tip = _noK ? ((_kseCr || '所属教室') + 'の' + _ybS + '曜に ' + kf + ' のコマはありません' + (_cf.length ? '\n（この時間には ' + tkConflictText_(_cf) + ' があります）' : '') + '\nクリックすると、承知のうえで登録するか確認が出ます')
+                   : _cf.length ? (ds + '（' + _ybS + '）はすでに対面授業があります\n' + tkConflictText_(_cf) + '\nクリックすると、承知のうえで登録するか確認が出ます')
+                   : _onl.length ? ('この時間はオンライン授業です（' + tkConflictText_(_onl) + '）\n教室に来て対策をするなら、このまま押して登録できます')
+                   : '';
           gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
-            '<button class="kse-cell-btn' + (isOn ? ' kse-cell-on' : '') + (aRec2 && aRec2.type === 'jishu' ? ' kse-cell-jishu' : '') + (_cf.length ? ' kse-cell-lock' : '') + '"' +
-            (_cf.length ? ' data-conf="' + esc(tkConflictText_(_cf)) + '" data-tooltip="' + esc(ds + '（' + YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()] + '）はすでに対面授業があります\n' + tkConflictText_(_cf) + '\nクリックすると、承知のうえで登録するか確認が出ます') + '"' : '') +
+            '<button class="kse-cell-btn' + (isOn ? ' kse-cell-on' : '') + (aRec2 && aRec2.type === 'jishu' ? ' kse-cell-jishu' : '') + (_cf.length && !_noK ? ' kse-cell-lock' : '') + (_noK ? ' kse-cell-nokoma' : '') + (_onl.length ? ' kse-cell-onl' : '') + '"' +
+            (_cf.length ? ' data-conf="' + esc(tkConflictText_(_cf)) + '"' : '') +
+            (_noK ? ' data-nokoma="1"' : '') +
+            (_tip ? ' data-tooltip="' + esc(_tip) + '"' : '') +
             ' data-ds="' + esc(ds) + '" data-kf="' + esc(kf) + '"' +
             ' data-aid="' + esc(aid) + '"' +
             (aRec2 ? ' data-atype="' + esc(aRec2.type || 'taisaku') + '" data-acr="' + esc(aRec2.classroom || '') + '"' : '') +
             ' data-sid="' + esc(studentId) + '"' +
             ' data-sname="' + esc(studentName) + '"' +
+            ' data-hcr="' + esc(_kseCr) + '"' +
             ' data-pid="' + esc(periodId) + '"' +
-            (_cf.length ? ' onclick="kseForceAsk(this)">' + _cfShort : ' onclick="kseToggleCell(this)">' + (isOn ? '&#10003;' : '')) +
+            (_noK ? ' onclick="kseNoKomaAsk(this)">&minus;'
+             : _cf.length ? ' onclick="kseForceAsk(this)">' + _cfShort
+             : ' onclick="kseToggleCell(this)">' + (isOn ? '&#10003;' : (_onl.length ? 'オン' : ''))) +
             '</button></td>';
         }
       });
@@ -8682,18 +8762,66 @@ function kseForceDo() {
   _kseForceBtn = null;
 }
 
+/* その曜日に実在しないコマ枠を押したとき（川上さん確定 2026-08-28）
+ * ふだんは入れないが、臨時で教室を開ける日のために「それでも登録する」を残す。 */
+function kseNoKomaAsk(btn) {
+  var ds = btn.dataset.ds || '', kf = btn.dataset.kf || '', nm = btn.dataset.sname || '', cr = btn.dataset.hcr || '';
+  var yb = ds ? YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()] : '';
+  var body =
+    '<p style="font-size:13px;margin:0 0 8px"><b>' + esc(nm) + '</b>さん　' + esc(ds) + '（' + esc(yb) + '） ' + esc(kf) + '</p>' +
+    '<div style="border:1px solid #e5e7eb;background:#f8fafc;border-radius:6px;padding:8px 10px;font-size:12px">' +
+      esc(cr || '所属教室') + 'の' + esc(yb) + '曜に、この時間のコマはありません。</div>' +
+    (btn.dataset.conf ? '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12px;margin-top:6px">なお、この時間には ' + esc(btn.dataset.conf) + ' があります。</div>' : '') +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">ふだんはここに対策を入れません。臨時で教室を開けるときだけ、承知のうえで登録できます。</p>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
+      '<button class="btn-secondary" onclick="closeModal(\'modal-kseforce\')">やめる</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="kseNoKomaDo()">&#9888; それでも対策として登録する</button>' +
+    '</div>';
+  _kseForceBtn = btn;
+  var ex = document.getElementById('modal-kseforce');
+  if (ex) ex.remove();
+  var modal = document.createElement('div');
+  modal.id = 'modal-kseforce';
+  modal.className = 'modal-overlay';
+  modal.onclick = function(e) { if (e.target === modal) closeModal('modal-kseforce'); };
+  modal.innerHTML =
+    '<div class="modal" style="max-width:520px;width:92vw">' +
+    '<div class="modal-header"><span>&#9888; この曜日にこのコマはありません</span>' +
+    '<span class="modal-close" onclick="closeModal(\'modal-kseforce\')">&#215;</span></div>' +
+    '<div class="modal-body">' + body + '</div></div>';
+  document.body.appendChild(modal);
+  openModal('modal-kseforce');
+}
+function kseNoKomaDo() {
+  var btn = _kseForceBtn;
+  closeModal('modal-kseforce');
+  if (!btn) return;
+  btn.classList.remove('kse-cell-nokoma');
+  btn.classList.add('kse-cell-forced');
+  delete btn.dataset.nokoma;
+  btn.setAttribute('onclick', 'kseToggleCell(this)');
+  btn.onclick = null;
+  btn.innerHTML = '';
+  kseToggleCell(btn);
+  _kseForceBtn = null;
+}
+
 function kseToggleCell(btn) {
   // クリック時はローカルのみ更新。保存はkseSave()で行う
   var isOn = btn.classList.contains('kse-cell-on');
   if (isOn) {
     btn.classList.remove('kse-cell-on');
     btn.classList.remove('kse-cell-jishu');
-    btn.innerHTML = '';
+    // オンライン表示のセルは「オン」に戻す（2026-08-28）
+    if (btn.dataset.onl === '1') { btn.classList.add('kse-cell-onl'); btn.innerHTML = 'オン'; }
+    else btn.innerHTML = '';
     delete btn.dataset.newtype;
     delete btn.dataset.newcr;
     delete btn.dataset.modtype;
     delete btn.dataset.modcr;
   } else {
+    // オンライン表示のセルは、チェック中は「オン」の色を外して✓を出す（2026-08-28）
+    if (btn.classList.contains('kse-cell-onl')) { btn.dataset.onl = '1'; btn.classList.remove('kse-cell-onl'); }
     btn.classList.add('kse-cell-on');
     btn.innerHTML = '&#10003;';
     // 2026-06-10 UI刷新：常にデフォルト（対策・所属教室）で追加。変更は選択中一覧で行う
@@ -8714,13 +8842,15 @@ function kseToggleCell(btn) {
 // 全週・期間中の同じ時間帯セルを対象。全部ONなら全OFF、それ以外は全ON
 function kseToggleRow(kf) {
   // 川上さん確定(2026-08-25)：対面授業と重なるコマ(.kse-cell-lock)は「⇒全」の対象にしない（強行は1つずつ）
-  var cells = Array.prototype.slice.call(document.querySelectorAll('#modal-kse .kse-cell-btn[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]')).filter(function(c) { return !c.disabled && !c.classList.contains('kse-cell-lock'); });
+  // 川上さん確定(2026-08-28)：その曜日に実在しないコマ(.kse-cell-nokoma)も同じく対象外
+  var cells = Array.prototype.slice.call(document.querySelectorAll('#modal-kse .kse-cell-btn[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]')).filter(function(c) { return !c.disabled && !c.classList.contains('kse-cell-lock') && !c.classList.contains('kse-cell-nokoma'); });
   if (!cells.length) return;
   var allOn = cells.every(function(c) { return c.classList.contains('kse-cell-on'); });
   var period0 = _koushuPeriods.find(function(p) { return p.id === (cells[0].dataset.pid || ''); });
   cells.forEach(function(c) {
     if (!allOn) {
       if (!c.classList.contains('kse-cell-on')) {
+        if (c.classList.contains('kse-cell-onl')) { c.dataset.onl = '1'; c.classList.remove('kse-cell-onl'); }
         c.classList.add('kse-cell-on');
         c.innerHTML = '&#10003;';
         if (period0 && period0.type === 'test' && !c.dataset.aid) c.dataset.newtype = 'taisaku';
@@ -8728,7 +8858,8 @@ function kseToggleRow(kf) {
     } else {
       c.classList.remove('kse-cell-on');
       c.classList.remove('kse-cell-jishu');
-      c.innerHTML = '';
+      if (c.dataset.onl === '1') { c.classList.add('kse-cell-onl'); c.innerHTML = 'オン'; }
+      else c.innerHTML = '';
       delete c.dataset.newtype;
       delete c.dataset.newcr;
       delete c.dataset.modtype;
@@ -9329,10 +9460,16 @@ function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
           html += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
             '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
         } else {
+          // 川上さん確定(2026-08-28)：テスト対策期間だけ、その曜日に実在しないコマ枠を薄いグレーにする。
+          // 講習は専用のコマ枠（12:35など通常授業に無い時間）を使うので判定しない。
+          var _bNoK = (period.type === 'test') ? !tkKomaOnDayAny_(ds, kf) : false;
+          var _bYb  = YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()];
           html += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
-            '<button class="kse-cell-btn bulk-cal-cell"' +
+            '<button class="kse-cell-btn bulk-cal-cell' + (_bNoK ? ' kse-cell-nokoma' : '') + '"' +
+            (_bNoK ? ' data-tooltip="' + esc(_bYb + '曜に ' + kf + ' のコマはありません\nクリックすると、承知のうえで選ぶか確認が出ます') + '"' : '') +
             ' data-ds="' + esc(ds) + '" data-kf="' + esc(kf) + '"' +
-            ' onclick="bulkCalToggle(this)"></button></td>';
+            (_bNoK ? ' onclick="bulkNoKomaAsk(this)">&minus;' : ' onclick="bulkCalToggle(this)">') +
+            '</button></td>';
         }
       });
       html += '</tr>';
@@ -9344,7 +9481,8 @@ function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
 
 // 行一括トグル（2026-06-11：講習は毎日同じ時間帯が多いので、横1列まとめてチェック）
 function bulkToggleRow(kf) {
-  var cells = Array.prototype.slice.call(document.querySelectorAll('.bulk-cal-cell[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]'));
+  // 川上さん確定(2026-08-28)：その曜日に実在しないコマ(.kse-cell-nokoma)は「⇒全」の対象外
+  var cells = Array.prototype.slice.call(document.querySelectorAll('.bulk-cal-cell[data-kf="' + (window.CSS && CSS.escape ? CSS.escape(kf) : kf) + '"]')).filter(function(c) { return !c.classList.contains('kse-cell-nokoma'); });
   if (!cells.length) return;
   var allOn = cells.every(function(c) { return c.classList.contains('kse-cell-on'); });
   cells.forEach(function(c) {
@@ -9354,6 +9492,48 @@ function bulkToggleRow(kf) {
   var cnt = document.querySelectorAll('.bulk-cal-cell.kse-cell-on').length;
   var el = document.getElementById('bulk-cal-count');
   if (el) el.textContent = cnt + 'セル選択中';
+}
+
+/* 一括登録カレンダーで、その曜日に実在しないコマ枠を押したとき（川上さん確定 2026-08-28） */
+var _bulkNoKomaBtn = null;
+function bulkNoKomaAsk(btn) {
+  var ds = btn.dataset.ds || '', kf = btn.dataset.kf || '';
+  var yb = ds ? YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()] : '';
+  var body =
+    '<p style="font-size:13px;margin:0 0 8px">' + esc(ds) + '（' + esc(yb) + '） ' + esc(kf) + '</p>' +
+    '<div style="border:1px solid #e5e7eb;background:#f8fafc;border-radius:6px;padding:8px 10px;font-size:12px">' +
+      'どちらの教室にも、' + esc(yb) + '曜のこの時間のコマはありません。</div>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">ふだんはここに対策を入れません。臨時で教室を開けるときだけ、承知のうえで選べます。</p>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
+      '<button class="btn-secondary" onclick="closeModal(\'modal-bulknokoma\')">やめる</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="bulkNoKomaDo()">&#9888; それでも選ぶ</button>' +
+    '</div>';
+  _bulkNoKomaBtn = btn;
+  var ex = document.getElementById('modal-bulknokoma');
+  if (ex) ex.remove();
+  var modal = document.createElement('div');
+  modal.id = 'modal-bulknokoma';
+  modal.className = 'modal-overlay';
+  modal.onclick = function(e) { if (e.target === modal) closeModal('modal-bulknokoma'); };
+  modal.innerHTML =
+    '<div class="modal" style="max-width:520px;width:92vw">' +
+    '<div class="modal-header"><span>&#9888; この曜日にこのコマはありません</span>' +
+    '<span class="modal-close" onclick="closeModal(\'modal-bulknokoma\')">&#215;</span></div>' +
+    '<div class="modal-body">' + body + '</div></div>';
+  document.body.appendChild(modal);
+  openModal('modal-bulknokoma');
+}
+function bulkNoKomaDo() {
+  var btn = _bulkNoKomaBtn;
+  closeModal('modal-bulknokoma');
+  if (!btn) return;
+  btn.classList.remove('kse-cell-nokoma');
+  btn.classList.add('kse-cell-forced');
+  btn.setAttribute('onclick', 'bulkCalToggle(this)');
+  btn.onclick = null;
+  btn.innerHTML = '';
+  bulkCalToggle(btn);
+  _bulkNoKomaBtn = null;
 }
 
 function bulkCalToggle(btn) {
