@@ -2014,16 +2014,39 @@ function subConflicts_(studentName, dateIso, komaTime, excludeRecordId) {
   });
   return out;
 }
-/* 振替の重なり確認ダイアログ（2択・強行あり） */
+/* 振替先を確定してよいかの判定（川上さん報告 2026-08-28・入口2つに共通）
+ * ① その時間がすでに埋まっていないか（subConflicts_）
+ * ② その教室・その曜日にそもそもコマが実在するか（tkKomaOnDay_）
+ * ②を入れていなかったため、北久里浜の水曜（授業が無い日）へ振替できていた。 */
+function subGate_(studentName, dateIso, komaTime, classroom, excludeRecordId) {
+  return {
+    conflicts: subConflicts_(studentName, dateIso, komaTime, excludeRecordId),
+    noKoma: !tkKomaOnDay_(classroom, dateIso, komaTime)
+  };
+}
+/* 振替の確認ダイアログ（2択・強行あり）。重なりと「コマが無い」を1枚にまとめて出す */
 var _subConfOnForce = null;
-function subConfAsk_(name, dateIso, komaTime, classroom, list, onForce) {
+function subGateAsk_(name, dateIso, komaTime, classroom, gate, onForce) {
   _subConfOnForce = onForce;
+  var yb = '';
+  try { yb = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()]; } catch (e) {}
+  var blocks = '';
+  if (gate.noKoma) {
+    blocks += '<div style="border:1px solid #e5e7eb;background:#f8fafc;border-radius:6px;padding:8px 10px;font-size:12px">' +
+      esc(classroom || '教室') + 'の' + esc(yb) + '曜に、この時間のコマはありません。</div>';
+  }
+  if (gate.conflicts.length) {
+    blocks += '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12px;margin-top:6px">' +
+      'この時間には、すでに ' + esc(tkConflictText_(gate.conflicts)) + ' があります。</div>';
+  }
+  var note = gate.conflicts.length
+    ? '同じ時間に2つ入れることになります。振替先を変えるか、承知のうえで確定してください。'
+    : 'ふだんはここに振替を入れません。臨時で教室を開けるときだけ、承知のうえで確定してください。';
   var body =
     '<p style="font-size:13px;margin:0 0 8px"><b>' + esc(name) + '</b>さん　' +
       esc(cbSeatWhen_(dateIso, komaTime, classroom)) + '</p>' +
-    '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12px">' +
-      'この時間には、すでに ' + esc(tkConflictText_(list)) + ' があります。</div>' +
-    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">同じ時間に2つ入れることになります。振替先を変えるか、承知のうえで確定してください。</p>' +
+    blocks +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">' + note + '</p>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">' +
       '<button class="btn-secondary" onclick="subConfCancel_()">戻って選び直す</button>' +
       '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="subConfForceDo_()">&#9888; それでもこの日時で確定する</button>' +
@@ -2036,13 +2059,13 @@ function subConfAsk_(name, dateIso, komaTime, classroom, list, onForce) {
   modal.onclick = function(e) { if (e.target === modal) subConfCancel_(); };
   modal.innerHTML =
     '<div class="modal" style="max-width:520px;width:92vw">' +
-    '<div class="modal-header"><span>&#9888; その時間はすでに埋まっています</span>' +
+    '<div class="modal-header"><span>&#9888; ' + (gate.conflicts.length ? 'その時間はすでに埋まっています' : 'この曜日にこのコマはありません') + '</span>' +
     '<span class="modal-close" onclick="subConfCancel_()">&#215;</span></div>' +
     '<div class="modal-body">' + body + '</div></div>';
   document.body.appendChild(modal);
   openModal('modal-subconf');
 }
-function subConfCancel_() { _subConfForced = false; _subConfOnForce = null; closeModal('modal-subconf'); }
+function subConfCancel_() { _subConfForced = false; _absSubForced = false; _subConfOnForce = null; closeModal('modal-subconf'); }
 function subConfForceDo_() {
   var fn = _subConfOnForce;
   _subConfOnForce = null;
@@ -6917,6 +6940,22 @@ function submitAbsence(mode) {
     var memo    = (document.getElementById('abs-modal-memo-a') || {}).value.trim();
     if (!subDate || !subKoma) { miniToast('⚠️ 振替日とコマを選択してください'); return; }
 
+    // 川上さん報告(2026-08-28)：重なりチェックを「振替タブの振替確定」にしか入れておらず、
+    // この経路（欠席と振替日を同時に登録する）が素通りしていた。定員チェックは4入口すべてに
+    // 入れたのに、重なりチェックは1入口だけになっていた＝入口の対称チェック漏れ。
+    // ★新しく「振替先を決められる画面」を作ったら、必ずここと同じゲートを通すこと。
+    if (!_absSubForced) {
+      var _ag = subGate_(d.studentName, subDate, subKoma, subCr, '');
+      if (_ag.conflicts.length || _ag.noKoma) {
+        subGateAsk_(d.studentName, subDate, subKoma, subCr, _ag, function() {
+          _absSubForced = true;
+          submitAbsence('A');
+        });
+        return;
+      }
+    }
+    _absSubForced = false;
+
     var record = {
       studentName:          d.studentName,
       absenceDate:          d.dateStr,
@@ -7043,6 +7082,7 @@ function absTaskMemo_(d, userMemo) {
 
 var _subSeatForced = false;   // 定員の確認で「このまま確定」を選んだ直後だけ true（2026-08-26）
 var _subConfForced = false;   // 重なりの確認で「それでも確定」を選んだ直後だけ true（2026-08-28）
+var _absSubForced  = false;   // 欠席登録モーダル（振替日も同時に決める経路）で強行を選んだ直後だけ true（2026-08-28）
 function saveSubstitute(recordId, uid) {
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
@@ -7071,9 +7111,9 @@ function saveSubstitute(recordId, uid) {
   // 川上さん確定(2026-08-28)：振替先が通常コマ・テスト対策・自習・ほかの振替と時間で重なるときは確認を出す。
   // これまで対策を入れるときしか重なりを見ておらず、片側だけの防止になっていた。強行は残す。
   if (!_subConfForced) {
-    var _sconf = subConflicts_(rec.studentName, subDate, subKoma, recordId);
-    if (_sconf.length) {
-      subConfAsk_(rec.studentName, subDate, subKoma, subCr, _sconf, function() {
+    var _sg = subGate_(rec.studentName, subDate, subKoma, subCr, recordId);
+    if (_sg.conflicts.length || _sg.noKoma) {
+      subGateAsk_(rec.studentName, subDate, subKoma, subCr, _sg, function() {
         _subConfForced = true;
         saveSubstitute(recordId, uid);
       });
