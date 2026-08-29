@@ -6930,7 +6930,8 @@ function submitAbsence(mode) {
       chainFromId:          d.chainFromId || '',
       absenceCourse:        d.courseName  || ''
     };
-    var tempId = 'tmp_' + Date.now();
+    // 2026-08-28：同じミリ秒に2人が登録するとidが衝突し、GAS側のupsertで1行にまとまってしまう。乱数を足す
+    var tempId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
     record.id = tempId;
     _absenceRecords.push(record);
     closeModal('modal-absence');
@@ -6975,7 +6976,8 @@ function submitAbsence(mode) {
       memo:        memo,
       chainFromId: d.chainFromId || ''
     };
-    var tempId = 'tmp_' + Date.now();
+    // 2026-08-28：同じミリ秒に2人が登録するとidが衝突し、GAS側のupsertで1行にまとまってしまう。乱数を足す
+    var tempId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
     record.id = tempId;
     _absenceRecords.push(record);
     closeModal('modal-absence');
