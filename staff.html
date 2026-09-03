@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クロフネ 勤務割（スタッフ用）</title>
+<!--
+  スタッフ用の勤務割ページ（見るだけ）
+  仕様の単一の正：Class Board/ジョブス用/仕様書/機能仕様書_スタッフ勤務割.md 5-3
+  ・GAS は会員管理GAS.gs の staffLogin / getMyStaffShifts / changeMyPassword だけを使う
+  ・GAS URL は localStorage 'sft_gas_url'、トークンは sessionStorage 'sft_token'、ユーザーは 'sft_user'
+  ・色は勤務地で決める（北久里浜＝青／久里浜＝オレンジ／在宅＝グレー・川上さん確定 2026-09-02）
+-->
+<style>
+:root{
+  --crimson:#b91c1c; --border:#e5e7eb; --text:#1f2937; --muted:#6b7280;
+  --kita-bg:#eff6ff; --kita-bd:#1e40af; --kita-line:#bfdbfe; --kita-fg:#1e40af;
+  --kuri-bg:#fff7ed; --kuri-bd:#92400e; --kuri-line:#fed7aa; --kuri-fg:#92400e;
+  --home-bg:#f1f3f4; --home-bd:#5f6368; --home-line:#dadce0; --home-fg:#5f6368;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f5f7;color:var(--text);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;font-size:15px;line-height:1.6;
+  -webkit-text-size-adjust:100%}
+.phone{max-width:430px;margin:0 auto;min-height:100vh;padding-bottom:40px}
+
+.top{background:var(--crimson);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.top .ttl{font-weight:700;font-size:15px;flex:1}
+.top .me{font-size:13px;opacity:.95}
+.top .menu{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:6px;padding:6px 9px;font-size:13px;cursor:pointer;white-space:nowrap}
+.top .menu:disabled{opacity:.6}
+.top .menu .spin{border-color:rgba(255,255,255,.4);border-top-color:#fff}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;margin:12px;overflow:hidden}
+.card-h{padding:10px 14px;font-weight:700;font-size:14px;border-bottom:1px solid var(--border);background:#fafbfc}
+.card-b{padding:8px}
+
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.ch{text-align:center;font-size:11px;font-weight:700;padding:3px 0 4px;border-bottom:1px solid var(--border)}
+.ch.sun{color:#c5221f}
+.ch.sat{color:#1a73e8}
+.ch .dt{display:block;font-size:10px;font-weight:400;color:var(--muted)}
+.ch.today{background:var(--crimson);color:#fff;border-radius:5px 5px 0 0}
+.ch.today .dt{color:rgba(255,255,255,.85)}
+.cc{min-height:52px;padding:3px 1px;display:flex;flex-direction:column;gap:3px;border-right:1px solid #f1f2f4}
+.cc:nth-child(7n){border-right:none}
+.cc.today{background:#fffdf0}
+.chip{border:1px solid;border-left-width:3px;border-radius:5px;padding:2px 1px;text-align:center;line-height:1.25}
+.chip .t{display:block;font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.chip .p{display:block;font-size:9px;margin-top:1px;font-weight:700;letter-spacing:-.3px}
+.chip.kita{background:var(--kita-bg);border-color:var(--kita-line);border-left-color:var(--kita-bd);color:var(--kita-fg)}
+.chip.kuri{background:var(--kuri-bg);border-color:var(--kuri-line);border-left-color:var(--kuri-bd);color:var(--kuri-fg)}
+.chip.home{background:var(--home-bg);border-color:var(--home-line);border-left-color:var(--home-bd);color:var(--home-fg)}
+.chip .tag{display:block;font-size:8.5px;font-weight:700;border-radius:3px;margin-top:2px;padding:0 2px}
+.tag-single{background:#dbeafe;color:#1d4ed8}
+.tag-change{background:#fef3c7;color:#92400e}
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:8px 6px 2px;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+
+.wknav{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);background:#fafbfc}
+.wknav button{border:1px solid var(--border);background:#fff;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
+.wknav .lb{flex:1;text-align:center;font-weight:700;font-size:13px}
+
+.irr{display:flex;gap:10px;align-items:flex-start;padding:9px 6px;border-bottom:1px dashed var(--border)}
+.irr:last-child{border-bottom:none}
+.irr .d{width:74px;flex-shrink:0;font-weight:700;font-size:13px}
+.b{font-size:11px;font-weight:700;border-radius:4px;padding:1px 7px;white-space:nowrap}
+.b-single{background:#dbeafe;color:#1d4ed8}
+.b-change{background:#fef3c7;color:#92400e}
+.b-off{background:#e5e7eb;color:#4b5563}
+.strike{text-decoration:line-through;color:var(--muted)}
+.tm{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+.pl{font-size:12px;border-radius:5px;padding:1px 7px;border:1px solid;border-left-width:3px}
+.pl.kita{background:var(--kita-bg);border-color:var(--kita-line);border-left-color:var(--kita-bd);color:var(--kita-fg)}
+.pl.kuri{background:var(--kuri-bg);border-color:var(--kuri-line);border-left-color:var(--kuri-bd);color:var(--kuri-fg)}
+.pl.home{background:var(--home-bg);border-color:var(--home-line);border-left-color:var(--home-bd);color:var(--home-fg)}
+
+.sum{margin:0 12px 10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--muted)}
+.sum b{color:var(--text);font-size:15px}
+.none{color:var(--muted);font-size:13px;padding:6px}
+.err{margin:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:12px 14px;font-size:13px}
+.err button{margin-top:8px;border:1px solid #fecaca;background:#fff;color:#991b1b;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+
+.pane{max-width:430px;margin:0 auto;padding:56px 24px}
+.pane h1{font-size:19px;text-align:center;margin:0 0 4px}
+.pane p.lead{text-align:center;color:var(--muted);font-size:13px;margin:0 0 26px}
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fld label{font-size:12px;font-weight:700;color:var(--muted)}
+.fld input{border:1px solid var(--border);border-radius:8px;padding:11px 12px;font-size:16px;background:#fff}
+.btn-main{width:100%;background:var(--crimson);color:#fff;border:none;border-radius:8px;padding:13px;font-size:16px;font-weight:700;cursor:pointer}
+.btn-main:disabled{opacity:.55}
+.btn-sub{width:100%;background:#fff;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:14px;cursor:pointer;margin-top:10px}
+.msg{font-size:13px;margin:12px 0 0;padding:9px 12px;border-radius:8px}
+.msg.ng{background:#fef2f2;color:#991b1b}
+.msg.ok{background:#ecfdf5;color:#065f46}
+.note{font-size:12px;color:var(--muted);margin:14px 12px 0;line-height:1.7}
+.hidden{display:none}
+.loading{text-align:center;color:var(--muted);font-size:14px;padding:60px 0}
+.spin{width:15px;height:15px;border:2px solid #e5e7eb;border-top-color:var(--crimson);border-radius:50%;
+  display:inline-block;animation:sp .8s linear infinite;vertical-align:-3px;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loadbar{margin:12px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 14px;
+  font-size:13px;color:var(--muted);display:flex;align-items:center;gap:9px}
+.dim{opacity:.45;pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- 読み込み中 -->
+<div id="v-boot" class="pane"><div class="loading"><span class="spin"></span> 読み込み中…</div></div>
+
+<!-- GAS URL の設定（初回だけ） -->
+<div id="v-setup" class="pane hidden">
+  <h1>初回設定</h1>
+  <p class="lead">この端末で1回だけ設定します</p>
+  <div class="fld"><label>GAS の URL</label><input type="text" id="su-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+  <button class="btn-main" onclick="saveUrl()">保存</button>
+  <p class="note">URLは川上さんに聞いてください。この端末のブラウザにだけ保存されます。</p>
+</div>
+
+<!-- ログイン -->
+<div id="v-login" class="pane hidden">
+  <h1>クロフネ 勤務割</h1>
+  <p class="lead">スタッフ用</p>
+  <div class="fld"><label>ID</label><input type="text" id="lg-id" autocomplete="username" autocapitalize="off" autocorrect="off"></div>
+  <div class="fld"><label>パスワード</label><input type="password" id="lg-pw" autocomplete="current-password"></div>
+  <button class="btn-main" id="lg-btn" onclick="doLogin()">ログイン</button>
+  <div id="lg-msg"></div>
+  <p class="note">IDとパスワードは打刻ツール（time-card）と同じものです。分からないときは川上さんに聞いてください。</p>
+  <button class="btn-sub" id="lg-seturl" onclick="showSetup()">GASのURLを設定し直す</button>
+</div>
+
+<!-- パスワード変更 -->
+<div id="v-pw" class="pane hidden">
+  <h1>パスワードの変更</h1>
+  <p class="lead" id="pw-who"></p>
+  <div class="fld"><label>新しいパスワード（4文字以上）</label><input type="password" id="pw-1" autocomplete="new-password"></div>
+  <div class="fld"><label>もう一度</label><input type="password" id="pw-2" autocomplete="new-password"></div>
+  <button class="btn-main" id="pw-btn" onclick="doChangePw()">変更する</button>
+  <div id="pw-msg"></div>
+  <button class="btn-sub" onclick="showMain()">やめる</button>
+</div>
+
+<!-- 本画面 -->
+<div id="v-main" class="phone hidden">
+  <div class="top">
+    <span class="ttl">勤務割</span>
+    <span class="me" id="me-name"></span>
+    <button class="menu" id="btn-reload" onclick="load()" title="最新の勤務を取り直します">🔄 更新</button>
+    <button class="menu" onclick="openMenu()">⋮</button>
+  </div>
+
+  <div id="load-err"></div>
+  <div class="loadbar" id="loadbar"><span class="spin"></span>勤務を読み込んでいます…</div>
+  <div class="sum">今週の勤務 <b id="sum-cnt">-</b> 日 ／ 合計 <b id="sum-h">-</b>
+    <span id="fetched-at" style="float:right;font-size:11px"></span></div>
+
+  <div class="card">
+    <div class="card-h">🔁 レギュラーの勤務</div>
+    <div class="card-b">
+      <div class="cal" id="reg-cal"></div>
+      <div class="legend">
+        <span><i style="background:var(--kita-bd)"></i>北久里浜</span>
+        <span><i style="background:var(--kuri-bd)"></i>久里浜</span>
+        <span><i style="background:var(--home-bd)"></i>在宅</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">🗓 週の予定</div>
+    <div class="wknav">
+      <button onclick="_wk--;draw()">← 先週</button>
+      <span class="lb" id="wk-lb"></span>
+      <button onclick="_wk++;draw()">来週 →</button>
+    </div>
+    <div class="card-b"><div class="cal" id="wk-cal"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📌 イレギュラーの勤務</div>
+    <div class="card-b" id="irr-list"></div>
+  </div>
+
+  <p class="note">見るだけの画面です。直したいところがあれば川上さんに言ってください。<br>
+  在宅の勤務もここに出ます。休みにした日は勤務が消えます。</p>
+</div>
+
+<script>
+'use strict';
+/* ここに中継GAS（staffGAS.gs）のURLを貼ると、端末ごとの設定が要らなくなる。
+   ★貼ってよいのは中継GASのURLだけ。会員管理GASのURLは絶対に貼らない。
+     会員管理GASは認証が無く、URLが漏れると生徒情報を全部取られる（機能仕様書3-5）。
+   空のままなら、いままでどおり端末ごとに設定画面で入れる。 */
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwh7RXsFR47ePzma7rXXaijyUvuVkcBxhxXZYcH4tWKifl40Le8r-8NwyKfpGmfnceVcg/exec';
+
+var K_URL = 'sft_gas_url', K_TOKEN = 'sft_token', K_USER = 'sft_user';
+var YOUBI = ['日','月','火','水','木','金','土'];
+var DOWS  = ['月','火','水','木','金','土','日'];
+var _shifts = null;     // 読めたときだけ配列を入れる（失敗を空配列で上書きしない）
+var _user = null;
+var _wk = 0;
+var _fetchedAt = null;   // 最後に取り直した時刻
+
+/* ---------- 小物 ---------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function iso(d){ var m=d.getMonth()+1, dd=d.getDate(); return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(dd<10?'0':'')+dd; }
+function addD(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+function monOf(off){ var t=new Date(); t.setHours(0,0,0,0); var w=t.getDay(); return addD(addD(t,(w===0?-6:1-w)), off*7); }
+function md(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+function tmin(t){ var m=String(t||'').match(/(\d{1,2}):(\d{2})/); return m?(+m[1])*60+(+m[2]):0; }
+function hhmm(min){ var h=Math.floor(min/60), m=min%60; return h+'時間'+(m?m+'分':''); }
+/* 色は勤務地で決める（どこへ行くかがいちばん大事・川上さん確定 2026-09-02） */
+function plCls(p){ return p==='北久里浜' ? 'kita' : p==='久里浜' ? 'kuri' : 'home'; }
+function view(id){
+  ['v-boot','v-setup','v-login','v-pw','v-main'].forEach(function(v){
+    $(v).classList.toggle('hidden', v!==id);
+  });
+}
+
+/* ---------- GAS ---------- */
+function gasUrl(){ return GAS_URL || localStorage.getItem(K_URL) || ''; }
+function callGas(params, cb){
+  var url = gasUrl();
+  if (!url){ cb(null, 'no-url'); return; }
+  var body = new URLSearchParams();
+  Object.keys(params).forEach(function(k){ body.append(k, params[k]); });
+  fetch(url, { method:'POST', body: body })
+    .then(function(r){ return r.json(); })
+    .then(function(res){ cb(res, null); })
+    .catch(function(e){ cb(null, String(e && e.message || e)); });
+}
+
+/* ---------- 画面の出し分け ---------- */
+function boot(){
+  if (GAS_URL) $('lg-seturl').style.display = 'none';
+  if (!gasUrl()){ showSetup(); return; }
+  var tk = sessionStorage.getItem(K_TOKEN);
+  var us = sessionStorage.getItem(K_USER);
+  if (!tk || !us){ view('v-login'); return; }
+  try { _user = JSON.parse(us); } catch(e){ _user = null; }
+  if (!_user){ logout(); return; }
+  showMain();
+  load();
+}
+function showSetup(){ $('su-url').value = gasUrl(); view('v-setup'); }
+function saveUrl(){
+  var v = ($('su-url').value || '').trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(v)){
+    alert('URLの形が違います。https://script.google.com/macros/s/.../exec の形で入れてください');
+    return;
+  }
+  localStorage.setItem(K_URL, v);
+  view('v-login');
+}
+function logout(){
+  sessionStorage.removeItem(K_TOKEN);
+  sessionStorage.removeItem(K_USER);
+  _user = null; _shifts = null;
+  view('v-login');
+}
+function openMenu(){
+  var a = window.prompt('番号を入れてください\n1: パスワードを変える\n2: ログアウト', '');
+  if (a === '1') showPw();
+  else if (a === '2') logout();
+}
+
+/* ---------- ログイン ---------- */
+function doLogin(){
+  var id = ($('lg-id').value || '').trim();
+  var pw = $('lg-pw').value || '';
+  if (!id || !pw){ msg('lg-msg','ng','IDとパスワードを入れてください'); return; }
+  $('lg-btn').disabled = true; msg('lg-msg','','ログイン中…', true);
+  callGas({ action:'staffLogin', staffId:id, password:pw }, function(res, err){
+    $('lg-btn').disabled = false;
+    if (err){ msg('lg-msg','ng','通信できませんでした（'+err+'）'); return; }
+    if (!res || !res.success){
+      // 中継GASが locked:true を返したら、回数制限で止まっている
+      msg('lg-msg','ng', (res && res.error) || 'IDかパスワードが違います');
+      if (res && res.locked) $('lg-btn').disabled = true, setTimeout(function(){ $('lg-btn').disabled = false; }, 30000);
+      return;
+    }
+    sessionStorage.setItem(K_TOKEN, res.token);
+    sessionStorage.setItem(K_USER, JSON.stringify(res.user));
+    _user = res.user;
+    $('lg-pw').value = '';
+    msg('lg-msg','','');
+    showMain(); load();
+  });
+}
+function msg(id, cls, text, spin){
+  var el = $(id);
+  el.innerHTML = text
+    ? '<div class="msg '+(cls||'')+'">'+(spin ? '<span class="spin"></span> ' : '')+esc(text)+'</div>'
+    : '';
+}
+
+/* ---------- パスワード変更 ---------- */
+function showPw(){
+  $('pw-who').textContent = (_user && _user.name ? _user.name : '') + ' さん';
+  $('pw-1').value = ''; $('pw-2').value = ''; msg('pw-msg','','');
+  view('v-pw');
+}
+function doChangePw(){
+  var a = $('pw-1').value || '', b = $('pw-2').value || '';
+  if (a.length < 4){ msg('pw-msg','ng','4文字以上にしてください'); return; }
+  if (a !== b){ msg('pw-msg','ng','2つが違います'); return; }
+  $('pw-btn').disabled = true; msg('pw-msg','','変更中…', true);
+  callGas({ action:'changeMyPassword', token: sessionStorage.getItem(K_TOKEN), newPassword: a }, function(res, err){
+    $('pw-btn').disabled = false;
+    if (err){ msg('pw-msg','ng','通信できませんでした'); return; }
+    if (res && res.authRequired){ logout(); return; }
+    if (!res || !res.success){ msg('pw-msg','ng',(res && res.error) || '変更できませんでした'); return; }
+    msg('pw-msg','ok','変えました。次からは新しいパスワードでログインしてください');
+    setTimeout(logout, 1600);
+  });
+}
+
+/* ---------- 勤務の取得 ---------- */
+function showMain(){
+  view('v-main');
+  setLoading_(!_shifts);   // まだ読めていないなら回るマークを出したまま始める
+  $('me-name').textContent = _user && _user.shortName ? (_user.shortName + '先生')
+                            : (_user && _user.name ? _user.name : '');
+  draw();
+}
+function load(){
+  $('load-err').innerHTML = '';
+  setLoading_(true);
+  callGas({ action:'getMyStaffShifts', token: sessionStorage.getItem(K_TOKEN) }, function(res, err){
+    if (res && res.authRequired){ logout(); return; }
+    // 🚨 取れなかったときに空配列で上書きしない（機能仕様書 4-1）
+    setLoading_(false);
+    if (err || !res || !res.success){
+      $('load-err').innerHTML = '<div class="err">勤務を読み込めませんでした。'+
+        '電波の良いところでもう一度お試しください。<br><button onclick="load()">読み込み直す</button></div>';
+      return;
+    }
+    _shifts = res.shifts || [];
+    _fetchedAt = new Date();
+    draw();
+  });
+}
+
+/* 読み込み中の見せ方：上に回るマークの帯を出し、中身を薄くする */
+function setLoading_(on){
+  var bar = $('loadbar');
+  if (bar) bar.style.display = on ? 'flex' : 'none';
+  var rb = $('btn-reload');
+  if (rb) { rb.disabled = !!on; rb.innerHTML = on ? '<span class="spin"></span>' : '🔄 更新'; }
+  ['reg-cal','wk-cal','irr-list'].forEach(function(id){
+    var el = $(id);
+    if (el) el.classList.toggle('dim', !!on);
+  });
+}
+
+/* ---------- その日の勤務（機能仕様書 4-2 と同じ考え方） ---------- */
+function shiftsOn(d){
+  if (!_shifts) return null;
+  var dIso = iso(d), yb = YOUBI[d.getDay()];
+  var weekly = _shifts.filter(function(w){
+    if (w.kind !== 'weekly' || w.youbi !== yb) return false;
+    if (w.validFrom && dIso < String(w.validFrom)) return false;
+    if (w.validTo && dIso > String(w.validTo)) return false;
+    return true;
+  });
+  var offs = _shifts.filter(function(x){ return x.kind==='off' && x.date===dIso; });
+  var chgs = _shifts.filter(function(x){ return x.kind==='change' && x.date===dIso; });
+  var sngs = _shifts.filter(function(x){ return x.kind==='single' && x.date===dIso; });
+  var out = [];
+  weekly.forEach(function(w){
+    // targetShiftId が空の休みは、その日の勤務を全部消す
+    if (offs.some(function(o){ return !o.targetShiftId || o.targetShiftId===w.id; })) return;
+    var c = null;
+    chgs.forEach(function(x){ if (x.targetShiftId===w.id) c = x; });
+    if (c) out.push({ start:c.startTime, end:c.endTime, place:c.classroom, tag:'変更' });
+    else   out.push({ start:w.startTime, end:w.endTime, place:w.classroom, tag:'' });
+  });
+  sngs.forEach(function(x){ out.push({ start:x.startTime, end:x.endTime, place:x.classroom, tag:'単発' }); });
+  out.sort(function(a,b){ return tmin(a.start)-tmin(b.start); });
+  return out;
+}
+
+/* ---------- 描画 ---------- */
+function chipHtml(x){
+  var tag = x.tag==='単発' ? '<span class="tag tag-single">単発</span>'
+          : x.tag==='変更' ? '<span class="tag tag-change">変更</span>' : '';
+  return '<div class="chip '+plCls(x.place)+'">' +
+    '<span class="t">'+esc(x.start)+'</span><span class="t">'+esc(x.end)+'</span>' +
+    '<span class="p">'+esc(x.place)+'</span>' + tag + '</div>';
+}
+function draw(){
+  var loaded = !!_shifts;
+
+  // レギュラーの勤務（曜日だけ）
+  var head = DOWS.map(function(yb){
+    var c = yb==='日' ? ' sun' : yb==='土' ? ' sat' : '';
+    return '<div class="ch'+c+'">'+yb+'</div>';
+  }).join('');
+  var body = DOWS.map(function(yb){
+    var rows = loaded ? _shifts.filter(function(w){
+      if (w.kind!=='weekly' || w.youbi!==yb) return false;
+      var today = iso(new Date());
+      if (w.validTo && today > String(w.validTo)) return false;   // 終わった勤務は出さない
+      return true;
+    }).sort(function(a,b){ return tmin(a.startTime)-tmin(b.startTime); }) : [];
+    return '<div class="cc">' + rows.map(function(w){
+      return chipHtml({ start:w.startTime, end:w.endTime, place:w.classroom, tag:'' });
+    }).join('') + '</div>';
+  }).join('');
+  $('reg-cal').innerHTML = head + body;
+
+  // 週の予定
+  var todayIso = iso(new Date());
+  var mon = monOf(_wk);
+  var days = DOWS.map(function(_,i){ return addD(mon,i); });
+  $('wk-lb').textContent = md(days[0])+'（月）〜 '+md(days[6])+'（日）';
+  var mins = 0, cnt = 0;
+  var h2 = days.map(function(d){
+    var c = d.getDay()===0 ? ' sun' : d.getDay()===6 ? ' sat' : '';
+    if (iso(d)===todayIso) c += ' today';
+    return '<div class="ch'+c+'">'+YOUBI[d.getDay()]+'<span class="dt">'+md(d)+'</span></div>';
+  }).join('');
+  var b2 = days.map(function(d){
+    var list = shiftsOn(d) || [];
+    if (list.length){ cnt++; list.forEach(function(x){ mins += tmin(x.end)-tmin(x.start); }); }
+    return '<div class="cc'+(iso(d)===todayIso?' today':'')+'">' + list.map(chipHtml).join('') + '</div>';
+  }).join('');
+  $('wk-cal').innerHTML = h2 + b2;
+  $('sum-cnt').textContent = loaded ? cnt : '-';
+  $('sum-h').textContent = loaded ? (mins ? hhmm(mins) : '0時間') : '-';
+  var fa = $('fetched-at');
+  if (fa) fa.textContent = _fetchedAt
+    ? (('0'+_fetchedAt.getHours()).slice(-2)+':'+('0'+_fetchedAt.getMinutes()).slice(-2)+' 現在') : '';
+
+  // イレギュラーの勤務（今日以降）
+  if (!loaded){ $('irr-list').innerHTML = '<div class="none">読み込み中…</div>'; return; }
+  var future = _shifts.filter(function(x){
+    return (x.kind==='single' || x.kind==='change' || x.kind==='off') && x.date && x.date >= todayIso;
+  }).sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+  $('irr-list').innerHTML = future.length ? future.map(function(x){
+    var d = new Date(x.date+'T00:00:00');
+    var h = '<div class="d">'+md(d)+'（'+YOUBI[d.getDay()]+'）</div>';
+    var tg = x.targetShiftId ? _shifts.filter(function(w){ return w.id===x.targetShiftId; })[0] : null;
+    var fromTxt = tg ? (tg.startTime+'〜'+tg.endTime+' '+tg.classroom) : '';
+    var b, bodyHtml;
+    if (x.kind==='single'){
+      b = '<span class="b b-single">単発</span>';
+      bodyHtml = '<span class="tm">'+esc(x.startTime)+'–'+esc(x.endTime)+'</span> '+
+        '<span class="pl '+plCls(x.classroom)+'">'+esc(x.classroom)+'</span>';
+    } else if (x.kind==='change'){
+      b = '<span class="b b-change">時刻変更</span>';
+      bodyHtml = (fromTxt ? '<span class="strike">'+esc(fromTxt)+'</span><br>' : '') +
+        '<span class="tm">'+esc(x.startTime)+'–'+esc(x.endTime)+'</span> '+
+        '<span class="pl '+plCls(x.classroom)+'">'+esc(x.classroom)+'</span>';
+    } else {
+      b = '<span class="b b-off">休み</span>';
+      bodyHtml = fromTxt ? '<span class="strike">'+esc(fromTxt)+'</span>' : 'この日は勤務なし';
+    }
+    return '<div class="irr">'+h+'<div style="flex:1;min-width:0">'+b+' '+bodyHtml+'</div></div>';
+  }).join('') : '<div class="none">この先のイレギュラーはありません。</div>';
+}
+
+/* Enterでログイン */
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Enter') return;
+  if (!$('v-login').classList.contains('hidden')) doLogin();
+  else if (!$('v-pw').classList.contains('hidden')) doChangePw();
+});
+
+boot();
+</script>
+</body>
+</html>
