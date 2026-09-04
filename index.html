@@ -2482,7 +2482,8 @@ function loadAll() {
       // 定期テスト対策カード（2026-08-17 カード自由記述方式）。重要度は中なので retries は付けない。
       { action: 'getExamCards',      apply: function(r){ _cbLoaded.examCards = true; if (r && r.success && r.cards) { _examCards = r.cards; _xcLastFetch = Date.now(); } else { _cbFail.examCards = true; } } },
       // スタッフ勤務割（2026-09-02）。フェーズ1（まとめ取得）には足さない＝起動が約2秒延びるため。
-      { action: 'getStaffShifts',    apply: function(r){ _cbLoaded.staff = true; if (r && r.success && r.staffs && r.shifts) { _staffs = r.staffs; _staffShifts = r.shifts; } else { _cbFail.staff = true; } } }
+      { action: 'getStaffShifts',    skipIf: function(){ return _cbLoaded.staff; },
+        apply: function(r){ _cbLoaded.staff = true; if (r && r.success && r.staffs && r.shifts) { _staffs = r.staffs; _staffShifts = r.shifts; } else { _cbFail.staff = true; } } }
     ];
     // 2026-08-27：この9本を1往復にまとめる（getClassBoardSchool）を試したが【取り下げた】。
     //  本番実測：まとめ取得1本が63.5秒かかり、JSONではなくエラーページ（7,700バイト）が返った。
@@ -2494,6 +2495,8 @@ function loadAll() {
     //  ★従来の9本（並列）に戻した。これが現在の正。
     function legacyPhase2() {
       jobs.forEach(function(job) {
+        // まとめ取得（フェーズ1）で既に届いているものは投げ直さない（2026-09-04）
+        if (job.skipIf) { try { if (job.skipIf()) return; } catch (e) {} }
         p2++;
         callGas(studentUrl, { action: job.action }, function(res) { try { job.apply(res); } catch(e){} d2(); }, 'GET', true);
       });
@@ -2713,6 +2716,16 @@ function cbApplyStudentBootstrap_(res) {
   // 開閉校カレンダー：失敗を空で塗り潰すと「日曜以外は開校」の既定で描かれ、保存すると本物を消す（2026-08-25）
   if (Array.isArray(res.calendar)) { _koushuCalendar = res.calendar; _cbLoaded.cal = true; _cbFail.cal = false; }
   else { _cbFail.cal = true; }
+
+  // スタッフ勤務割【川上さん確定 2026-09-04】
+  //  背景取得（フェーズ2）の10本目に置いていたら、Apps Script が10本を順番にさばくため
+  //  勤務データが届くまで約40秒かかっていた。往復を増やさずに早く出すため、まとめ取得に相乗りさせる。
+  //  スタッフマスタ7行・スタッフ勤務割4行と小さいのでシート読みはほぼ増えない。
+  //  🚨 GASがまだ返さない（貼り替え前）ときは undefined。そのときは何もせず、
+  //     フェーズ2の getStaffShifts がそのまま取りに行く（skipIf で二重取得だけ防ぐ）。
+  if (Array.isArray(res.staffs) && Array.isArray(res.staffShifts)) {
+    _staffs = res.staffs; _staffShifts = res.staffShifts; _cbLoaded.staff = true; _cbFail.staff = false;
+  }
 }
 
 function cbApplyTaskBootstrap_(res, taskUrl) {
@@ -3657,6 +3670,25 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
 }
 
 /* 受験特訓（最終コマの下の別枠）を人数カウント用の item にする */
+/* そのコマに相乗りする受験特訓の生徒【川上さん確定 2026-09-04】
+ * 受験特訓は 19:00〜21:30、コマは 18:40〜20:00 と時刻も種類も違うが、
+ * 時間が重なっている以上おなじ席を使う。だから人数にも定員にも数える。
+ * 🚨 本日タブ・今週タブ・定員チェック(cbSeatCount_)の3か所がこの1本を呼ぶ。
+ *    ビューごとに同じ判定を書き直さない（書き直した結果、定員だけ受験特訓を
+ *    数えていなかったのが 2026-09-04 に見つかった不具合）。
+ * 相乗り先は「その日その教室で生徒がいる最終コマ」。 */
+function cbJukenOnKoma_(cr, kt, iso, youbi) {
+  if (!cr || !kt || !youbi) return [];
+  var dayKomas = getKomasForClassroom(cr).filter(function(k2) {
+    return getStudentsForKoma(cr, youbi, k2).length > 0;
+  });
+  if (!dayKomas.length || dayKomas[dayKomas.length - 1] !== kt) return [];
+  return getActiveModeStudents().filter(function(s) {
+    return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === youbi; })
+      && getMainClassroom(s) === cr;
+  });
+}
+
 function cbJukenItems_(students, iso) {
   return (students || []).map(function(s) {
     return { name: s.name, grade: s.grade || '', cat: 'juken', absent: _tkAbsent_(s.name, iso, '19:00〜21:30', null) };
@@ -3752,6 +3784,8 @@ function cbSeatCount_(cr, kt, iso) {
     items = cbNormalRoster_(cr, kt, iso, youbi, true).map(function(o) {
       return { name: o.name, grade: o.grade, cat: o.cat, absent: o.absent };
     });
+    // 受験特訓も席を使う（川上さん確定 2026-09-04）。画面の「計N人」と同じ数え方にする
+    items = items.concat(cbJukenItems_(cbJukenOnKoma_(cr, kt, iso, youbi), iso));
   }
   var c = cbCellCount_(items);
   var names = {};
@@ -4215,12 +4249,8 @@ function renderToday() {
         ? komas.map(function(kt) {
             // 川上さん確定(2026-08-26)：チップと人数は同じ配列から作る（数が食い違わないように）
             var _roster = cbNormalRoster_(cr, kt, todayIso, todayYoubi);
-            var allKomas = getKomasForClassroom(cr).filter(function(k2){ return getStudentsForKoma(cr, todayYoubi, k2).length > 0; });
-            var isLastKoma = allKomas.length > 0 && allKomas[allKomas.length - 1] === kt;
-            var jukenStudents = isLastKoma ? getActiveModeStudents().filter(function(s) {
-              return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === todayYoubi; })
-                && getMainClassroom(s) === cr;
-            }) : [];
+            // 受験特訓の相乗りは cbJukenOnKoma_ に集約（定員チェックと同じ判定を使う・2026-09-04）
+            var jukenStudents = cbJukenOnKoma_(cr, kt, todayIso, todayYoubi);
             var _cnt = cbCellCount_(_roster.concat(cbJukenItems_(jukenStudents, todayIso)));
             var _cntCls = _cnt.total >= CB_SEAT_LIMIT ? ' count-danger' : _cnt.total >= CB_SEAT_WARN ? ' count-warn' : '';
             var _cntTitle = ' title="' + _cnt.tooltip + ' / ' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤" style="cursor:help"';
@@ -5052,13 +5082,9 @@ function buildWeekGrid(days, todayIso) {
       // 川上さん確定(2026-07-21)：通常＋振替＋テスト対策を1つの並び順ルールで統合ソート（受験特訓は別枠）
       // 川上さん確定(2026-08-26)：本日タブと同じ cbNormalRoster_ を使う（片方だけ直さないため）
       var _wRoster = cbNormalRoster_(cr, kt, iso, YOUBIS[i]);
-      // 最終有生徒コマなら受験特訓も相乗り（席は使うので人数に入れる）
-      var _dayKomasW = komas.filter(function(k2){ return getStudentsForKoma(cr, YOUBIS[i], k2).length > 0; });
-      var _isLastW = _dayKomasW.length > 0 && _dayKomasW[_dayKomasW.length-1] === kt;
-      var jukenStu = _isLastW ? getActiveModeStudents().filter(function(s) {
-        return (s.komas || []).some(function(k2) { return k2.satType === 'juken' && k2.youbi === YOUBIS[i]; })
-          && getMainClassroom(s) === cr;
-      }) : [];
+      // 最終有生徒コマなら受験特訓も相乗り（席は使うので人数にも定員にも入れる）
+      // 判定は cbJukenOnKoma_ に集約（本日タブ・定員チェックと同じ1本・2026-09-04）
+      var jukenStu = cbJukenOnKoma_(cr, kt, iso, YOUBIS[i]);
       var _wCnt = cbCellCount_(_wRoster.concat(cbJukenItems_(jukenStu, iso)));
       var _wCls = _wCnt.total >= CB_SEAT_LIMIT ? ' count-danger' : _wCnt.total >= CB_SEAT_WARN ? ' count-warn' : '';
       var _wTitle = ' title="' + _wCnt.tooltip + ' / ' + CB_SEAT_WARN + '人以上：黄色 / ' + CB_SEAT_LIMIT + '人以上：赤" style="cursor:help"';
