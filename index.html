@@ -130,6 +130,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 /* 学校ワークチェックテーブル */
 .subj-btn { padding:5px 12px; border:1px solid var(--border); border-radius:20px; background:#f3f4f6; color:var(--text); font-size:12px; cursor:pointer; transition:all .15s; }
 .subj-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+/* 川上さん指示(2026-09-12)：小テストは教科を必須にする。未選択の行はトーストだけでなく赤枠で指し示す */
+.test-row-err { border-color:#dc2626 !important; background:#fef2f2; }
+.test-row-err .tr-subj-btns::after { content:'教科を選んでください'; color:#dc2626; font-size:11px; align-self:center; }
 .work-check-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .work-check-table th { background: var(--surface); color: var(--text-muted); font-size: 11px; font-weight: 700; padding: 5px 8px; text-align: center; border: 1px solid var(--border); }
 .work-check-table td { padding: 4px 6px; border: 1px solid var(--border); text-align: center; vertical-align: middle; }
@@ -1773,7 +1776,7 @@ tr.mx-done-row td { background: #f0fdf4; }
           <label><input type="checkbox" class="test-grade" value="高3"> 高3</label>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">日程（教科＋実施日＋タイトル。行を追加すると複数日程を一度に登録できます）</label>
+      <div class="form-group"><label class="form-label">日程（教科＋実施日＋タイトル。行を追加すると複数日程を一度に登録できます） <span style="color:#dc2626;font-weight:600">教科・実施日は必須</span></label>
         <div id="test-rows"></div>
         <button type="button" id="test-add-row-btn" onclick="addTestRow()" style="background:#fff;border:1px dashed #9ca3af;color:#374151;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;width:100%">＋ 日程を追加</button>
       </div>
@@ -6011,6 +6014,9 @@ function deleteSchoolInfoOne_(school, cb) {
 
 function toggleSubjBtn(btn) {
   btn.classList.toggle('active');
+  // 川上さん指示(2026-09-12)：教科は必須。1つでも選ばれたらエラー表示を消す
+  var row = btn.closest ? btn.closest('.test-row') : null;
+  if (row && row.querySelector('.subj-btn.active')) row.classList.remove('test-row-err');
 }
 
 function openAddTestModal(school) {
@@ -6041,7 +6047,7 @@ function openAddTestModal(school) {
   var _delBtn = document.getElementById('test-delete-btn'); if (_delBtn) _delBtn.style.display = 'none';
   document.querySelectorAll('.test-grade').forEach(function(cb) { cb.checked = false; });
   // 川上さん指示(2026-07-03)：行追加方式。1行＝教科（複数選択可）＋実施日＋タイトル＝1レコード
-  document.getElementById('test-rows').innerHTML = '';
+  document.getElementById('test-rows').innerHTML = ''; // 前回の赤枠（test-row-err）もここで消える
   addTestRow();
   document.getElementById('test-add-row-btn').style.display = '';
   document.getElementById('modal-add-test-title').textContent = school ? '小テスト追加（' + school + '）' : '小テスト追加';
@@ -6111,6 +6117,14 @@ function openEditTestModal(task) {
   row.querySelector('.tr-name').value = namePart;
 }
 
+// 川上さん指示(2026-09-12)：教科未選択の行を赤枠にし、本文がスクロールしていてもその行まで送る（2026-08-27のモーダル構造に合わせる）
+function testMarkSubjErr_(row) {
+  if (!row) return;
+  Array.prototype.forEach.call(document.querySelectorAll('#test-rows .test-row'), function(r) { r.classList.remove('test-row-err'); });
+  row.classList.add('test-row-err');
+  if (row.scrollIntoView) { try { row.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+}
+
 function submitAddTest() {
   var school = document.getElementById('test-target-school').value;
   var taskId = document.getElementById('test-edit-task-id').value;
@@ -6125,6 +6139,13 @@ function submitAddTest() {
     var subjects = Array.from(row.querySelectorAll('.subj-btn.active')).map(function(b){ return b.getAttribute('data-subj'); });
     if (!date && !name && !subjects.length) continue; // 完全な空行はスキップ
     if (!date) { miniToast((i + 1) + '行目の実施日を入力してください'); return; }
+    // 川上さん指示(2026-09-12)：教科は必須。編集モーダル（教科の無い過去データ）でも同じ判定を通す
+    if (!subjects.length) {
+      testMarkSubjErr_(row);
+      miniToast((i + 1) + '行目の教科を選んでください');
+      return;
+    }
+    row.classList.remove('test-row-err');
     var _tnParts = [];
     if (subjects.length) _tnParts.push(subjects.join('・'));
     if (name) _tnParts.push(name);
