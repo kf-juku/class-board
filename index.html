@@ -4289,7 +4289,8 @@ function renderToday() {
 
   // 授業内・授業外・期限切れでフィルタ（taskType設定済みのみ）
   // classroom が一致するもの／空欄は両教室に表示
-  var CLASSROOMS = ['北久里浜', '久里浜'];
+  // 教室リストの単一の正は CB_TASK_BAR_CLASSROOMS（自動持越しの対象判定と共用・2026-09-12）
+  var CLASSROOMS = CB_TASK_BAR_CLASSROOMS;
 
   function tasksFor(cr, type, dateStr, isOverdue) {
     return _tasks.filter(function(t) {
@@ -10843,10 +10844,29 @@ function submitQuickAdd(uid, classroom, taskType) {
 
 // ========== A-5：自動持越し処理 ==========
 // ページ読み込み時に期日が今日より前の未完了タスク（Class Board表示対象）を今日の日付に自動変更
+//
+// 🚨 タスク帯の列は北久里浜と久里浜の2つしかない（2026-09-12 川上さん確定）。
+//   教室が「クロフネ」「CA」のタスクは getTasksForClassBoard が返すので _tasks には入るが、
+//   受け皿の列が無いので画面のどこにも出ない。それを持ち越すと、
+//   **誰にも見えないまま毎日期限日が今日に書き換わり、再保存でGカレの予定まで毎日動く。**
+//   2026-09-12 時点で8件（「渡辺先生 お休み」13:00・「会員管理の修正」14:00 など）が
+//   この状態だった。だから持越しの対象は「実際に画面に出るタスク」だけにする。
+//   ★教室の条件を外して全件に戻さないこと。
+//   ★タスク帯に3列目を足すなど表示側を変えたら、CB_TASK_BAR_CLASSROOMS も一緒に直す。
+var CB_TASK_BAR_CLASSROOMS = ['北久里浜', '久里浜'];
+
+// そのタスクがタスク帯・今週グリッドに実際に出るか
+function cbTaskOnBoard_(t) {
+  if (!t) return false;
+  if (t.taskType !== '授業内' && t.taskType !== '授業外') return false;  // 種別なしは画面に出ない
+  if (!t.classroom) return true;                                        // 教室なしは両方の列に出る
+  return CB_TASK_BAR_CLASSROOMS.indexOf(t.classroom) !== -1;
+}
+
 function autoCarryOverTasks(taskUrl) {
   var today = getTodayStr();
   var targets = (_tasks || []).filter(function(t) {
-    return t.dueDate && t.dueDate < today && t.status !== 'done';
+    return t.dueDate && t.dueDate < today && t.status !== 'done' && cbTaskOnBoard_(t);
   });
   if (targets.length === 0) return;
 
