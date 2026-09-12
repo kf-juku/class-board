@@ -1671,7 +1671,7 @@ tr.mx-done-row td { background: #f0fdf4; }
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">時刻</label>
-            <input type="time" id="abs-b-time" value="13:00" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px" />
+            <input type="time" id="abs-b-time" value="" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px" />
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <label style="font-size:12px;color:var(--text-muted);width:40px;flex-shrink:0">教室</label>
@@ -4366,7 +4366,7 @@ function renderToday() {
           '<label style="font-size:11px;color:var(--text-muted)">期日</label>' +
           '<input type="date" id="qa-date-' + uid + '" value="' + today + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
           '<input type="time" id="qa-time-' + uid + '" value="" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
-          '<select id="qa-cat-' + uid + '" onchange="onCbQuickCatChange(\'' + uid + '\')" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option><option value="振替">振替</option></select>' +
+          '<select id="qa-cat-' + uid + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option></select>' +
           '<button class="btn-primary btn-sm" onclick="submitQuickAdd(\'' + uid + '\',\'' + esc(cr) + '\',\'' + taskType + '\')">追加</button>' +
           '<button class="btn-secondary btn-sm" onclick="toggleQuickAdd(\'' + uid + '\')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
         '</div>' +
@@ -7139,12 +7139,16 @@ function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId
   document.getElementById('abs-modal-memo-a') && (document.getElementById('abs-modal-memo-a').value = '');
   document.getElementById('abs-modal-memo-b') && (document.getElementById('abs-modal-memo-b').value = '');
 
-  // Step2B の初期値セット（本日・13:00・欠席した教室）
+  // Step2B の初期値セット（本日・時刻なし・欠席した教室）
+  // 2026-09-12 川上さん確定：時刻の既定値 13:00 を撤去。
+  //   「振替日決める」は自分向けのTODOで、13:00に予定があるわけではない。
+  //   時刻が空ならGカレに載らない（Class Boardのタスク帯には種別=授業内で出る）。
+  //   ★13:00 に戻さないこと。
   var dateB = document.getElementById('abs-b-date');
   var timeB = document.getElementById('abs-b-time');
   var crB   = document.getElementById('abs-b-cr');
   if (dateB) dateB.value = getTodayStr();
-  if (timeB) timeB.value = '13:00';
+  if (timeB) timeB.value = '';
   if (crB)   crB.value   = classroom;
 
   // Step2A のコマ選択肢を生成・教室をデフォルトセット
@@ -7262,7 +7266,7 @@ function submitAbsence(mode) {
   } else {
     // ===== アポ未定ルート =====
     var dateB = (document.getElementById('abs-b-date') || {}).value || getTodayStr();
-    var timeB = (document.getElementById('abs-b-time') || {}).value || '13:00';
+    var timeB = (document.getElementById('abs-b-time') || {}).value || '';
     var crB   = (document.getElementById('abs-b-cr')   || {}).value || d.classroom;
     var memo  = (document.getElementById('abs-modal-memo-b') || {}).value.trim();
 
@@ -7284,48 +7288,80 @@ function submitAbsence(mode) {
     if (_currentTab === 'absence') renderAbsence();
     else renderCurrent();
 
-    // GAS保存
+    // GAS保存（成功してレコードIDが確定してから「振替日決める」タスクを作る）
+    // 2026-09-12 川上さん確定：タスクIDを欠席レコードIDから導出する（subfix_<レコードID>）。
+    //   振替日を確定したときに、このIDで探して自動的に完了にするため。
+    //   振替タスクの 'sub_' + レコードID（方式B・2026-06-14）と同じ考え方。
+    //   ★保存前に 'cb_<ミリ秒>_b' で作る形に戻さないこと。戻すとレコードと紐づかず、
+    //     振替日を決めても「振替日決める」が残り続けて自動持越しで毎日出てくる。
     callGas(studentUrl, { action: 'saveAbsenceRecord', record: record }, function(res) {
       if (res && res.success && res.id) {
         var idx = _absenceRecords.findIndex(function(r){ return r.id === tempId; });
         if (idx >= 0) _absenceRecords[idx].id = res.id;
+        record.id = res.id;
+        if (taskUrl) cbAddFixDateTask_(res.id, d, memo, dateB, timeB, crB, courseLabel);
       } else {
         _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempId; });
         miniToast('⚠️ 欠席登録に失敗しました');
         renderCurrent();
       }
     }, 'POST');
-
-    // タスク登録（生徒対応カテゴリ・授業内）
-    if (taskUrl) {
-      var taskTitle = '振替日決める' + courseLabel + '：' + d.studentName;
-      var newTask = {
-        id:        'cb_' + Date.now() + '_b',
-        title:     taskTitle,
-        memo:      absTaskMemo_(d, memo),
-        dueDate:   dateB,
-        dueTime:   timeB,
-        taskType:  '授業内',
-        classroom: crB,
-        assignee:  getUserName(),
-        status:    'todo',
-        category:  '生徒対応',
-        issueId:   '',
-        createdBy: getUserName()
-      };
-      _tasks.push(newTask);
-      var willGcalB = CB_GCAL_AUTO_CATEGORIES.indexOf('生徒対応') !== -1 && dateB && timeB && crB;
-      // 完全一本化(2026-06-14)：GカレはGAS側saveTaskが自動作成。直接登録はしない（二重防止）。
-      callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
-        if (!res || !res.success) {
-          _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
-        } else if (res.gcalEventId) {
-          var cur = _tasks.find(function(x){ return x.id === newTask.id; });
-          if (cur) { cur.gcalEventId = res.gcalEventId; cur.gcalCalId = res.gcalCalId || ''; }
-        }
-      }, 'POST');
-    }
   }
+}
+
+// 「振替日決める」タスクを作る（欠席レコードの保存が成功してから呼ぶ）
+// カテゴリ=生徒対応／種別=授業内／教室=振替予定の教室。
+// 時刻は入力欄の値をそのまま使う。既定は空なのでGカレには載らず、Class Boardのタスク帯にだけ出る。
+function cbAddFixDateTask_(recId, d, memo, dateB, timeB, crB, courseLabel) {
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!taskUrl || !recId) return;
+  var newTask = {
+    id:        'subfix_' + recId,
+    title:     '振替日決める' + courseLabel + '：' + d.studentName,
+    memo:      absTaskMemo_(d, memo),
+    dueDate:   dateB,
+    dueTime:   timeB,
+    taskType:  '授業内',
+    classroom: crB,
+    assignee:  getUserName(),
+    status:    'todo',
+    category:  '生徒対応',
+    issueId:   '',
+    createdBy: getUserName()
+  };
+  _tasks.push(newTask);
+  renderCurrent();
+  // 完全一本化(2026-06-14)：GカレはGAS側saveTaskが自動作成。直接登録はしない（二重防止）。
+  callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(newTask) }, function(res) {
+    if (!res || !res.success) {
+      _tasks = _tasks.filter(function(x){ return x.id !== newTask.id; });
+      miniToast('⚠️ 「振替日決める」タスクの作成に失敗しました');
+      renderCurrent();
+      return;
+    }
+    if (cbWillGcal_(dateB, timeB, crB)) miniToast('📅 Gカレにも登録しました');
+    if (res.gcalEventId) {
+      var cur = _tasks.find(function(x){ return x.id === newTask.id; });
+      if (cur) { cur.gcalEventId = res.gcalEventId; cur.gcalCalId = res.gcalCalId || ''; }
+    }
+  }, 'POST');
+}
+
+// 振替日が決まったら「振替日決める」タスクを完了にする（2026-09-12 川上さん確定）
+// 🚨 地雷：存在しないIDで saveTask を送ると、シートに新しい行ができる（GASはid一致がなければ追記する）。
+//   だから画面が持っているタスク（_tasks＝未完了・種別ありだけが来る）に無ければ何もしない。
+//   ★「念のため毎回送る」形にしないこと。
+function cbDoneFixDateTask_(recId) {
+  var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+  if (!taskUrl || !recId) return;
+  var fixId = 'subfix_' + recId;
+  var t = (_tasks || []).find(function(x){ return x.id === fixId; });
+  if (!t) return;                       // 無い＝作られていない or もう完了済み
+  var updated = Object.assign({}, t, { status: 'done' });
+  _tasks = _tasks.filter(function(x){ return x.id !== fixId; });
+  callGas(taskUrl, { action: 'saveTask', task: JSON.stringify(updated) }, function(res) {
+    if (!res || !res.success) { _tasks.push(t); renderCurrent(); }
+  }, 'POST');
 }
 
 // 欠席由来の自動タスクのメモ先頭に「いつの欠席分か」を入れる（2026-06-12 川上さん要望）
@@ -7421,6 +7457,9 @@ function saveSubstitute(recordId, uid) {
 // rec: 更新後の欠席振替レコード（substituteDate/KomaTime/Classroom が新しい値）
 // prev: 編集前の値（再編集判定用。初回確定なら prev.status は 'absent'）
 function rebuildSubstituteTask_(rec, prev) {
+  // 振替日が決まった＝「振替日決める」はもう要らないので完了にする（2026-09-12 川上さん確定）
+  cbDoneFixDateTask_(rec.id);
+
   var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
   if (!taskUrl) return;
   var subTaskId = 'sub_' + (rec.id || '');  // 方式B：欠席レコードIDから規則導出
@@ -7431,7 +7470,15 @@ function rebuildSubstituteTask_(rec, prev) {
     // ローカルからも除去
     _tasks = (_tasks || []).filter(function(x){ return x.id !== subTaskId; });
 
-    // 新タスク作成（カテゴリ「振替」固定・授業外）
+    // 新タスク作成（カテゴリ「振替」固定）
+    // 2026-09-12 川上さん確定：種別を空にした（以前は '授業外'）。
+    //   種別が入っていると Class Board のタスク帯に出て、手で完了にしない限り自動持越しで
+    //   毎日「今日のタスク」として上がってくる。振替が終わった翌日も出るので
+    //   「今日も来るんだっけ」と誤解する。振替で来ることは時間割の生徒チップ（⚡振替）と
+    //   振替タブで分かるので、タスク帯に3つ目の表示は要らない。
+    //   種別が空なら getTasksForClassBoard が返さない＝タスク帯にも出ず、自動持越しの対象にもならない。
+    //   時刻と教室は入るので Gカレには今までどおり載る。
+    //   ★'授業外' に戻さないこと。戻すと自動持越しが復活する。
     var subTime = (rec.substituteKomaTime || '').split('〜')[0] || '';
     var course  = rec.absenceCourse || '';
     var courseLabel = course ? '（' + course + '）' : '';
@@ -7441,7 +7488,7 @@ function rebuildSubstituteTask_(rec, prev) {
       memo:      '',
       dueDate:   rec.substituteDate,
       dueTime:   subTime,
-      taskType:  '授業外',
+      taskType:  '',
       classroom: rec.substituteClassroom || '',
       assignee:  getUserName(),
       status:    'todo',
@@ -7487,6 +7534,12 @@ function cancelAbsence(recordId) {
       var subTaskId = 'sub_' + (rec.id || '');
       callGas(taskUrl, { action: 'deleteTask', id: subTaskId }, function(){
         _tasks = (_tasks || []).filter(function(x){ return x.id !== subTaskId; });
+      }, 'POST');
+      // 2026-09-12：欠席そのものを取り消したので「振替日決める」も消す。
+      // deleteTask は対象が無くても成功扱いなので、存在チェックは要らない（saveTaskと違い行を作らない）。
+      var fixTaskId = 'subfix_' + (rec.id || '');
+      callGas(taskUrl, { action: 'deleteTask', id: fixTaskId }, function(){
+        _tasks = (_tasks || []).filter(function(x){ return x.id !== fixTaskId; });
       }, 'POST');
     }
   }, 'POST');
@@ -10718,19 +10771,17 @@ function toggleQuickAdd(uid) {
   }
 }
 
-// Gカレ対象カテゴリ選択時にデフォルト値をセット（ClassBoard用）
-var CB_GCAL_AUTO_CATEGORIES = ['生徒対応', '問い合わせ対応', '振替'];
-function onCbQuickCatChange(uid) {
-  var catEl  = document.getElementById('qa-cat-'  + uid);
-  var timeEl = document.getElementById('qa-time-' + uid);
-  var dateEl = document.getElementById('qa-date-' + uid);
-  if (!catEl) return;
-  var cat = catEl.value;
-  if (CB_GCAL_AUTO_CATEGORIES.indexOf(cat) === -1) return;
-  // 時刻が未設定なら13:00をセット
-  if (timeEl && !timeEl.value) timeEl.value = '13:00';
-  // 期日が未設定なら今日をセット
-  if (dateEl && !dateEl.value) dateEl.value = getTodayStr();
+// 川上さん確定(2026-09-12)：カテゴリを選んでも時刻を自動で入れない。
+//   以前は 生徒対応／問い合わせ対応／振替 を選ぶと 13:00 が入り、そのままGカレに載っていた。
+//   13:00に実際の予定があるわけではないので、Gカレに載せたい日だけ手で時刻を入れる。
+//   旧 CB_GCAL_AUTO_CATEGORIES（カテゴリでGカレ可否を決める表）と onCbQuickCatChange は撤去した。
+//   ★カテゴリ表で判定する形に戻さないこと。Gカレの可否はカテゴリでは決まらない。
+// Gカレに載る条件は「期限日＋時刻＋教室（その教室が書出ON）」。
+// 書出ONかどうかは task-manager 側の設定なので画面からは分からない。
+// トーストの文言用なので、ここでは教室が入っているかまでを見る（近似）。
+// 単一の正は task-managerGAS.gs の gcalSyncForTask_。
+function cbWillGcal_(dueDate, dueTime, classroom) {
+  return !!(dueDate && dueTime && classroom);
 }
 
 function submitQuickAdd(uid, classroom, taskType) {
@@ -10767,7 +10818,7 @@ function submitQuickAdd(uid, classroom, taskType) {
   _tasks.push(newTask);
 
   // Gカレ自動登録（カテゴリ・dueDate・dueTime・classroom が揃っているとき）
-  var willGcal = CB_GCAL_AUTO_CATEGORIES.indexOf(category) !== -1 && dueDate && dueTime && classroom;
+  var willGcal = cbWillGcal_(dueDate, dueTime, classroom);
   miniToast('タスクを追加しました ✓' + (willGcal ? ' 📅 Gカレにも登録' : ''));
   renderCurrent();
 
