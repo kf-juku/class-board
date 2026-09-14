@@ -753,6 +753,29 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   .print-header { display: block !important; }
 }
 
+/* ── 本日A4印刷のアラート圧縮ブロック（ap-）2026-09-14 川上さん確定＝案A ──
+   画面のカード（.alert-banner）は触らない。印刷用に別HTMLを組み立てる。
+   色の決め方は画面と同じ：残7日以内は赤（.hot）、それ以外は種別の色。
+   ★1ページ目の先頭に置く。減らさない（期間内のものは全部出す）。 */
+.ap-box { border: 1px solid #e5e7eb; border-radius: 5px; padding: 4px 6px 5px; margin-bottom: 6px; }
+.ap-t { font-size: 9px; font-weight: 700; color: #6b7280; margin-bottom: 3px; }
+.ap-sub { font-size: 10px; background: #fffbeb; border: 1px solid #fbbf24; border-left: 3px solid #f59e0b;
+  border-radius: 4px; padding: 2px 6px; margin-bottom: 4px; color: #92400e;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.ap-sub b { color: #78350f; }
+.ap-g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
+.ap-c { border: 1px solid #fed7aa; border-left: 3px solid #f97316; background: #fff7ed; border-radius: 4px;
+  padding: 2px 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.ap-c.t-test  { border-color: #fecdd3; border-left-color: #e11d48; background: #fff1f2; }
+.ap-c.t-event { border-color: #bfdbfe; border-left-color: #3b82f6; background: #eff6ff; }
+.ap-c.hot     { border-color: #fca5a5; border-left-color: #ef4444; background: #fef2f2; }
+.ap-h { font-size: 9.5px; font-weight: 700; color: #111; line-height: 1.35; }
+.ap-p { font-size: 8.5px; font-weight: 400; color: #6b7280; margin-left: 3px; }
+.ap-r { font-size: 9px; color: #1f2937; line-height: 1.4; word-break: break-all; }
+.ap-d { font-weight: 700; margin-right: 3px; white-space: nowrap; }
+.ap-n { font-size: 8.5px; color: #6b7280; margin-left: 3px; white-space: nowrap; }
+.ap-n.hot { color: #b91c1c; font-weight: 700; }
+
 /* ── 本日・今週 A4印刷（a4-） ── */
 #a4-print-root { display: none; }
 .a4-page { background: #fff; color: #111; box-sizing: border-box; overflow: hidden; padding: 4px; }
@@ -4582,6 +4605,11 @@ function alertBannersHtml(todayStudents, todayIso) {
   var now = new Date(todayIso);
   var ALERT_DAYS = 28;
   var banners = [];
+  // 川上さん確定(2026-09-14)：本日A4印刷の1ページ目にアラートを圧縮して載せる（案A）。
+  //   画面のカードHTMLは触らず、同じ判定を通ったものをここで素のデータとして控える。
+  //   描くのは alertPrintHtml_()、入れるのは buildA4Pages_。
+  //   ★件数を絞らない。期間（28日以内）に入ったものは全部載せる。
+  _cbAlertPrint = { sub: [], groups: [] };
 
   // SVGアイコン定義
   var SVG = {
@@ -4685,6 +4713,9 @@ function alertBannersHtml(todayStudents, todayIso) {
     var near = items[0].task;
     var clData = { title: (near.taskName||''), memo: (near.materials||''), school: school, grade: grade, dueDate: (near.dueDate||'') };
     banners.push({ diff: items[0].diff, html: makeBanner('task', SVG.task, label, items[0].diff, matched.length, popup, namesAttr, clData, null) });
+    _cbAlertPrint.groups.push({ kind: 'task', school: school, grade: grade ? grade + '生' : '',
+      n: matched.length, diff: items[0].diff,
+      items: items.map(function(it){ return { md: testMd_(it.task.dueDate), name: (it.task.taskName || ''), diff: it.diff }; }) });
   });
 
   // ② テスト記録DB
@@ -4706,6 +4737,8 @@ function alertBannersHtml(todayStudents, todayIso) {
     var popup = makePopup(SVG.test, rec.school + ' ' + rec.grade + '：' + rec.testName, dateLabel, matched, 'test');
     var label = '<strong>' + esc(rec.school) + ' ' + esc(rec.grade) + '</strong>：' + esc(rec.testName) + ' まで<strong' + (diff <= 7 ? ' style="color:#b91c1c"' : '') + '>残' + diff + '日</strong>';
     banners.push({ diff: diff, html: makeBanner('test', SVG.test, label, diff, matched.length, popup, namesAttr) });
+    _cbAlertPrint.groups.push({ kind: 'test', school: rec.school, grade: rec.grade, n: matched.length, diff: diff,
+      items: [{ md: testMd_(rec.testDate), name: (rec.testName || ''), diff: diff }] });
   });
 
   // ③ 学校行事
@@ -4727,6 +4760,9 @@ function alertBannersHtml(todayStudents, todayIso) {
     var label = '<strong>' + esc(ev.school) + (ev.grade ? ' ' + esc(ev.grade) : '') + '</strong>'
       + '：' + esc(ev.eventName) + ' まで<strong' + (diff <= 7 ? ' style="color:#b91c1c"' : '') + '>残' + diff + '日</strong>';
     banners.push({ diff: diff, html: makeBanner('event', SVG.event, label, diff, matched.length, popup, namesAttr) });
+    _cbAlertPrint.groups.push({ kind: 'event', school: ev.school, grade: (ev.grade || ''), n: matched.length, diff: diff,
+      items: [{ md: testMd_(ev.eventDate) + (ev.eventEndDate ? '〜' + testMd_(ev.eventEndDate) : ''),
+                name: (ev.eventName || ''), diff: diff }] });
   });
 
   // ④ 本日振替予定の生徒アラート（欠席振替機能）
@@ -4737,6 +4773,7 @@ function alertBannersHtml(todayStudents, todayIso) {
     var subNames = todaySubRecords.map(function(r) {
       return '<strong>' + esc(r.studentName) + '</strong>（' + esc(r.substituteKomaTime||'') + '）';
     }).join('、');
+    _cbAlertPrint.sub = todaySubRecords.map(function(r){ return { name: r.studentName, koma: (r.substituteKomaTime || '') }; });
     banners.unshift({ diff: -Infinity, full: true, html:
       '<div class="alert-banner" style="background:#fffbeb;border-color:#fbbf24;color:#92400e;border-left-color:#f59e0b">' +
       '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
@@ -4750,11 +4787,42 @@ function alertBannersHtml(todayStudents, todayIso) {
   //  種類は色で分かるので種類ごとにかためない。同じ残り日数は元の順番のまま（sortは安定）。
   //  ⚡本日振替の帯は diff:-Infinity で常に先頭・全幅。
   banners.sort(function(a, b) { return (a.diff - b.diff) || 0; });
+  _cbAlertPrint.groups.sort(function(a, b) { return (a.diff - b.diff) || 0; });  // 画面のカードと同じ並び（期限が近い順）
   var bannersHtml = banners.map(function(b) {
     if (b.full) return '<div style="grid-column:1/-1">' + b.html + '</div>';
     return b.html;
   }).join('');
   return _crossBanner + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' + bannersHtml + '</div>';
+}
+
+// 本日A4印刷用：アラートを圧縮したブロック（川上さん確定 2026-09-14＝案A）
+//  ・画面のカード（.alert-banner）は印刷に出さない。こちらを1ページ目の先頭に入れる。
+//  ・3列。1枠＝学校×学年。日程が複数あれば枠の中に縦に並べる。
+//  ・⚡本日振替来塾予定は上に全幅1行。
+//  ・★件数を絞らない。画面に出ているものは全部載せる（川上さん指示：定めた期間内だから出ている）。
+//  ・データは alertBannersHtml が控えた _cbAlertPrint。画面を描いていないと空になる。
+var _cbAlertPrint = { sub: [], groups: [] };
+
+function alertPrintHtml_() {
+  var d = _cbAlertPrint || { sub: [], groups: [] };
+  var subs = d.sub || [], gs = d.groups || [];
+  if (!subs.length && !gs.length) return '';
+  var subHtml = subs.length
+    ? '<div class="ap-sub">⚡ 本日振替来塾予定：' + subs.map(function(r){
+        return '<b>' + esc(r.name) + '</b>（' + esc(r.koma) + '）'; }).join('、') + '</div>'
+    : '';
+  var cells = gs.map(function(g) {
+    var hot = g.items.some(function(i){ return i.diff <= 7; });
+    var rows = g.items.map(function(i) {
+      return '<div class="ap-r"><span class="ap-d">' + esc(i.md) + '</span>' + esc(i.name)
+        + '<span class="ap-n' + (i.diff <= 7 ? ' hot' : '') + '">残' + i.diff + '</span></div>';
+    }).join('');
+    var cls = 'ap-c t-' + (g.kind || 'task') + (hot ? ' hot' : '');
+    return '<div class="' + cls + '"><div class="ap-h">' + esc(g.school)
+      + (g.grade ? ' ' + esc(g.grade) : '') + '<span class="ap-p">' + g.n + '名</span></div>' + rows + '</div>';
+  }).join('');
+  return '<div class="ap-box"><div class="ap-t">小テスト・予定（今日来る生徒に関係するもの／28日以内）</div>'
+    + subHtml + (cells ? '<div class="ap-g3">' + cells + '</div>' : '') + '</div>';
 }
 
 function highlightStudents(banner) {
@@ -5242,6 +5310,13 @@ function buildA4Pages_(onlyCr) {
   if (onlyOne && clC) pruneToClassroom_(clC, onlyCr);
   var gridC = cloneOf(isWeek ? '.week-grid-wrap' : '.today-grid');
   if (onlyOne && gridC) { pruneToClassroom_(gridC, onlyCr); gridC.classList.add('print-one-cr'); }
+  // 川上さん確定(2026-09-14)：本日A4の1ページ目の先頭にアラート圧縮ブロックを入れる。
+  //   今週（A4横）はグリッドをページ分割して敷き詰める別の組み方なので、今は入れない。
+  var alertC = null;
+  if (!isWeek) {
+    var apHtml = alertPrintHtml_();
+    if (apHtml) { alertC = document.createElement('div'); alertC.innerHTML = apHtml; }
+  }
   var extraC = null;
   var gridEl = document.querySelector(isWeek ? '.week-grid-wrap' : '.today-grid');
   if (!isWeek && gridEl && gridEl.nextElementSibling && gridEl.nextElementSibling.tagName === 'DIV' && !gridEl.nextElementSibling.classList.contains('cl-zone')) {
@@ -5305,13 +5380,15 @@ function buildA4Pages_(onlyCr) {
     meas.style.width = '740px';
     root.appendChild(meas);
     function rawH(el) { if (!el) return 0; meas.appendChild(el); var h = meas.scrollHeight; meas.removeChild(el); meas.innerHTML = ''; return h; }
-    var hT = rawH(taskC), hC = rawH(clC), hG = rawH(gridC) + rawH(extraC);
+    var hA = rawH(alertC), hT = rawH(taskC), hC = rawH(clC), hG = rawH(gridC) + rawH(extraC);
     root.removeChild(meas);
     // 判定：タスク＋チェックリストが0.6以上で1ページに入るならA案、入らないならB案（タスク＋時間割）
-    var planA = (hT + hC) > 0 ? Math.min(1, pageH / (hT + hC)) : 1;
-    var planB = (hT + hG) > 0 ? Math.min(1, pageH / (hT + hG)) : 1;
+    // ★アラートブロックの高さ hA を両方に足す。足さないと、入らない組み方を選んで全体が縮む。
+    var planA = (hA + hT + hC) > 0 ? Math.min(1, pageH / (hA + hT + hC)) : 1;
+    var planB = (hA + hT + hG) > 0 ? Math.min(1, pageH / (hA + hT + hG)) : 1;
     if (clC && planA >= 0.6 && planA >= planB) {
       var pa1 = newPage(titleBase + '　タスク・チェックリスト');
+      if (alertC) pa1.appendChild(alertC);
       if (taskC) pa1.appendChild(taskC);
       pa1.appendChild(clC);
       fitPage(pa1, 0.5);
@@ -5322,6 +5399,7 @@ function buildA4Pages_(onlyCr) {
     } else {
       // B案：表=タスク＋時間割、裏=チェックリスト
       var pb1 = newPage(titleBase + '　タスク・時間割');
+      if (alertC) pb1.appendChild(alertC);
       if (taskC) pb1.appendChild(taskC);
       if (gridC) pb1.appendChild(gridC);
       if (extraC) pb1.appendChild(extraC);
