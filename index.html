@@ -484,6 +484,10 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   display: block;
   margin-bottom: 3px;
 }
+/* 川上さん指示(2026-09-14)：＋ボタンは「授業外」「授業内」の右隣（同じ行）に置く。
+   ★ラベルを独立した行に戻さないこと（＋が下の行に落ちて縦に間延びする）。 */
+.task-bar-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.task-bar-sec-head .task-bar-section-label { margin-bottom: 0; }
 .task-bar-section-in  { color: #166534; }
 .task-bar-section-out { color: #854d0e; }
 .task-bar-chips {
@@ -706,6 +710,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 
   /* 生徒チップ */
   .student-chip { padding: 2px 4px !important; font-size: 9px !important; border-radius: 4px !important; }
+  /* 川上さん報告(2026-09-14)：アラートカードのホバー強調（highlightStudents）を印刷に持ち込まない。
+     インラインstyleより stylesheet の !important が勝つ。★消さないこと。 */
+  .student-chip { opacity: 1 !important; outline: none !important; }
   .student-chip .s-name { max-width: 5em !important; }
   .student-chip .s-sub { font-size: 8px !important; }
   .badge { font-size: 7px !important; padding: 0 3px !important; }
@@ -4338,20 +4345,28 @@ function renderToday() {
     var outNormal = tasksFor(cr, '授業外', todayIso, false);
     var outOver   = tasksFor(cr, '授業外', todayIso, true);
     var crKey = cr.replace(/\s/g, '_');
-    var inAdd  = makeQuickAddBtn(cr, '授業内',  crKey + '_in');
-    var outAdd = makeQuickAddBtn(cr, '授業外', crKey + '_out');
+    var inUid  = crKey + '_in';
+    var outUid = crKey + '_out';
     // 授業外セクション（タスクなしでも見出しを表示）
     var outChips = outOver.map(function(t){ return makeChip(t, true, '授業外', cr); })
       .concat(outNormal.map(function(t){ return makeChip(t, false, '授業外', cr); }));
     var outSec = '<div class="task-bar-section">' +
-      '<span class="task-bar-section-label task-bar-section-out"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#9ca3af;margin-right:5px;flex-shrink:0"></span>授業外</span>' + outAdd +
+      '<div class="task-bar-sec-head">' +
+        '<span class="task-bar-section-label task-bar-section-out"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#9ca3af;margin-right:5px;flex-shrink:0"></span>授業外</span>' +
+        quickAddBtnHtml_(outUid) +
+      '</div>' +
+      quickAddFormHtml_(cr, '授業外', outUid) +
       (outChips.length ? '<div class="task-bar-chips">' + outChips.join('') + '</div>' : '') +
       '</div>';
     // 授業内セクション（タスクなしでも見出しを表示）
     var inChips = inOver.map(function(t){ return makeChip(t, true, '授業内', cr); })
       .concat(inNormal.map(function(t){ return makeChip(t, false, '授業内', cr); }));
     var inSec = '<div class="task-bar-section">' +
-      '<span class="task-bar-section-label task-bar-section-in"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3b82f6;margin-right:5px;flex-shrink:0"></span>授業内</span>' + inAdd +
+      '<div class="task-bar-sec-head">' +
+        '<span class="task-bar-section-label task-bar-section-in"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3b82f6;margin-right:5px;flex-shrink:0"></span>授業内</span>' +
+        quickAddBtnHtml_(inUid) +
+      '</div>' +
+      quickAddFormHtml_(cr, '授業内', inUid) +
       (inChips.length ? '<div class="task-bar-chips">' + inChips.join('') + '</div>' : '') +
       '</div>';
     return '<div class="task-bar-col ' + crCls + '">' +
@@ -4359,23 +4374,27 @@ function renderToday() {
       outSec + inSec + '</div>';
   }
 
-  function makeQuickAddBtn(cr, taskType, uid) {
+  // 川上さん指示(2026-09-14)：＋ボタンは見出し（授業外／授業内）と同じ行に置くため、
+  // ボタンとフォームを別々に返す。フォームは見出し行の下に全幅で開く。
+  // ★1つの入れ物にまとめ直さないこと（＋が見出しの下の行に落ちる）。
+  function quickAddBtnHtml_(uid) {
+    return '<button class="quick-add-btn" onclick="toggleQuickAdd(\'' + uid + '\')" title="タスクを追加"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>';
+  }
+
+  function quickAddFormHtml_(cr, taskType, uid) {
     var today = getTodayStr();
-    return '<div class="quick-add-wrap" id="qa-wrap-' + uid + '">' +
-      '<button class="quick-add-btn" onclick="toggleQuickAdd(\'' + uid + '\')" title="タスクを追加"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' +
-      '<div class="quick-add-form" id="qa-form-' + uid + '" style="display:none;clear:both;margin-top:6px">' +
+    return '<div class="quick-add-form" id="qa-form-' + uid + '" style="display:none;clear:both;margin-bottom:6px">' +
         '<input type="text" id="qa-title-' + uid + '" placeholder="タスク内容を入力..." class="quick-add-input" />' +
         '<input type="text" id="qa-memo-' + uid  + '" placeholder="メモ（任意）" class="quick-add-input" style="font-size:11px;margin-top:4px" />' +
-        '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
           '<label style="font-size:11px;color:var(--text-muted)">期日</label>' +
           '<input type="date" id="qa-date-' + uid + '" value="' + today + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
           '<input type="time" id="qa-time-' + uid + '" value="" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px" />' +
-          '<select id="qa-cat-' + uid + '" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option></select>' +
+          '<select id="qa-cat-' + uid + '" onchange="onCbQuickCatChange(this,\'' + uid + '\')" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px"><option value="">カテゴリなし</option><option value="生徒対応">生徒対応</option><option value="問い合わせ対応">問い合わせ対応</option></select>' +
           '<button class="btn-primary btn-sm" onclick="submitQuickAdd(\'' + uid + '\',\'' + esc(cr) + '\',\'' + taskType + '\')">追加</button>' +
           '<button class="btn-secondary btn-sm" onclick="toggleQuickAdd(\'' + uid + '\')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
         '</div>' +
-      '</div>' +
-    '</div>';
+      '</div>';
   }
 
   var kitaCol = makeColHtml('北久里浜', 'col-kita', todayIso);
@@ -5162,6 +5181,12 @@ window.addEventListener('afterprint', function() {
 });
 
 function buildA4Pages_(onlyCr) {
+  // 川上さん報告(2026-09-14)：アラートカードにマウスを置いたまま印刷すると、
+  //   対象生徒だけ赤枠(outline 2px)、それ以外が opacity 0.3 のまま紙に出ていた。
+  //   A4印刷は画面DOMのクローンなので、highlightStudents が付けたインラインstyleごと複製される。
+  //   ボタン経由・Ctrl+P（beforeprint）どちらもここを通るので、複製の前に必ず解除する。
+  //   ★この1行を消さないこと。@media print の .student-chip 復帰ルールと二重の保険。
+  clearHighlight();
   var isWeek = !!document.querySelector('.week-grid-wrap');
   var root = document.getElementById('a4-print-root');
   if (!root) return;
@@ -10793,11 +10818,26 @@ function toggleQuickAdd(uid) {
   }
 }
 
-// 川上さん確定(2026-09-12)：カテゴリを選んでも時刻を自動で入れない。
-//   以前は 生徒対応／問い合わせ対応／振替 を選ぶと 13:00 が入り、そのままGカレに載っていた。
-//   13:00に実際の予定があるわけではないので、Gカレに載せたい日だけ手で時刻を入れる。
-//   旧 CB_GCAL_AUTO_CATEGORIES（カテゴリでGカレ可否を決める表）と onCbQuickCatChange は撤去した。
-//   ★カテゴリ表で判定する形に戻さないこと。Gカレの可否はカテゴリでは決まらない。
+// 川上さん確定(2026-09-12 → 2026-09-14 一部変更)：
+//   2026-09-12：生徒対応・振替は時刻を入れない＝Gカレに載せない。
+//     以前は 生徒対応／問い合わせ対応／振替 の3つに 13:00 が入っていた。
+//     旧 CB_GCAL_AUTO_CATEGORIES（カテゴリでGカレ可否を決める表）は撤去したまま。
+//     ★3カテゴリ一律で時刻を入れる形に戻さないこと。
+//   2026-09-14：問い合わせ対応だけ 13:00（日本時間）を自動で入れる。Gカレに載せたいため。
+//     入れるのは時刻が空のときだけ。手で入れた時刻は上書きしない。
+//     別のカテゴリに変えても、いったん入った時刻は消さない（手入力を壊さないため）。
+//     ★対象は 問い合わせ対応 だけ。生徒対応・カテゴリなしに広げないこと。
+var CB_QUICK_CAT_AUTO_TIME = { '問い合わせ対応': '13:00' };
+
+function onCbQuickCatChange(sel, uid) {
+  if (!sel) return;
+  var t = CB_QUICK_CAT_AUTO_TIME[sel.value || ''];
+  if (!t) return;                       // 対象外のカテゴリ：何もしない（消しもしない）
+  var timeEl = document.getElementById('qa-time-' + uid);
+  if (!timeEl) return;
+  if ((timeEl.value || '').trim()) return;  // 手入力ずみ：上書きしない
+  timeEl.value = t;
+}
 // Gカレに載る条件は「期限日＋時刻＋教室（その教室が書出ON）」。
 // 書出ONかどうかは task-manager 側の設定なので画面からは分からない。
 // トーストの文言用なので、ここでは教室が入っているかまでを見る（近似）。
