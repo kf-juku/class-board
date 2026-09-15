@@ -1929,6 +1929,12 @@ var _cbFail   = { students: false, absence: false, periods: false, assigns: fals
 var _staffs = [];        // スタッフマスタ（passHash/salt は返ってこない）
 var _staffShifts = [];   // 勤務割の生データ（weekly/single/change/off）
 var _sfStaffId = '';     // 勤務割タブで選択中のスタッフ
+// 川上さん確定(2026-09-15)：会員管理GASの応答がGoogleの配信側（script.googleusercontent.com）で
+//  「ページが見つかりません」になる不具合が出た。GASの実行自体は1〜2秒で完了しており、要求の5回に1回ほどしか
+//  結果を受け取れない状態。起動時のまとめ取得（getClassBoardBootstrap）だけ取り直し回数を 3回→8回 に増やす。
+//  1回の失敗に30〜60秒かかるので最悪4分ほど待つが、その間に届けば時間割はそのまま描画される。
+//  ★ 従来経路（legacyStudentPhase1・5本）は3回のまま。ここまで増やすとGASを叩きすぎるため。
+var CB_BOOT_GET_RETRIES = 7; // 取り直し回数（初回を含めて8回試す）
 var _cbCriticalLoadFailed = false; // 2026-08-04：生徒/講習期間の取得失敗（null応答）を検知。firstPaintで失敗バナー表示に使う
 var CB_VIEW_PERIOD_KEY = 'cb_view_period_id';
 var _selectedViewPeriodId = localStorage.getItem(CB_VIEW_PERIOD_KEY) || '__auto__'; // 期間選択プルダウン：'__auto__'=自動（進行中）, ''=通常表示固定, その他=期間ID（2026-06-10）
@@ -2689,7 +2695,7 @@ function loadAll() {
       if (res && res.success && Array.isArray(res.students)) cbApplyStudentBootstrap_(res);
       else legacyStudentPhase1();   // p1を積んでから下のd1()が走る（順番を入れ替えないこと）
       d1();
-    }, 'GET', false, 2);
+    }, 'GET', false, CB_BOOT_GET_RETRIES); // 2026-09-15：配信側の不具合対策で8回まで取り直す
   }
 
   if (taskUrl) {
@@ -10594,7 +10600,10 @@ function callGas(url, params, callback, method, silent, retries) {
         .then(function(r) { return r.json(); })
         .then(callback)
         .catch(function() {
-          if (attempt < _maxGetRetry) { setTimeout(function() { _tryGet(attempt + 1); }, 2500); }
+          if (attempt < _maxGetRetry) {
+            console.info('[GAS] 取り直し ' + (attempt + 2) + '/' + (_maxGetRetry + 1) + ' ' + (params && params.action));
+            setTimeout(function() { _tryGet(attempt + 1); }, 2500);
+          }
           else { callback(null); }
         });
     };
