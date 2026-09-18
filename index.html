@@ -201,7 +201,10 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   .cb-onl-names { display: block !important; font-size: 8px; color: #6b7280; }
   .cb-onl-names::before { content: '🌐 オンライン：'; }
 }
-.koma-students { padding: 8px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.koma-students { padding: 8px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-items: start; }
+/* 🚨【2026-09-19】align-items:start は消さないこと。受験特訓ブロック（jukenBlock）もこの grid の子なので、
+   既定の stretch だと同じ行の左にいる生徒チップ1枚が、受験特訓6人ぶんの高さまで引き伸ばされる。
+   久里浜 土 18:40〜20:00（生徒7人＋受験特訓）で発生。オンライン行・スタッフ行でも同じことが起きる。 */
 .koma-empty { padding: 14px 12px; font-size: 12px; color: #bbb; }
 
 /* 生徒チップ（1行圧縮） */
@@ -2016,7 +2019,15 @@ function getActiveKoushuPeriod() {
   if (_selectedViewPeriodId === '') return null; // 「通常表示」を明示選択
   if (_selectedViewPeriodId && _selectedViewPeriodId !== '__auto__') {
     var sel = _koushuPeriods.find(function(p) { return p.id === _selectedViewPeriodId; });
-    if (sel) return sel;
+    // 🚨【2026-09-19】終了日を過ぎた期間が選ばれたままだと、通常期に戻っても対策モードのUIが出続ける
+    //   （チップのホバーに過去の対策予定、「テスト対策期間の見方」リンクなど）。
+    //   プルダウンの候補 viewPeriodOptions_ は endDate >= today で絞るため候補が0件になり、
+    //   プルダウンごと消えて画面から選び直すこともできなくなる。終了した期間は選択を捨てて自動判定に戻す。
+    if (sel && sel.endDate >= todayIso) return sel;
+    if (sel) {
+      _selectedViewPeriodId = '__auto__';
+      try { localStorage.removeItem(CB_VIEW_PERIOD_KEY); } catch (e) {}
+    }
   }
   return _koushuPeriods.find(function(p) {
     return p.startDate <= todayIso && todayIso <= p.endDate;
