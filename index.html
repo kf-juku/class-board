@@ -1405,6 +1405,110 @@ tr.mx-done-row td { background: #f0fdf4; }
 .sfc-fixed { background:#f3f4f6; border-radius:6px; padding:6px 9px; font-size:12.5px; }
 .sfc-row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 @media print { .sf-wrap, .sf-toast { display:none !important; } }
+
+/* =====================================================
+ * 指導方針の帯（2026-09-19 川上さん確定）
+ * 置き場所：今日のタスク帯の下・時間割の真上。既定は閉じた状態（開閉は端末に覚えさせる）。
+ * 体裁は .task-bar に合わせてある。2列（左=北久里浜・右=久里浜）も同じ。
+ * ===================================================== */
+.pol-bar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+.pol-bar-header { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border-bottom: 1px solid var(--border); background: #fafbfc; cursor: pointer;
+  user-select: none; border-radius: var(--radius) var(--radius) 0 0; }
+.pol-bar.pol-closed .pol-bar-body { display: none; }
+.pol-bar.pol-closed .pol-bar-header { border-bottom: none; border-radius: var(--radius); }
+.pol-bar-label { font-size: 12px; font-weight: 700; color: var(--text-muted);
+  display: flex; align-items: center; gap: 5px; }
+.pol-bar-cnt { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.pol-bar-caret { margin-left: auto; font-size: 11px; color: #9aa6b5; }
+.pol-bar.pol-closed .pol-bar-caret { transform: rotate(180deg); display: inline-block; }
+.pol-bar-body { padding: 8px 10px 10px; }
+.pol-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pol-col { padding: 6px 8px; border-radius: var(--radius); min-width: 0; }
+.pol-col.col-kita { background: var(--kitakurihama-bg); }
+.pol-col.col-kuri { background: var(--kurihama-bg); }
+.pol-col-header { font-size: 11px; font-weight: 700; margin-bottom: 4px;
+  padding-bottom: 3px; border-bottom: 1px solid var(--border); }
+.pol-col.col-kita .pol-col-header { color: var(--kitakurihama-header); border-color: var(--kitakurihama-border); }
+.pol-col.col-kuri .pol-col-header { color: var(--kurihama-header);     border-color: var(--kurihama-border); }
+.pol-col-empty { font-size: 11px; color: #9aa6b5; padding: 4px 2px; }
+
+.pol-row { display: flex; gap: 8px; align-items: flex-start; padding: 5px 5px;
+  border-radius: 6px; background: #fff; cursor: pointer; }
+.pol-row + .pol-row { margin-top: 4px; }
+.pol-row:hover { background: #f7f9fc; }
+.pol-koma { font-size: 10px; color: var(--text-muted); font-weight: 600;
+  white-space: nowrap; width: 62px; flex-shrink: 0; padding-top: 2px; }
+.pol-who { width: 116px; flex-shrink: 0; }
+.pol-name { font-size: 12px; font-weight: 700; }
+.pol-meta { font-size: 10px; color: var(--text-muted); }
+.pol-abs { font-size: 10px; background: #111; color: #fff; border-radius: 3px;
+  padding: 0 4px; font-weight: 700; margin-left: 3px; }
+.pol-text { flex: 1; font-size: 12px; line-height: 1.6; white-space: pre-wrap;
+  overflow-wrap: anywhere; min-width: 0; }
+.pol-ta-wrap { flex: 1; min-width: 0; display: none; }
+.pol-row.pol-open .pol-ta-wrap { display: block; }
+.pol-row.pol-open .pol-text { display: none; }
+.pol-row.pol-open { cursor: default; }
+.pol-ta { width: 100%; font-family: inherit; font-size: 12px; line-height: 1.6;
+  color: var(--text); border: 1.5px solid var(--border); border-radius: 6px;
+  padding: 6px 8px; min-height: 58px; resize: vertical; }
+.pol-ta:focus { outline: none; border-color: #8fa6c4; box-shadow: 0 0 0 3px rgba(143,166,196,.15); }
+.pol-act { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+.pol-state { font-size: 11px; font-weight: 700; }
+.pol-msg { font-size: 11px; margin-left: auto; }
+.pol-addbtn { font-family: inherit; font-size: 11px; font-weight: 700; color: #C6000B;
+  background: #FFF0F0; border: 1px solid #f6d3d5; border-radius: 6px;
+  padding: 3px 9px; cursor: pointer; }
+
+/* 生徒の絞り込み（＋ 方針を書く） */
+.pk-search { width: 100%; font-family: inherit; font-size: 13px;
+  border: 1.5px solid var(--border); border-radius: 8px; padding: 7px 11px; outline: none; }
+.pk-search:focus { border-color: #8fa6c4; box-shadow: 0 0 0 3px rgba(143,166,196,.15); }
+.pk-chips { display: flex; gap: 5px; flex-wrap: wrap; margin: 9px 0 8px; }
+.pk-chip { font-family: inherit; font-size: 11.5px; font-weight: 700; color: var(--text-muted);
+  background: #fff; border: 1.5px solid var(--border); border-radius: 20px;
+  padding: 3px 11px; cursor: pointer; }
+.pk-chip.on { background: #C6000B; border-color: #C6000B; color: #fff; }
+.pk-list { border: 1px solid var(--border); border-radius: 8px; max-height: 260px; overflow-y: auto; }
+.pk-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 12.5px; }
+.pk-item + .pk-item { border-top: 1px solid #eef1f5; }
+.pk-item:hover { background: #f4f6fa; }
+.pk-item .nm { font-weight: 700; }
+.pk-item .mt { font-size: 10.5px; color: var(--text-muted); }
+.pk-item .has { margin-left: auto; font-size: 10px; font-weight: 700; color: #166534;
+  background: #dcfce7; border-radius: 3px; padding: 0 5px; }
+.pk-item .non { margin-left: auto; font-size: 10px; color: #9aa6b5; }
+.pk-empty { padding: 14px; font-size: 12px; color: #9aa6b5; text-align: center; }
+
+/* 食い違いの窓 */
+.cf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cf-box { border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; }
+.cf-h { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+.cf-t { font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere;
+  max-height: 200px; overflow-y: auto; }
+
+/* -----------------------------------------------------
+ * 印刷（A4・本日）
+ * 川上さん確定(2026-09-19)：1人1行に収める。改行は空白に変えて繋ぎ、
+ * 紙の幅を超えたところで自動的に「…」。CSS に任せるので字数は決め打ちしない。
+ * 帯を閉じていても紙には出す＝画面DOMのクローンではなく、データから作り直す
+ * （アラートブロック alertPrintHtml_ と同じ作り）。編集ボタンは紙に出さない。
+ * ----------------------------------------------------- */
+.pp-box { border: 1px solid #94a3b8; border-radius: 3px; padding: 5px 7px; margin-bottom: 4mm; }
+.pp-t { font-size: 10px; font-weight: 700; border-bottom: 1px solid #94a3b8;
+  padding-bottom: 2px; margin-bottom: 3px; }
+.pp-cr { font-size: 9px; font-weight: 700; color: #334155; margin: 3px 0 1px; }
+.pp-r { display: flex; gap: 6px; font-size: 9px; line-height: 1.5; padding: 1px 0;
+  border-bottom: 1px dotted #e2e8f0; }
+.pp-koma { width: 48px; flex-shrink: 0; color: #475569; font-weight: 600; }
+.pp-who { width: 150px; flex-shrink: 0; font-weight: 700; }
+.pp-who small { font-weight: 400; color: #475569; }
+/* 🚨 1人1行の肝。nowrap + hidden + ellipsis の3つが揃って初めて「…」になる。
+   どれか1つでも外すと折り返して行数が増え、1ページ目が伸びる。 */
+.pp-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 </style>
 </head>
 <body>
@@ -1932,6 +2036,62 @@ tr.mx-done-row td { background: #f0fdf4; }
       <button class="modal-close" onclick="closeModal('modal-exam-schedule')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body" id="modal-exam-schedule-body"></div>
+  </div>
+</div>
+
+
+<!-- 指導方針：生徒を選んで書く（2026-09-19） -->
+<div class="modal-overlay" id="modal-policy" onclick="if(event.target===this)closeModal('modal-policy')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span id="pol-modal-title">指導方針を書く</span>
+      <span class="modal-close" onclick="closeModal('modal-policy')">✕</span>
+    </div>
+    <div class="modal-body">
+      <div id="pol-picker">
+        <input class="pk-search" id="polPkQ" placeholder="名前・ふりがな・学校で探す" oninput="polDrawPicker()">
+        <div class="pk-chips" id="polPkChips"></div>
+        <div class="pk-list" id="polPkList"></div>
+      </div>
+      <div id="pol-editor" style="display:none">
+        <textarea class="pol-ta" id="polModalTa" style="min-height:160px" oninput="polOnInput(_polModalKey)"></textarea>
+        <div class="pol-act">
+          <button class="btn-primary btn-sm" onclick="polPush(_polModalKey)">保存</button>
+          <button class="btn-secondary btn-sm" onclick="polVerify(_polModalKey)">🔍 サーバーと照合</button>
+          <span class="pol-state" id="polModalState"></span>
+          <span class="pol-msg" id="polModalMsg"></span>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-top:8px">
+          保存先は会員管理システムの「指導方針メモ」です。会員管理側で開いても同じ内容が出ます。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 指導方針：サーバーと食い違ったとき（2026-09-19） -->
+<div class="modal-overlay" id="modal-policy-diff" onclick="if(event.target===this)closeModal('modal-policy-diff')">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <span style="color:#b91c1c">サーバーの方が新しくなっています</span>
+      <span class="modal-close" onclick="closeModal('modal-policy-diff')">✕</span>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.7;margin:0 0 10px" id="pol-diff-lead"></p>
+      <div class="cf-two">
+        <div class="cf-box">
+          <div class="cf-h">この画面の内容（あなたが書いたもの）</div>
+          <div class="cf-t" id="pol-diff-mine"></div>
+          <button class="btn-primary btn-sm" style="margin-top:8px" onclick="polDiffTakeMine()">この内容で上書きする</button>
+        </div>
+        <div class="cf-box">
+          <div class="cf-h" id="pol-diff-srv-h">サーバーの内容</div>
+          <div class="cf-t" id="pol-diff-server"></div>
+          <button class="btn-secondary btn-sm" style="margin-top:8px" onclick="polDiffTakeServer()">サーバーの内容を取り込む</button>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-top:10px">
+        両方を残したいときは、サーバーの内容を取り込んでから書き足してください。自動では混ぜません。</p>
+    </div>
   </div>
 </div>
 
@@ -4761,6 +4921,8 @@ function renderToday() {
     '</div>' +
     '<div class="task-bar-cols">' + kitaCol + kuriCol + '</div>' +
     '</div>' +
+    // 川上さん確定(2026-09-19)：指導方針の帯はタスク帯の下・時間割の真上。既定は閉じた状態
+    policyBandHtml(todayIso, todayYoubi) +
     '<div class="today-grid">' + crHtml + '</div>' +
     examStrategySection(todayIso);
   updateTopTitle('today'); // 描画とタイトル（期間プルダウン）を常に同期（2026-06-10）
@@ -5629,6 +5791,14 @@ function buildA4Pages_(onlyCr) {
     var apHtml = alertPrintHtml_();
     if (apHtml) { alertC = document.createElement('div'); alertC.innerHTML = apHtml; }
   }
+  // 川上さん確定(2026-09-19)：指導方針は帯を閉じていても紙には出す。
+  //   だから画面DOMのクローンではなく、データから作り直す（アラートブロックと同じ作り）。
+  //   置き場所は時間割と同じページの直前（今日来る子の話なので時間割と並べて読む）。
+  var polC = null;
+  if (!isWeek) {
+    var polHtml = policyPrintHtml_(onlyOne ? onlyCr : '');
+    if (polHtml) { polC = document.createElement('div'); polC.innerHTML = polHtml; }
+  }
   var extraC = null;
   var gridEl = document.querySelector(isWeek ? '.week-grid-wrap' : '.today-grid');
   if (!isWeek && gridEl && gridEl.nextElementSibling && gridEl.nextElementSibling.tagName === 'DIV' && !gridEl.nextElementSibling.classList.contains('cl-zone')) {
@@ -5693,11 +5863,14 @@ function buildA4Pages_(onlyCr) {
     root.appendChild(meas);
     function rawH(el) { if (!el) return 0; meas.appendChild(el); var h = meas.scrollHeight; meas.removeChild(el); meas.innerHTML = ''; return h; }
     var hA = rawH(alertC), hT = rawH(taskC), hC = rawH(clC), hG = rawH(gridC) + rawH(extraC);
+    // ★アラートと同じ。方針ブロックの高さ hP を判定に足す。
+    //   足さないと「入る」と誤判定して、1ページ目が入りきらず全体が縮む。
+    var hP = rawH(polC);
     root.removeChild(meas);
     // 判定：タスク＋チェックリストが0.6以上で1ページに入るならA案、入らないならB案（タスク＋時間割）
     // ★アラートブロックの高さ hA を両方に足す。足さないと、入らない組み方を選んで全体が縮む。
     var planA = (hA + hT + hC) > 0 ? Math.min(1, pageH / (hA + hT + hC)) : 1;
-    var planB = (hA + hT + hG) > 0 ? Math.min(1, pageH / (hA + hT + hG)) : 1;
+    var planB = (hA + hT + hP + hG) > 0 ? Math.min(1, pageH / (hA + hT + hP + hG)) : 1;
     if (clC && planA >= 0.6 && planA >= planB) {
       var pa1 = newPage(titleBase + '　タスク・チェックリスト');
       if (alertC) pa1.appendChild(alertC);
@@ -5705,6 +5878,7 @@ function buildA4Pages_(onlyCr) {
       pa1.appendChild(clC);
       fitPage(pa1, 0.5);
       var pa2 = newPage(titleBase + '　時間割');
+      if (polC) pa2.appendChild(polC);
       if (gridC) pa2.appendChild(gridC);
       if (extraC) pa2.appendChild(extraC);
       fitPage(pa2, 0.4);
@@ -5713,6 +5887,7 @@ function buildA4Pages_(onlyCr) {
       var pb1 = newPage(titleBase + '　タスク・時間割');
       if (alertC) pb1.appendChild(alertC);
       if (taskC) pb1.appendChild(taskC);
+      if (polC) pb1.appendChild(polC);
       if (gridC) pb1.appendChild(gridC);
       if (extraC) pb1.appendChild(extraC);
       fitPage(pb1, 0.45);
@@ -15989,6 +16164,731 @@ function xcPrintHandout(allGrades) {
   }
   window.addEventListener('afterprint', xcCleanup);
   setTimeout(function() { window.print(); }, 50);
+}
+
+
+/* =====================================================
+ * 指導方針メモの保存（2026-09-19 川上さん確定）
+ * -----------------------------------------------------
+ * task-manager のプロジェクトのフリーメモ（updateProjectNote / pushProjectNote）を
+ * そのまま踏襲したもの。向こうは 2026-08-26 に作り、08-30 に誤作動し、09-07 に中身が消えて、
+ * そのたびに直した完成形がある。**新しい方式を発明しないこと。**
+ *
+ * 🚨 このブロックは 会員管理システム/index.html と Class Board/ClassBoard.html の
+ *    2つに**まったく同じものが入っている**。片方を直したら、もう片方も必ず同じに直す。
+ *    grep の目印： POL_SHARED_BLOCK
+ *    画面ごとに違うのは、下の「この画面につなぐところ」で定義する関数だけ。
+ *
+ * 🚨 状態を2つに分けてある理由（2026-08-30 に task-manager で起きた事故）
+ *    _polServer … サーバーの現在値として分かっている版。**照合に送る base はこれ**
+ *    _polBase   … 自分の画面の枝分かれ元。**合体の元にするのはこれ**
+ *    1つで兼ねると、保存の応答が返る前に次の保存が飛んだとき、送る base が保存前のままになり、
+ *    他に誰も書いていなくても conflict になる（自分ひとりの入力で巻き戻る）。
+ *
+ * 🚨 未送信キューには積まない。base 照合があるので、後から流すと必ず conflict になる。
+ * 🚨 送る中身は「今この瞬間の入力欄」。呼ばれた時点のスナップショットを持ち回らない
+ *    （スナップショットで送ると、送信後に打った文字が合体の結果で消える＝巻き戻って見える）。
+ * ===================================================== */
+/* POL_SHARED_BLOCK ここから */
+
+var _polServer   = {};   // 生徒id → サーバーの現在値として分かっている版（照合に送る base）
+var _polBase     = {};   // 生徒id → 自分の画面の枝分かれ元（合体の元）
+var _polInflight = {};   // 生徒id → 送信中
+var _polPending  = {};   // 生徒id → 送信中に保存を頼まれた（返ってきたら1回だけ送り直す）
+var _polSavedAt  = {};   // 生徒id → 保存が成功したときの updatedAt（古い応答を捨てる判定に使う）
+var _polOkAt     = {};   // 生徒id → 最後にサーバーと一致を確認した時刻（表示用）
+var _polUnsaved  = {};   // 生徒id → 送れていない（この端末にだけある）
+var _polMsgTimer = {};
+
+// 改行をそろえる。
+// 🚨 これが無いと、改行が入っている方針は1件も保存できない。
+//    ブラウザの FormData は、文字列フィールドの中の改行を送信時に \n → \r\n へ書き換える
+//    （HTML仕様の normalize newlines）。シートに入っているのは \n なので、まったく同じ文字列を
+//    送り返しても base 照合が外れ、必ず conflict になる。GAS 側の normNl_ と対になっている。
+function normNlJs_(v) {
+  return String(v == null ? '' : v).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+/* -----------------------------------------------------
+ * 3者マージ（行単位）
+ * base … 自分が編集を始めた時点 ／ mine … 自分の画面 ／ server … サーバーの現在値
+ * LCS で base に対する両者の追加・削除を求めて1本に合成する。DOM を使わない純粋関数。
+ * （task-manager の mergeNoteHtml はリッチテキストなので DOM を使うが、
+ *   指導方針はただの文章なので行配列で足りる）
+ * ----------------------------------------------------- */
+function polSplitLines_(t) {
+  // 空文字は「0行」として扱う。''.split('\n') の [''] を使うと、
+  // 相手が全消しした結果と合体したときに余計な空行が残る。
+  if (t === '') return [];
+  return t.split('\n');
+}
+
+// base と other の LCS から、「base の k 行目の直前に挿入された行」と
+// 「base の k 行目が生き残っているか」に変換する。base の添字を共通の物差しにする。
+function polDiffToBase_(base, other) {
+  var n = base.length, m = other.length;
+  var ins = [], keep = [], i, j;
+  for (i = 0; i <= n; i++) ins.push([]);
+  for (i = 0; i < n; i++) keep.push(false);
+
+  // 先頭と末尾の一致部分を先に削ってから DP にかける（長文の一部改訂では DP がほぼ走らない）
+  var head = 0;
+  while (head < n && head < m && base[head] === other[head]) head++;
+  var tail = 0;
+  while (tail < (n - head) && tail < (m - head) && base[n - 1 - tail] === other[m - 1 - tail]) tail++;
+  for (i = 0; i < head; i++) keep[i] = true;
+  for (i = 0; i < tail; i++) keep[n - 1 - i] = true;
+
+  var bMid = base.slice(head, n - tail);
+  var oMid = other.slice(head, m - tail);
+  var bn = bMid.length, on = oMid.length;
+
+  if (bn === 0) {
+    for (i = 0; i < on; i++) ins[head].push(oMid[i]);
+    return { ins: ins, keep: keep };
+  }
+  if (on === 0) return { ins: ins, keep: keep };
+
+  // DP が大きくなりすぎるときは「真ん中は共通なし」と見なす。
+  // 真ん中の内容が両方残るだけで、消えることはない（安全な側に倒す）。
+  if (bn * on > 1000000) {
+    for (i = 0; i < on; i++) ins[head].push(oMid[i]);
+    return { ins: ins, keep: keep };
+  }
+
+  var dp = [];
+  for (i = 0; i <= bn; i++) { var r = []; for (j = 0; j <= on; j++) r.push(0); dp.push(r); }
+  for (i = bn - 1; i >= 0; i--) {
+    for (j = on - 1; j >= 0; j--) {
+      if (bMid[i] === oMid[j]) dp[i][j] = dp[i + 1][j + 1] + 1;
+      else dp[i][j] = (dp[i + 1][j] >= dp[i][j + 1]) ? dp[i + 1][j] : dp[i][j + 1];
+    }
+  }
+  i = 0; j = 0;
+  while (i < bn && j < on) {
+    if (bMid[i] === oMid[j]) { keep[head + i] = true; i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { i++; }                     // base の行が消えた
+    else { ins[head + i].push(oMid[j]); j++; }                          // other が行を足した
+  }
+  while (j < on) { ins[head + bn].push(oMid[j]); j++; }
+  return { ins: ins, keep: keep };
+}
+
+function mergePolicyLines(base, mine, server) {
+  base = normNlJs_(base); mine = normNlJs_(mine); server = normNlJs_(server);
+  if (mine === base) return server;      // 自分は何も変えていない → 相手をそのまま採用
+  if (server === base) return mine;      // 相手は何も変えていない → 自分をそのまま採用
+  if (mine === server) return mine;
+
+  var b = polSplitLines_(base), mn = polSplitLines_(mine), sv = polSplitLines_(server);
+  var A = polDiffToBase_(b, mn), B = polDiffToBase_(b, sv);
+  var out = [], k, x, seen, line, key;
+
+  for (k = 0; k <= b.length; k++) {
+    seen = {};
+    for (x = 0; x < A.ins[k].length; x++) {
+      line = A.ins[k][x];
+      // 空行は「段落の区切り」なのでまとめない。まとめると2つの段落がくっつく
+      if (line !== '' && line.replace(/^\s+|\s+$/g, '') !== '') seen['#' + line] = true;
+      out.push(line);
+    }
+    for (x = 0; x < B.ins[k].length; x++) {
+      line = B.ins[k][x];
+      key = '#' + line;
+      // 自分と相手が同じ行を同じ場所に足したら1つにまとめる（同じ行を2回出さない）
+      if (line !== '' && line.replace(/^\s+|\s+$/g, '') !== '' && seen[key]) continue;
+      out.push(line);
+    }
+    // base の行は、両方が残していたときだけ出す（どちらかが消していたら消す）
+    if (k < b.length && A.keep[k] && B.keep[k]) out.push(b[k]);
+  }
+  return out.join('\n');
+}
+
+/* -----------------------------------------------------
+ * 保存の本体
+ * ----------------------------------------------------- */
+function polHM_() {
+  var d = new Date();
+  return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+}
+
+// 受け取った応答が、自分の最後の保存より古いか。
+// まとめ取得は本番で数十秒かかるため、返ってきたときには自分の保存の方が新しいことがある。
+function polRespIsStale(key, svUpdatedAt) {
+  var my = Date.parse(_polSavedAt[key] || '') || 0;
+  if (!my) return false;
+  var sv = Date.parse(svUpdatedAt || '') || 0;
+  return (!sv || sv < my);
+}
+
+function polFlashClear(key) {
+  var el = polMsgEl(key); if (!el) return;
+  clearTimeout(_polMsgTimer[key]);
+  el.textContent = ''; el.style.color = ''; el.style.fontWeight = '';
+}
+// 知らせは欄のそばに小さく出す（画面中央のトーストは使わない）。
+// 失敗の知らせは赤・太字で、消さずに残す（灰色の小さい字では気づけなかった）。
+function polFlash(key, msg, keep) {
+  var el = polMsgEl(key); if (!el) return;
+  var bad = (String(msg).indexOf('⚠') >= 0);
+  el.textContent = msg;
+  el.style.color = bad ? '#b91c1c' : '#6b7280';
+  el.style.fontWeight = bad ? '700' : '';
+  clearTimeout(_polMsgTimer[key]);
+  if (keep) return;
+  _polMsgTimer[key] = setTimeout(function () {
+    el.textContent = ''; el.style.color = ''; el.style.fontWeight = '';
+  }, 3000);
+}
+
+// 「いまサーバーにあるものと、この画面が同じか」を常時出す（2026-09-07 の決まり）。
+// 自分の画面では正常に見えるのに実は届いていない、後日ひらくと古い内容に戻っている、
+// というのが本人の画面から分からないのがいちばん困る。
+function polRenderState(key) {
+  var el = polStateEl(key); if (!el) return;
+  var live = polLiveText(key);
+  if (live == null) { el.textContent = ''; return; }
+  live = normNlJs_(live);
+  var sv = _polServer[key];
+  var t, c, bold = false;
+  if (_polInflight[key] || _polPending[key]) { t = '保存中…'; c = '#6b7280'; }
+  else if (_polUnsaved[key]) { t = '⚠ サーバーに届いていません（この端末にだけあります）'; c = '#b91c1c'; bold = true; }
+  else if (sv == null) { t = ''; c = '#6b7280'; }
+  else if (live === sv) { t = '✓ サーバーと同じ' + (_polOkAt[key] ? '（' + _polOkAt[key] + ' 確認）' : ''); c = '#15803d'; }
+  else { t = '● 未保存の変更があります'; c = '#b45309'; }
+  el.textContent = t; el.style.color = c; el.style.fontWeight = bold ? '700' : '';
+}
+
+// 送るものが無い＝サーバーの内容が自分の画面の分をすでに含んでいる。
+function polAdoptServer(key, server) {
+  if (polIsFocused(key)) return;   // 入力中は画面を書き換えない
+  if (normNlJs_(polLiveText(key)) !== server) {
+    polApplyToScreen(key, server);
+    polStore(key, server, _polSavedAt[key] || '');
+    polFlash(key, '他の端末の書き込みを取り込みました');
+  }
+  _polBase[key] = server;
+  _polOkAt[key] = polHM_();
+  polRenderState(key);
+}
+
+// 指導方針メモをGASに保存する。
+// ・送信は1人につき常に1本。送信中に呼ばれたら保留にして、返ってきてから1回だけ送り直す
+// ・照合に送る base は _polServer。合体の元にするのは _polBase
+function polPush(key, tryLeft) {
+  if (!polGasUrl()) return;
+  tryLeft = (tryLeft == null ? 3 : tryLeft);
+  if (_polInflight[key]) { _polPending[key] = true; polRenderState(key); return; }
+  var raw = polLiveText(key);
+  if (raw == null) return;                      // その欄が画面に無い
+  var live = normNlJs_(raw);
+  var diffBase = (_polBase[key] != null ? _polBase[key] : '');
+  var server = (_polServer[key] != null ? _polServer[key] : diffBase);
+  // サーバーが先に進んでいると分かっているときは、送る前に合体しておく
+  var payload = (server === diffBase) ? live : mergePolicyLines(diffBase, live, server);
+  if (payload === server) { polAdoptServer(key, server); return; }
+
+  _polInflight[key] = true; _polPending[key] = false;
+  polRenderState(key);
+
+  polPostPolicy(key, payload, server)
+    .then(function (d) {
+      _polInflight[key] = false;
+      if (d && d.success) {
+        _polServer[key] = normNlJs_(d.memo);
+        if (d.updatedAt) _polSavedAt[key] = d.updatedAt;
+        var now = normNlJs_(polLiveText(key));
+        if (payload === live) {
+          // 合体は起きていない＝送ったものがそのままサーバーに入った。
+          // 画面はその上に進んでいるだけなので、出発点は必ずここまで進める。
+          // 🚨 ここで進めないと、次の保存で「自分がさっき保存した版」を
+          //    他の端末の書き込みとみなして合体してしまい、打ち直して消したはずの
+          //    古い行が生き返る（A→AB→ABC と打つと ABC\nAB\nA になった。2026-09-19 の検証で発見）。
+          //    task-manager から写したときはこの分岐が無く、同じ穴が空いていた。
+          _polBase[key] = payload; polStore(key, payload, d.updatedAt || '');
+        } else if (!polIsFocused(key) && now === live) {
+          // 合体が起きた。画面が動いていないので、合体の結果を画面に入れてよい
+          polApplyToScreen(key, payload); polFlash(key, '他の端末の書き込みを取り込みました');
+          _polBase[key] = payload; polStore(key, payload, d.updatedAt || '');
+        } else if (now === payload) {
+          _polBase[key] = payload; polStore(key, payload, d.updatedAt || '');
+        }
+        // 合体が起きて、かつ画面が先に進んでいるときは、画面も出発点も触らない。
+        // 画面にはサーバーの分がまだ入っていないので、次の保存でもう一度合体して送る。
+        _polUnsaved[key] = false;
+        _polOkAt[key] = polHM_();
+        polFlashClear(key);
+        polRenderState(key);
+        if (_polPending[key]) {
+          _polPending[key] = false;
+          setTimeout(function () { polPush(key, 3); }, 0);
+        }
+        return;
+      }
+      if (d && d.conflict) {
+        // 他の端末が書き足していた。サーバーの現在値を覚えて、その上に自分の分を載せ直して送る
+        _polServer[key] = normNlJs_(d.memo);
+        if (tryLeft > 1) { setTimeout(function () { polPush(key, tryLeft - 1); }, 300); return; }
+        throw new Error('conflict');
+      }
+      throw new Error((d && d.error) || 'failed');
+    })
+    .catch(function () {
+      _polInflight[key] = false;
+      if (tryLeft > 1) { setTimeout(function () { polPush(key, tryLeft - 1); }, 2500); return; }
+      // 🚨 未送信キューには積まない（base 照合があるので後から流すと必ず conflict になる）。
+      //    この端末にだけある、と画面に出したまま残す。
+      _polUnsaved[key] = true;
+      polRenderState(key);
+      polFlash(key, '⚠ 保存できていません（この端末にだけあります。もう一度［保存］を押してください）', true);
+    });
+}
+
+// いまサーバーに入っている中身を取り直して、この画面と突き合わせる。
+// ずれていたら、機械が勝手にどちらかへ倒さず、人が選べるようにする。
+function polVerify(key) {
+  var el = polStateEl(key);
+  if (el) { el.textContent = '照合中…'; el.style.color = '#6b7280'; el.style.fontWeight = ''; }
+  if (!polGasUrl()) { if (el) el.textContent = 'GASのURLが設定されていません'; return; }
+  polGetPolicy(key)
+    .then(function (d) {
+      if (!d || !d.success) throw new Error((d && d.error) || '取得できません');
+      var sv = normNlJs_(d.memo || '');
+      if (polRespIsStale(key, d.updatedAt)) { polRenderState(key); return; }
+      _polServer[key] = sv;
+      if (d.updatedAt) _polSavedAt[key] = d.updatedAt;
+      var live = normNlJs_(polLiveText(key));
+      if (live === sv) {
+        _polBase[key] = sv; _polUnsaved[key] = false;
+        _polOkAt[key] = polHM_();
+        polRenderState(key);
+        return;
+      }
+      polShowDiffChoice(key, sv, live);
+    })
+    .catch(function (err) {
+      if (el) {
+        el.textContent = '⚠ 照合できませんでした（' + (err && err.message ? err.message : '通信') + '）';
+        el.style.color = '#b91c1c'; el.style.fontWeight = '700';
+      }
+    });
+}
+
+/* POL_SHARED_BLOCK ここまで */
+
+/* -----------------------------------------------------
+ * 指導方針の帯：この画面につなぐところ（Class Board ClassBoard.html 用）
+ * 上の POL_SHARED_BLOCK は 会員管理システム/index.html と同じもの。ここだけが画面ごとに違う。
+ *
+ * 生徒を指す鍵（polKeyOf_）は sid（拡張データの id）。
+ * 🚨 保存には sid と studentName の両方を送る（2026-09-19 の確定ルール）。
+ *    sid にIDが入っていない行がまだあるので、GAS 側は氏名がちょうど1件一致するときだけ氏名で拾う。
+ *    文字列を連結した鍵（sid + '|' + name）は作らない。片方が空の行と入っている行が別人になる。
+ * ----------------------------------------------------- */
+var _polRows      = [];    // いま帯に出している行（画面と印刷はここから作る）
+var _polKeyToIdx  = {};    // 生徒キー → _polRows の添字（要素idは添字で作る＝日本語をidに入れない）
+var _polModalKey  = '';    // モーダルで開いている生徒のキー
+var _polTimer     = {};    // 自動保存の待ち時間
+var _polDiffKey   = '';    // 食い違いの窓で見ている生徒
+var _polDiffSrv   = '';
+var _polDiffMine  = '';
+var POL_BAR_KEY   = 'cb_policy_bar_open';   // 帯の開閉を端末に覚えさせる
+var POL_SAVE_WAIT = 2500;  // 自動保存の待ち時間。0.8秒は短すぎる（task-manager の教訓）
+
+function polKeyOf_(s) { return (s && (s.sid || s.name)) || ''; }
+function polFindStudent_(name) {
+  for (var i = 0; i < (_students || []).length; i++) {
+    if (_students[i] && _students[i].name === name) return _students[i];
+  }
+  return null;
+}
+function polFindByKey_(key) {
+  for (var i = 0; i < (_students || []).length; i++) {
+    if (polKeyOf_(_students[i]) === key) return _students[i];
+  }
+  return null;
+}
+function polKomaNum_(kt) { return parseInt(String(kt || '').replace(':', '').substring(0, 4)) || 0; }
+var POL_GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
+function polGradeRank_(g) { var i = POL_GRADE_ORDER.indexOf(g || ''); return i >= 0 ? i : 99; }
+
+/* -----------------------------------------------------
+ * その日の「方針が入っている子」を集める。
+ * 🚨 誰が来るかを自分で数え直さない。時間割ビューが使っているのと同じ関数を通す。
+ *    通常・テスト対策 → cbNormalRoster_（countOnly=true でチップは作らない＝軽い）
+ *    講習           → cbKoushuObjs_
+ *    ここを別実装にすると、帯に出る顔ぶれと時間割の顔ぶれがずれる。
+ * 並び順：今日のコマの早い順。同じコマの中は学年順（川上さん確定 2026-09-19）。
+ * ----------------------------------------------------- */
+function polRowsForDay_(iso, youbi) {
+  var koushu = isKoushuModeActive() && getActiveKoushuPeriod() && !getActiveTestPeriod_() && isDateInViewPeriod_(iso);
+  var rows = [], seen = {};
+  ['北久里浜', '久里浜'].forEach(function (cr) {
+    var komas = getKomasForClassroom(cr).slice();
+    // 割付・振替でしか出ないコマ枠も拾う（時間割ビューと同じ和集合）
+    (_koushuAssignments || []).forEach(function (a) {
+      if (a.date === iso && a.classroom === cr && komas.indexOf(a.komaTime) === -1) komas.push(a.komaTime);
+    });
+    (_absenceRecords || []).forEach(function (r) {
+      if (r.substituteDate === iso && r.substituteClassroom === cr && r.status === 'scheduled'
+          && komas.indexOf(r.substituteKomaTime) === -1) komas.push(r.substituteKomaTime);
+    });
+    komas.sort(function (a, b) { return polKomaNum_(a) - polKomaNum_(b); });
+
+    komas.forEach(function (kt) {
+      var here = [];
+      if (koushu) {
+        cbKoushuObjs_(cr, kt, iso, youbi).forEach(function (o) {
+          if (o && o.s && o.s.name) here.push({ name: o.s.name, absent: _tkAbsent_(o.s.name, iso, kt, cr) });
+        });
+      } else {
+        cbNormalRoster_(cr, kt, iso, youbi, true).forEach(function (o) {
+          if (o && o.name) here.push({ name: o.name, absent: !!o.absent });
+        });
+      }
+      here.forEach(function (n) {
+        var s = polFindStudent_(n.name);
+        if (!s) return;
+        var memo = normNlJs_(s.policy || '');
+        if (!memo) return;                     // 川上さん確定：方針が入っている子だけ出す
+        var key = polKeyOf_(s);
+        if (!key || seen[key]) return;         // 同じ子が2コマ来るときは早いほうだけ
+        seen[key] = 1;
+        rows.push({
+          key: key, cr: cr, koma: kt, name: s.name, grade: s.grade || '',
+          school: s.school || '', absent: n.absent, memo: memo, sid: s.sid || ''
+        });
+      });
+    });
+  });
+  rows.sort(function (a, b) {
+    if (a.cr !== b.cr) return (a.cr === '北久里浜') ? -1 : 1;
+    var d = polKomaNum_(a.koma) - polKomaNum_(b.koma);
+    if (d !== 0) return d;
+    return polGradeRank_(a.grade) - polGradeRank_(b.grade);
+  });
+  return rows;
+}
+
+/* ----------------------------------------------------- 画面の帯 ----------------------------------------------------- */
+function polBarIsOpen_() {
+  try { return localStorage.getItem(POL_BAR_KEY) === '1'; } catch (e) { return false; }
+}
+function polToggleBar() {
+  var bar = document.getElementById('polBar'); if (!bar) return;
+  var willOpen = bar.classList.contains('pol-closed');
+  bar.classList.toggle('pol-closed', !willOpen);
+  try { localStorage.setItem(POL_BAR_KEY, willOpen ? '1' : '0'); } catch (e) {}
+}
+
+function polRowHtml_(r, i) {
+  var abs = r.absent ? '<span class="pol-abs">欠席</span>' : '';
+  var meta = [r.grade, r.school].filter(Boolean).join('・');
+  return '<div class="pol-row" id="polrow-' + i + '" onclick="polRowOpen(' + i + ')">'
+    + '<div class="pol-koma">' + esc(r.koma) + '</div>'
+    + '<div class="pol-who"><div class="pol-name">' + esc(r.name) + abs + '</div>'
+    +   '<div class="pol-meta">' + esc(meta) + '</div></div>'
+    + '<div class="pol-text" id="poltext-' + i + '">' + esc(r.memo) + '</div>'
+    + '<div class="pol-ta-wrap">'
+    +   '<textarea class="pol-ta" id="polta-' + i + '" onclick="event.stopPropagation()" '
+    +     'oninput="polOnInput(polKeyAt_(' + i + '))">' + esc(r.memo) + '</textarea>'
+    +   '<div class="pol-act" onclick="event.stopPropagation()">'
+    +     '<button class="btn-primary btn-sm" onclick="polPush(polKeyAt_(' + i + '))">保存</button>'
+    +     '<button class="btn-secondary btn-sm" onclick="polRowClose(' + i + ')">やめる</button>'
+    +     '<button class="btn-secondary btn-sm" onclick="polVerify(polKeyAt_(' + i + '))">🔍 サーバーと照合</button>'
+    +     '<span class="pol-state" id="polstate-' + i + '"></span>'
+    +     '<span class="pol-msg" id="polmsg-' + i + '"></span>'
+    +   '</div>'
+    + '</div></div>';
+}
+
+function policyBandHtml(iso, youbi) {
+  _polRows = polRowsForDay_(iso, youbi);
+  _polKeyToIdx = {};
+  _polRows.forEach(function (r, i) {
+    _polKeyToIdx[r.key] = i;
+    // 出発点（base）とサーバーの現在値を、いま読み込んでいる値でそろえる
+    _polBase[r.key] = r.memo;
+    if (_polServer[r.key] == null) _polServer[r.key] = r.memo;
+  });
+  var closed = polBarIsOpen_() ? '' : ' pol-closed';
+  function colHtml(cr, cls) {
+    var list = _polRows.map(function (r, i) { return { r: r, i: i }; })
+                       .filter(function (x) { return x.r.cr === cr; });
+    var inner = list.length
+      ? list.map(function (x) { return polRowHtml_(x.r, x.i); }).join('')
+      : '<div class="pol-col-empty">方針が入っている子は今日は来ません</div>';
+    return '<div class="pol-col ' + cls + '"><div class="pol-col-header">🏫 ' + cr + '</div>' + inner + '</div>';
+  }
+  return '<div class="pol-bar' + closed + '" id="polBar">'
+    + '<div class="pol-bar-header" onclick="polToggleBar()">'
+    +   '<span class="pol-bar-label">📋 今日の指導方針 '
+    +     '<span class="pol-bar-cnt">' + _polRows.length + '人</span></span>'
+    +   '<button class="pol-addbtn" onclick="event.stopPropagation();polOpenAdd()">＋ 方針を書く</button>'
+    +   '<span class="pol-bar-caret">▲</span>'
+    + '</div>'
+    + '<div class="pol-bar-body"><div class="pol-cols">'
+    +   colHtml('北久里浜', 'col-kita') + colHtml('久里浜', 'col-kuri')
+    + '</div></div></div>';
+}
+
+function polKeyAt_(i) { return (_polRows[i] && _polRows[i].key) || ''; }
+function polRowOpen(i) {
+  var el = document.getElementById('polrow-' + i); if (!el) return;
+  if (el.classList.contains('pol-open')) return;   // 開いているときは本文クリックで閉じない
+  el.classList.add('pol-open');
+  polRenderState(polKeyAt_(i));
+  var ta = document.getElementById('polta-' + i);
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+function polRowClose(i) {
+  var key = polKeyAt_(i);
+  // 閉じる前に、書きかけがあれば送る（待ち時間の途中で閉じても消えないように）
+  clearTimeout(_polTimer[key]);
+  if (normNlJs_(polLiveText(key)) !== _polServer[key]) polPush(key);
+  var el = document.getElementById('polrow-' + i);
+  if (el) el.classList.remove('pol-open');
+}
+
+// 入力のたび：状態表示を出し直して、2.5秒後に自動保存する
+function polOnInput(key) {
+  if (!key) return;
+  polRenderState(key);
+  clearTimeout(_polTimer[key]);
+  _polTimer[key] = setTimeout(function () { polPush(key); }, POL_SAVE_WAIT);
+}
+
+/* ----------------------------------------------------- 共通ブロックにつなぐ ----------------------------------------------------- */
+function polGasUrl() { return localStorage.getItem(GAS_STUDENT_URL_KEY) || ''; }
+function polStudentName(key) {
+  var s = polFindByKey_(key); if (s) return s.name || '';
+  var i = _polKeyToIdx[key];
+  return (i != null && _polRows[i]) ? _polRows[i].name : '';
+}
+function polTaEl_(key) {
+  if (key && key === _polModalKey) {
+    var m = document.getElementById('polModalTa');
+    if (m && document.getElementById('modal-policy').classList.contains('open')) return m;
+  }
+  var i = _polKeyToIdx[key];
+  if (i == null) return null;
+  return document.getElementById('polta-' + i);
+}
+function polLiveText(key) { var el = polTaEl_(key); return el ? el.value : null; }
+// カーソル位置は「先頭から何文字目か」で覚えて戻す。末尾に飛ばすと途中を直している最中に位置を見失う。
+function polApplyToScreen(key, text) {
+  var el = polTaEl_(key); if (!el) return;
+  var s = el.selectionStart, e = el.selectionEnd;
+  el.value = text;
+  try { el.setSelectionRange(Math.min(s, text.length), Math.min(e, text.length)); } catch (err) {}
+  var i = _polKeyToIdx[key];
+  if (i != null) { var t = document.getElementById('poltext-' + i); if (t) t.textContent = text; }
+}
+function polIsFocused(key) { var el = polTaEl_(key); return !!(el && document.activeElement === el); }
+function polStateEl(key) {
+  if (key && key === _polModalKey && document.getElementById('modal-policy').classList.contains('open')) {
+    return document.getElementById('polModalState');
+  }
+  var i = _polKeyToIdx[key];
+  return (i == null) ? null : document.getElementById('polstate-' + i);
+}
+function polMsgEl(key) {
+  if (key && key === _polModalKey && document.getElementById('modal-policy').classList.contains('open')) {
+    return document.getElementById('polModalMsg');
+  }
+  var i = _polKeyToIdx[key];
+  return (i == null) ? null : document.getElementById('polmsg-' + i);
+}
+// 保存が通った内容を、この画面が持っているデータにも入れ直す
+function polStore(key, text, updatedAt) {
+  var s = polFindByKey_(key);
+  if (s) { s.policy = text; if (updatedAt) s.policyAt = updatedAt; }
+  var i = _polKeyToIdx[key];
+  if (i != null && _polRows[i]) {
+    _polRows[i].memo = text;
+    var t = document.getElementById('poltext-' + i);
+    if (t) t.textContent = text;
+  }
+}
+function polPostForm_(fd) {
+  var url = polGasUrl();
+  return fetch(url, { method: 'POST', body: fd, redirect: 'follow' })
+    .then(function (r) { return r.text(); })
+    .then(function (t) { return JSON.parse(t); });
+}
+function polPostPolicy(key, memo, base) {
+  var fd = new FormData();
+  fd.append('action', 'updatePolicyMemo');
+  fd.append('sid', (polFindByKey_(key) || {}).sid || '');
+  fd.append('studentName', polStudentName(key));
+  fd.append('memo', memo);
+  fd.append('base', base);
+  return polPostForm_(fd).then(function (d) {
+    // 🚨 GASを貼り替える前にHTMLだけ先に出ても壊れないようにする。
+    //    古いGASは updatePolicyMemo を「不明なアクション」で返す。
+    //    Class Board からは生徒1人まるごとの保存をしないので、その旨を出して止める。
+    if (d && d.success === false && String(d.error || '').indexOf('不明なアクション') >= 0) {
+      return { success: false, error: 'GASがまだ新しくなっていません（会員管理GAS.gs の貼り替えが必要です）' };
+    }
+    return d;
+  });
+}
+function polGetPolicy(key) {
+  var fd = new FormData();
+  fd.append('action', 'getPolicyMemo');
+  fd.append('sid', (polFindByKey_(key) || {}).sid || '');
+  fd.append('studentName', polStudentName(key));
+  return polPostForm_(fd);
+}
+
+/* ----------------------------------------------------- 食い違いの窓 ----------------------------------------------------- */
+// 機械が勝手にどちらかへ倒さない。「この端末を正にする／サーバーを正にする」を人が選ぶ。
+function polShowDiffChoice(key, sv, live) {
+  _polDiffKey = key; _polDiffSrv = sv; _polDiffMine = live;
+  var nm = polStudentName(key);
+  var s = polFindByKey_(key);
+  var meta = s ? [s.grade, s.school].filter(Boolean).join('・') : '';
+  document.getElementById('pol-diff-lead').textContent =
+    nm + (meta ? '（' + meta + '）' : '') + ' の方針が、この画面を開いたあとに、ほかの端末（会員管理システムを含む）で変わりました。'
+    + 'どちらを残すか選んでください。選ぶまでこちらからは書き込みません。';
+  document.getElementById('pol-diff-mine').textContent = live;
+  document.getElementById('pol-diff-server').textContent = sv;
+  document.getElementById('pol-diff-srv-h').textContent =
+    'サーバーの内容' + (_polSavedAt[key] ? '（' + String(_polSavedAt[key]).replace('T', ' ').substring(0, 16) + '・ほかの端末）' : '');
+  openModal('modal-policy-diff');
+  polRenderState(key);
+}
+function polDiffTakeMine() {
+  var key = _polDiffKey; closeModal('modal-policy-diff');
+  if (!key) return;
+  polPush(key);
+}
+function polDiffTakeServer() {
+  var key = _polDiffKey; closeModal('modal-policy-diff');
+  if (!key) return;
+  polApplyToScreen(key, _polDiffSrv);
+  polStore(key, _polDiffSrv, _polSavedAt[key] || '');
+  _polBase[key] = _polDiffSrv; _polServer[key] = _polDiffSrv; _polUnsaved[key] = false;
+  _polOkAt[key] = polHM_();
+  polRenderState(key);
+}
+
+/* ----------------------------------------------------- ＋ 方針を書く（生徒の絞り込み） ----------------------------------------------------- */
+var _polPk = { cr: '', grade: '', today: true, blank: false };
+
+function polOpenAdd() {
+  _polModalKey = '';
+  _polPk = { cr: '', grade: '', today: true, blank: false };
+  document.getElementById('pol-modal-title').textContent = '指導方針を書く　生徒を選んでください';
+  document.getElementById('pol-picker').style.display = '';
+  document.getElementById('pol-editor').style.display = 'none';
+  document.getElementById('polPkQ').value = '';
+  polDrawPicker();
+  openModal('modal-policy');
+}
+function polPkTog(k) { _polPk[k] = !_polPk[k]; polDrawPicker(); }
+function polPkSet(k, v) { _polPk[k] = (_polPk[k] === v ? '' : v); polDrawPicker(); }
+
+function polDrawPicker() {
+  var q = (document.getElementById('polPkQ').value || '').trim();
+  var chips = [];
+  chips.push('<button class="pk-chip' + (_polPk.today ? ' on' : '') + '" onclick="polPkTog(\'today\')">今日来る子だけ</button>');
+  chips.push('<button class="pk-chip' + (_polPk.blank ? ' on' : '') + '" onclick="polPkTog(\'blank\')">方針が空の子だけ</button>');
+  ['北久里浜', '久里浜'].forEach(function (x) {
+    chips.push('<button class="pk-chip' + (_polPk.cr === x ? ' on' : '') + '" onclick="polPkSet(\'cr\',\'' + x + '\')">' + x + '</button>');
+  });
+  ['小', '中1', '中2', '中3', '高'].forEach(function (x) {
+    chips.push('<button class="pk-chip' + (_polPk.grade === x ? ' on' : '') + '" onclick="polPkSet(\'grade\',\'' + x + '\')">' + x + '</button>');
+  });
+  document.getElementById('polPkChips').innerHTML = chips.join('');
+
+  var iso = cbViewIso_();
+  var youbi = YOUBI_MAP[cbViewDate_().getDay()];
+  var todaySet = {};
+  if (_polPk.today) {
+    ['北久里浜', '久里浜'].forEach(function (cr) {
+      getKomasForClassroom(cr).forEach(function (kt) {
+        getStudentsForKoma(cr, youbi, kt).forEach(function (s) { todaySet[s.name] = cr; });
+      });
+    });
+    (_koushuAssignments || []).forEach(function (a) {
+      if (a.date === iso && a.studentName) todaySet[a.studentName] = a.classroom || '';
+    });
+    (_absenceRecords || []).forEach(function (r) {
+      if (r.substituteDate === iso && r.status === 'scheduled' && r.studentName) {
+        todaySet[r.studentName] = r.substituteClassroom || '';
+      }
+    });
+  }
+
+  var list = (_students || []).filter(function (s) {
+    if (!s || !s.name) return false;
+    if (s.status === '退会' || s.status === '休会') return false;
+    if (q && ((s.name || '') + (s.kana || '') + (s.school || '')).indexOf(q) < 0) return false;
+    if (_polPk.cr && (s.classroom || '') !== _polPk.cr) return false;
+    var g = s.grade || '';
+    if (_polPk.grade === '小' && g.indexOf('小') !== 0) return false;
+    if (_polPk.grade === '高' && g.indexOf('高') !== 0) return false;
+    if (_polPk.grade && _polPk.grade !== '小' && _polPk.grade !== '高' && g !== _polPk.grade) return false;
+    if (_polPk.blank && normNlJs_(s.policy || '')) return false;
+    if (_polPk.today && todaySet[s.name] === undefined) return false;
+    return true;
+  }).sort(function (a, b) {
+    var d = polGradeRank_(a.grade) - polGradeRank_(b.grade);
+    if (d !== 0) return d;
+    return String(a.kana || a.name).localeCompare(String(b.kana || b.name), 'ja');
+  });
+
+  document.getElementById('polPkList').innerHTML = list.length
+    ? list.map(function (s) {
+        var has = !!normNlJs_(s.policy || '');
+        var meta = [s.grade, s.school].filter(Boolean).join('・') + (s.classroom ? '／' + s.classroom : '');
+        return '<div class="pk-item" onclick="polPickOne(\'' + esc(polKeyOf_(s)).replace(/'/g, '&#39;') + '\')">'
+          + '<div><div class="nm">' + esc(s.name) + '</div><div class="mt">' + esc(meta) + '</div></div>'
+          + (has ? '<span class="has">方針あり</span>' : '<span class="non">未記入</span>') + '</div>';
+      }).join('')
+    : '<div class="pk-empty">見つかりません。絞り込みを外してください。</div>';
+}
+
+function polPickOne(key) {
+  var s = polFindByKey_(key); if (!s) return;
+  _polModalKey = key;
+  var v = normNlJs_(s.policy || '');
+  _polBase[key] = v;
+  if (_polServer[key] == null) _polServer[key] = v;
+  var meta = [s.grade, s.school].filter(Boolean).join('・');
+  document.getElementById('pol-modal-title').textContent = '指導方針を書く　' + s.name + (meta ? '（' + meta + '）' : '');
+  document.getElementById('polModalTa').value = v;
+  document.getElementById('pol-picker').style.display = 'none';
+  document.getElementById('pol-editor').style.display = '';
+  polFlashClear(key);
+  polRenderState(key);
+  document.getElementById('polModalTa').focus();
+}
+
+/* ----------------------------------------------------- 印刷 ----------------------------------------------------- */
+/* 川上さん確定(2026-09-19)：帯を閉じていても紙には出す。だから画面DOMのクローンではなく
+ * データから作り直す（アラートブロック alertPrintHtml_ と同じ作り）。編集ボタンは紙に出さない。
+ * 1人1行。改行は空白に変えて繋ぎ、紙の幅を超えたところで CSS が「…」にする。 */
+function policyPrintHtml_(onlyCr) {
+  var rows = _polRows.filter(function (r) { return !onlyCr || r.cr === onlyCr; });
+  if (!rows.length) return '';
+  function oneLine(t) { return String(t || '').replace(/\s*\n+\s*/g, ' ').replace(/\s+/g, ' '); }
+  function block(cr) {
+    var rs = rows.filter(function (r) { return r.cr === cr; });
+    if (!rs.length) return '';
+    var head = onlyCr ? '' : '<div class="pp-cr">🏫 ' + esc(cr) + '</div>';
+    return head + rs.map(function (r) {
+      var meta = [r.grade, r.school].filter(Boolean).join('・');
+      return '<div class="pp-r"><div class="pp-koma">' + esc(r.koma) + '</div>'
+        + '<div class="pp-who">' + esc(r.name) + (r.absent ? '（欠席）' : '')
+        + (meta ? ' <small>' + esc(meta) + '</small>' : '') + '</div>'
+        + '<div class="pp-text">' + esc(oneLine(r.memo)) + '</div></div>';
+    }).join('');
+  }
+  return '<div class="pp-box"><div class="pp-t">📋 本日の指導方針（' + rows.length + '人）</div>'
+    + block('北久里浜') + block('久里浜') + '</div>';
 }
 
 </script>
