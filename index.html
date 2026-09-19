@@ -9704,7 +9704,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
     '</span>';
   /* 通常期は対策の回数を数えても必ず0になる（対策の割付が無いので）。自習の日数を出す【2026-09-19】 */
   if (_normalMode) {
-    kseCountHtml = '<span id="kse-count-badge" style="font-size:12px;font-weight:400;margin-left:10px;color:#166534">この先8週で ' + _njCount + '日</span>';
+    kseCountHtml = '<span id="kse-count-badge" style="font-size:12px;font-weight:400;margin-left:10px;color:#166534">この先8週で ' + _njCount + 'コマ</span>';
   }
 
   // 2026-06-10 UI刷新：区分・教室の事前選択バーを廃止。チェック＝所属教室・対策で追加し、下の一覧で行ごとに変更する
@@ -9729,7 +9729,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
       '<div style="font-size:13px;font-weight:700;margin-bottom:6px">📝 選択中のコマ <span id="kse-list-count" style="font-weight:400;color:var(--text-muted)"></span><span style="font-weight:400;font-size:11px;color:var(--text-muted)">　' +
       (_normalMode ? '行ごとに繰り返し・期限・教室を変えられます' : '行ごとに教室・区分を変更できます') + '</span></div>' +
       '<div id="kse-selected-list"></div>' +
-      (_normalMode ? '<div style="font-size:11px;color:var(--text-muted);margin-top:6px">毎週◯曜の行で期限や教室を変えると、これから先の全部の週に効きます。その日だけ来ないときは右の × を押してください。</div>' : '') +
+      (_normalMode ? '<div style="font-size:11px;color:var(--text-muted);margin-top:6px">毎週◯曜は、この先ぶんをまとめて1行にしています。期限や教室を変えると、これから先の全部の週に効きます。1日だけ来ないときは、上のカレンダーでその日の ✓ を押してください。</div>' : '') +
       '</div>'
     : '';
   var bodyHtml = kseNote + gridHtml + kseListWrap +
@@ -9796,7 +9796,7 @@ function kseUpdateWeekCounts_() {
     var wi = el.id.replace('kse-wk-cnt-', '');
     var rows = modal.querySelectorAll('tr[data-wkrow="' + wi + '"]');
     var folded = rows.length && rows[0].style.display === 'none';
-    el.textContent = (folded && per[wi]) ? ('自習 ' + per[wi] + '日') : '';
+    el.textContent = (folded && per[wi]) ? ('自習 ' + per[wi] + 'コマ') : '';
   });
 }
 
@@ -10419,27 +10419,36 @@ function kseRenderList() {
    *  🚨 毎週固定の行は 繰り返し を触らせない。やめるのは「毎週ごとやめる」ボタン1本にする。
    *     同じプルダウンで「毎週を消す」と「その日を単発にする」が両方走ると事故になる。 */
   if (_kseJishuMode) {
+    /* 毎週固定は「この先ぶん」をまとめて1行にする【川上さん確定 2026-09-19】
+     *  1コマ1行のままだと、毎週の自習が多い子で72行になった（目野栞歩・実測）。
+     *  🚨 行の index は kseJishuItems_() の並びで数える。kseSortedOnCells_() の index とは別物。
+     *     テスト対策の一覧（kseRowChange / kseRowRemove）は今までどおりセルの index を使う。混ぜない。 */
     var _selSt = 'font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer';
-    listEl.innerHTML = cells.map(function(c, i) {
+    var _items = kseJishuItems_();
+    if (cntEl) cntEl.textContent = '（' + _items.length + '件）';
+    listEl.innerHTML = _items.map(function(it, i) {
+      var c   = it.cells[0];
       var d3  = new Date(c.dataset.ds + 'T00:00:00');
       var yb3 = YB2[d3.getDay()];
-      var label3 = (d3.getMonth() + 1) + '/' + d3.getDate() + '(' + yb3 + ') ' + c.dataset.kf;
-      var isWeekly = (c.dataset.jkind === 'weekly');
+      var isWeekly = it.weekly;
       var isExist  = !!c.dataset.jkind;
       var rep3 = c.dataset.jrep || (isWeekly ? 'weekly' : 'single');
       var lim3 = ('jlim' in c.dataset) ? c.dataset.jlim
                : (isExist ? (c.dataset.jvt || '') : (rep3 === 'weekly' ? jishuDefaultLimit_() : ''));
       var cr3  = c.dataset.jcrsel || c.dataset.jcr || c.dataset.hcr || homeCr2;
       var saved3 = !!(c.dataset.jid || c.dataset.justsaved);
+      var label3 = isWeekly
+        ? ('毎週' + yb3 + '曜 ' + c.dataset.kf)
+        : ((d3.getMonth() + 1) + '/' + d3.getDate() + '(' + yb3 + ') ' + c.dataset.kf);
       return '<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;flex-wrap:wrap">' +
         '<span style="width:158px;font-weight:600;white-space:nowrap">' + esc(label3) + '</span>' +
-        (isWeekly ? '<span style="font-size:10px;color:#166534;background:#dcfce7;border:1px solid #16a34a;border-radius:999px;padding:1px 7px;white-space:nowrap">毎週' + esc(yb3) + '曜</span>' : '') +
+        (isWeekly ? '<span style="font-size:10px;color:#166534;background:#dcfce7;border:1px solid #16a34a;border-radius:999px;padding:1px 7px;white-space:nowrap">この先' + it.cells.length + '回</span>' : '') +
         (saved3 ? '<span style="font-size:10px;color:#059669;white-space:nowrap">登録済み</span>' : '') +
-        '<select onchange="kseJRow(' + i + ',\'rep\',this.value)"' + (isWeekly ? ' disabled title="毎週の設定を外すときは「毎週ごとやめる」を押してください"' : '') +
-          ' style="' + _selSt + (isWeekly ? ';opacity:.5' : '') + '">' +
-          '<option value="single"' + (rep3 === 'single' ? ' selected' : '') + '>この日だけ</option>' +
-          '<option value="weekly"' + (rep3 === 'weekly' ? ' selected' : '') + '>毎週' + esc(yb3) + '曜</option>' +
-        '</select>' +
+        (isWeekly ? '' :
+          '<select onchange="kseJRow(' + i + ',\'rep\',this.value)" style="' + _selSt + '">' +
+            '<option value="single"' + (rep3 === 'single' ? ' selected' : '') + '>この日だけ</option>' +
+            '<option value="weekly"' + (rep3 === 'weekly' ? ' selected' : '') + '>毎週' + esc(yb3) + '曜</option>' +
+          '</select>') +
         '<span style="font-size:11px;color:var(--text-muted)">期限</span>' +
         '<input type="date" value="' + esc(lim3) + '"' + (rep3 === 'weekly' ? '' : ' disabled') +
           ' onchange="kseJRow(' + i + ',\'lim\',this.value)"' +
@@ -10448,8 +10457,9 @@ function kseRenderList() {
         '<select onchange="kseJRow(' + i + ',\'cr\',this.value)" style="' + _selSt + '">' +
           ['北久里浜','久里浜'].map(function(x) { return '<option value="' + x + '"' + (cr3 === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') +
         '</select>' +
-        (isWeekly ? '<button onclick="kseJStopAsk(' + i + ')" style="font-size:11px;border:1px solid #fca5a5;color:#b91c1c;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;white-space:nowrap">毎週ごとやめる</button>' : '') +
-        '<button onclick="kseRowRemove(' + i + ')" title="' + (isWeekly ? 'この日だけ外す' : 'このコマを外す') + '" style="margin-left:auto;border:none;background:none;color:#dc2626;font-weight:700;font-size:14px;cursor:pointer">&times;</button>' +
+        (isWeekly
+          ? '<button onclick="kseJStopAsk(' + i + ')" style="margin-left:auto;font-size:11px;border:1px solid #fca5a5;color:#b91c1c;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;white-space:nowrap">毎週ごとやめる</button>'
+          : '<button onclick="kseJRemove(' + i + ')" title="このコマを外す" style="margin-left:auto;border:none;background:none;color:#dc2626;font-weight:700;font-size:14px;cursor:pointer">&times;</button>') +
         '</div>';
     }).join('');
     kseUpdateWeekCounts_();
@@ -10508,21 +10518,50 @@ function kseRowChange(idx, field, value) {
   kseRenderList();
 }
 
+/* 通常期の自習：一覧に出す行【川上さん確定 2026-09-19】
+ *  毎週固定は同じ `jid` のセルを1行にまとめる。その他（この日だけ・新しく足した分）は1セル1行。
+ *  並びは最初に来る日の順。kseRenderList と kseJRow / kseJStopAsk / kseJRemove が同じ index を使う。 */
+function kseJishuItems_() {
+  var items = [], seen = {};
+  kseSortedOnCells_().forEach(function(c) {
+    if (c.dataset.jkind === 'weekly' && c.dataset.jid) {
+      var k = c.dataset.jid;
+      if (seen[k]) { seen[k].cells.push(c); return; }
+      seen[k] = { weekly: true, jid: k, cells: [c] };
+      items.push(seen[k]);
+    } else {
+      items.push({ weekly: false, jid: '', cells: [c] });
+    }
+  });
+  return items;
+}
+
 /* 通常期の自習：行ごとの変更【2026-09-19】
- *  セルの dataset に控えるだけ。実際の書き込みは kseSave でまとめて行う。 */
+ *  セルの dataset に控えるだけ。実際の書き込みは kseSave でまとめて行う。
+ *  🚨 毎週の行は同じ `jid` のセル全部に同じ値を入れる。1枚だけに入れると、そのセルが
+ *     たたまれている週にあるときに画面と保存の中身がずれる。
+ *     同じ id の保存が何本も積まれるので、kseSave の最後で id ごとに1本へ間引く。 */
 function kseJRow(idx, field, value) {
-  var c = kseSortedOnCells_()[idx];
-  if (!c) return;
-  if (field === 'rep') {
-    c.dataset.jrep = value;
-    // 毎週に変えた直後に期限が空だと「無期限」になってしまう。既定は年度末を入れておく
-    if (value === 'weekly' && !('jlim' in c.dataset) && !c.dataset.jvt) c.dataset.jlim = jishuDefaultLimit_();
-  } else if (field === 'lim') {
-    c.dataset.jlim = value;
-  } else if (field === 'cr') {
-    c.dataset.jcrsel = value;
-  }
+  var it = kseJishuItems_()[idx];
+  if (!it) return;
+  it.cells.forEach(function(c) {
+    if (field === 'rep') {
+      c.dataset.jrep = value;
+      // 毎週に変えた直後に期限が空だと「無期限」になってしまう。既定は年度末を入れておく
+      if (value === 'weekly' && !('jlim' in c.dataset) && !c.dataset.jvt) c.dataset.jlim = jishuDefaultLimit_();
+    } else if (field === 'lim') {
+      c.dataset.jlim = value;
+    } else if (field === 'cr') {
+      c.dataset.jcrsel = value;
+    }
+  });
   kseRenderList();
+}
+
+/* 一覧の × （この日だけ・新しく足した分だけに出る） */
+function kseJRemove(idx) {
+  var it = kseJishuItems_()[idx];
+  if (it && it.cells[0]) kseToggleCell(it.cells[0]);
 }
 
 /* 毎週固定そのものをやめる【川上さん確定 2026-09-19】
@@ -10530,7 +10569,8 @@ function kseJRow(idx, field, value) {
  *     押し間違いが戻せないので、必ず確認を出してから消す。 */
 var _kseJStopCell = null;
 function kseJStopAsk(idx) {
-  var c = kseSortedOnCells_()[idx];
+  var it = kseJishuItems_()[idx];
+  var c = it && it.weekly ? it.cells[0] : null;
   if (!c || c.dataset.jkind !== 'weekly' || !c.dataset.jid) return;
   _kseJStopCell = c;
   var yb = YOUBI_MAP[new Date(c.dataset.ds + 'T00:00:00').getDay()];
@@ -10590,7 +10630,7 @@ function kseUpdateCountBadgeLocal(studentId, studentName, periodId) {
     if (badgeN) {
       var onN = document.querySelectorAll('#modal-kse .kse-cell-btn.kse-cell-on').length;
       badgeN.style.color = '#166534';
-      badgeN.textContent = 'この先8週で ' + onN + '日';
+      badgeN.textContent = 'この先8週で ' + onN + 'コマ';
     }
     kseUpdateWeekCounts_();
     return;
@@ -10762,6 +10802,19 @@ function kseSave(studentId, studentName, periodId) {
       }
     }
   });
+
+  /* 2026-09-19：毎週の行は同じ `jid` のセル全部に設定を入れているので、同じ id の保存が
+   *  セルの数だけ積まれる。1本に間引く（あとの内容が勝つ）。50件の上限にも効く。 */
+  if (jToSave.length > 1) {
+    var _jseen = {}, _juniq = [];
+    for (var _k = jToSave.length - 1; _k >= 0; _k--) {
+      var _row = jToSave[_k];
+      if (_jseen[_row.id]) continue;
+      _jseen[_row.id] = 1;
+      _juniq.unshift(_row);
+    }
+    jToSave = _juniq;
+  }
 
   // 川上さん報告(2026-08-28)：保存直後はIDがまだ返っていない（justsaved）。
   // その状態で外して保存すると、消すためのIDが無いのでサーバーに残ってしまう。数秒待ってもらう。
