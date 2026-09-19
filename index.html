@@ -9924,6 +9924,30 @@ function jishuAddBtnHtml_(cr, kt, iso, isWeek) {
     : '<button class="jishu-add" title="このコマに自習を追加" onclick="' + esc(call) + '">＋自習</button>';
 }
 
+/* [＋自習] の画面で「この子はもう登録されているか」を見る【川上さん確定 2026-09-19】
+ * 🚨 ここで jishuCellOf_ を使わない。あれは「その日に自習で来るか」を見るので validFrom / validTo に左右される。
+ *    毎週の validFrom は登録した日が入る。今週のもう過ぎた曜日のコマから [＋自習] を開くと
+ *    validFrom より前の日になり、登録ずみの子が「未登録」に見える。そこでもう一度登録すると
+ *    中身が同じ行が2本できる（2026-09-19、目野栞歩 毎週月 20:05〜21:25 久里浜 が2本できた）。
+ *    2本あると、その日だけ外す off の行は片方の id しか指さないので「外したのに消えない」になる。
+ * 期限に関係なく、生徒・教室・コマ時刻・曜日（単発は日付）が同じ行を「同じ登録」とみなす。
+ * 🚨 教室も見る。見ないと、久里浜のコマから開いたときに北久里浜の行を掴んで、教室を書き換えてしまう。 */
+function jishuSameRow_(stu, cr, kt, iso, youbi) {
+  if (!stu) return null;
+  var ktN = normKomaTime_(kt);
+  var hitW = null, hitS = null;
+  (_jishu || []).forEach(function(r) {
+    if (!r || r.kind === 'off') return;
+    if (normKomaTime_(r.komaTime) !== ktN) return;
+    if ((r.classroom || '') !== (cr || '')) return;
+    var same = (r.studentId && stu.id && r.studentId === stu.id) || r.studentName === stu.name;
+    if (!same) return;
+    if (r.kind === 'weekly') { if (youbi && r.youbi === youbi && !hitW) hitW = r; }
+    else if (r.kind === 'single') { if (r.date === iso && !hitS) hitS = r; }
+  });
+  return hitS || hitW;   // その日だけの行を優先（jishuCellOf_ と同じ順）
+}
+
 function jpKey_(s) { return String(s.id || '') + '|' + String(s.name || ''); }
 function jpFindStu_(key) {
   return (_students || []).filter(function(s) { return jpKey_(s) === key; })[0] || null;
@@ -9935,15 +9959,16 @@ function openJishuKomaPicker(cr, kt, iso) {
   _jpS = { cr: cr, kt: kt, iso: iso, youbi: youbi, f: { cr: '', gr: '', sc: '', q: '' }, rows: {}, removed: [] };
 
   // すでに自習が入っている子は、いまの設定のまま右に並べる
+  //  2026-09-19：jishuCellOf_ から jishuSameRow_ に差し替え。開始日より前の日でも登録ずみと分かる
   (_students || []).forEach(function(s) {
     if (s.status === '退会' || s.status === '休会') return;
-    var j = jishuCellOf_(s, iso, kt);
-    if (!j || !j.row) return;
+    var jr = jishuSameRow_(s, cr, kt, iso, youbi);
+    if (!jr) return;
     _jpS.rows[jpKey_(s)] = {
-      kind: (j.row.kind === 'single') ? 'single' : 'weekly',
-      limit: j.row.validTo || '',
-      validFrom: j.row.validFrom || '',
-      saved: true, jid: j.row.id
+      kind: (jr.kind === 'single') ? 'single' : 'weekly',
+      limit: jr.validTo || '',
+      validFrom: jr.validFrom || '',
+      saved: true, jid: jr.id
     };
   });
 
@@ -10153,8 +10178,10 @@ function jpSave() {
     var r = S.rows[key], s = jpFindStu_(key);
     if (!s) return;
     var weekly = (r.kind !== 'single');
+    // 2026-09-19：画面を開いたあとに別の端末で足された分を拾う保険。新しい id を振る前にもう一度探す
+    var exRow = r.jid ? null : jishuSameRow_(s, S.cr, S.kt, S.iso, weekly ? S.youbi : '');
     toSave.push({
-      id: r.jid || ('jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+      id: r.jid || (exRow && exRow.id) || ('jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
       studentId: s.id || '', studentName: s.name || '',
       classroom: S.cr,
       kind: weekly ? 'weekly' : 'single',
