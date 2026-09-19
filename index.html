@@ -1425,6 +1425,9 @@ tr.mx-done-row td { background: #f0fdf4; }
 .pol-bar.pol-closed .pol-bar-caret { transform: rotate(180deg); display: inline-block; }
 .pol-bar-body { padding: 8px 10px 10px; }
 .pol-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* 川上さん確定(2026-09-20)：片方の教室に誰も来ない日は、空の列を出さずに幅いっぱいを使う。
+   色（col-kita / col-kuri）と「🏫 教室名」の見出しはそのままなので、1列でもどちらか分かる。 */
+.pol-cols.pol-cols-1 { grid-template-columns: 1fr; }
 .pol-col { padding: 6px 8px; border-radius: var(--radius); min-width: 0; }
 .pol-col.col-kita { background: var(--kitakurihama-bg); }
 .pol-col.col-kuri { background: var(--kurihama-bg); }
@@ -16621,6 +16624,24 @@ function policyBandHtml(iso, youbi) {
       : '<div class="pol-col-empty">方針が入っている子は今日は来ません</div>';
     return '<div class="pol-col ' + cls + '"><div class="pol-col-header">🏫 ' + cr + '</div>' + inner + '</div>';
   }
+  // 川上さん確定(2026-09-20)：その日に片方の教室へ誰も来ないときは、空の列を出さない。
+  //   いる側が幅いっぱいを使う（方針は長いので、2列だと1人が3〜4行に折り返していた）。
+  //   ★ col-kita / col-kuri は外さないこと。背景の教室色と「🏫 教室名」の見出しが
+  //     「どっちの教室か」を伝えている。1列にするのは幅だけで、色と見出しは触らない。
+  //   両方に人がいる日は今までどおり2列。
+  //   ※ 紙（policyPrintHtml_）はもともと縦1列なので、ここを変えても印刷は何も変わらない。
+  var nKita = 0, nKuri = 0;
+  _polRows.forEach(function (r) { if (r.cr === '北久里浜') nKita++; else nKuri++; });
+  var colsCls = '', colsHtml;
+  if (nKita && !nKuri)      { colsCls = ' pol-cols-1'; colsHtml = colHtml('北久里浜', 'col-kita'); }
+  else if (nKuri && !nKita) { colsCls = ' pol-cols-1'; colsHtml = colHtml('久里浜',   'col-kuri'); }
+  else if (!nKita && !nKuri) {
+    // 今日は誰も来ない（日曜など）。空の列を2つ並べても意味がないので1行で言う
+    colsCls = ' pol-cols-1';
+    colsHtml = '<div class="pol-col-empty">方針が入っている子は今日は来ません</div>';
+  } else {
+    colsHtml = colHtml('北久里浜', 'col-kita') + colHtml('久里浜', 'col-kuri');
+  }
   return '<div class="pol-bar' + closed + '" id="polBar">'
     + '<div class="pol-bar-header" onclick="polToggleBar()">'
     +   '<span class="pol-bar-label">📋 今日の指導方針 '
@@ -16628,8 +16649,8 @@ function policyBandHtml(iso, youbi) {
     +   '<button class="pol-addbtn" onclick="event.stopPropagation();polOpenAdd()">＋ 方針を書く</button>'
     +   '<span class="pol-bar-caret">▲</span>'
     + '</div>'
-    + '<div class="pol-bar-body"><div class="pol-cols">'
-    +   colHtml('北久里浜', 'col-kita') + colHtml('久里浜', 'col-kuri')
+    + '<div class="pol-bar-body"><div class="pol-cols' + colsCls + '">'
+    +   colsHtml
     + '</div></div></div>';
 }
 
