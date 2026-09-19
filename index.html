@@ -9521,7 +9521,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
       return (parseInt(String(a).replace(':', '').substring(0, 4)) || 0) - (parseInt(String(b).replace(':', '').substring(0, 4)) || 0);
     });
     period = { id: '', type: 'normal_jishu', name: '自習の予定',
-               startDate: isoDate(new Date()), endDate: isoDate(addDays(new Date(), 27)),
+               startDate: isoDate(new Date()), endDate: isoDate(addDays(new Date(), 55)),
                komaFrames: _nKt, gradeGoals: {} };
     _loaded = true;   // 期間データの取り直しは要らない
   }
@@ -9589,14 +9589,30 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   var _kseCr = (_kseS && _kseS.classroom) || '';   // 実在コマ枠の判定に使う所属教室（2026-08-28）
 
   // グリッドHTML
+  var _njCount = 0;   // 通常期：この先8週で自習に来る日数（見出しバッジ用 2026-09-19）
   var gridHtml = '<div style="overflow-x:auto;margin-bottom:12px"><table style="border-collapse:collapse;font-size:12px;min-width:100%">';
   weeks.forEach(function(wDays, wi) {
     var mNum = new Date(wDays[0]+'T00:00:00').getMonth()+1;
     var d0   = new Date(wDays[0]+'T00:00:00').getDate();
     var d1   = new Date(wDays[wDays.length-1]+'T00:00:00').getDate();
-    gridHtml += '<tr style="background:var(--bg-sub,#f8fafc)"><td colspan="' + (wDays.length+1) + '" style="padding:3px 6px;font-size:11px;font-weight:600;color:var(--text-muted)">' +
-      mNum + '月 第' + (wi+1) + '週（' + d0 + '〜' + d1 + '日）</td></tr>';
-    gridHtml += '<tr><th style="padding:4px 6px;min-width:108px;font-size:11px;text-align:left;font-weight:500;color:var(--text-muted);border-bottom:1px solid var(--border)">コマ</th>';
+    /* 週の帯【2026-09-19 川上さん確定】
+     *  通常期の自習は8週ぶん出すので、(1)見出しを「10/11 〜 10/16」の日付表記にし、
+     *  (2)5週目以降はたたんでおく。「第5週」は期間の5週目という意味だが、
+     *     10月の第5週と読めてしまう（川上さん指摘 2026-09-19）。
+     *  テスト対策・講習は期間の◯週目で通じるので今までどおり。 */
+    var _wkM1 = new Date(wDays[wDays.length-1]+'T00:00:00').getMonth()+1;
+    var _wkLabel = _normalMode ? (mNum + '/' + d0 + ' 〜 ' + _wkM1 + '/' + d1)
+                               : (mNum + '月 第' + (wi+1) + '週（' + d0 + '〜' + d1 + '日）');
+    /* たたむのは「今までの4週（28日）より先」だけ。週の番号で切ると、期間の頭が土曜1日の週に
+     *  なったときに開いている日数が足りなくなる（2026-09-19 実測：9/19だけの週が1週目になった）。 */
+    var _wkFold = _normalMode && (wDays[0] > isoDate(addDays(new Date(), 27)));
+    gridHtml += '<tr style="background:var(--bg-sub,#f8fafc)"><td colspan="' + (wDays.length+1) + '" style="padding:3px 6px;font-size:11px;font-weight:600;color:var(--text-muted)' + (_normalMode ? ';cursor:pointer;user-select:none' : '') + '"' +
+      (_normalMode ? ' onclick="kseToggleWeek(' + wi + ')"' : '') + '>' +
+      (_normalMode ? '<span id="kse-wk-arrow-' + wi + '">' + (_wkFold ? '&#9654;' : '&#9660;') + '</span> ' : '') +
+      esc(_wkLabel) +
+      (_normalMode ? '<span id="kse-wk-cnt-' + wi + '" style="margin-left:8px;font-weight:400;color:#166534"></span>' : '') +
+      '</td></tr>';
+    gridHtml += '<tr data-wkrow="' + wi + '"' + (_wkFold ? ' style="display:none"' : '') + '><th style="padding:4px 6px;min-width:108px;font-size:11px;text-align:left;font-weight:500;color:var(--text-muted);border-bottom:1px solid var(--border)">コマ</th>';
     wDays.forEach(function(ds) {
       var dobj = new Date(ds+'T00:00:00');
       var yn = youbiNames[dobj.getDay()];
@@ -9610,8 +9626,11 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
     });
     gridHtml += '</tr>';
     komaFrames.forEach(function(kf) {
-      gridHtml += '<tr><td style="padding:4px 6px;font-size:11px;color:var(--text-muted);white-space:nowrap;border-bottom:1px solid var(--border)">' + esc(kf) +
-        ' <button onclick="kseToggleRow(this.dataset.kf)" data-kf="' + esc(kf) + '" title="この時間帯を期間中全日まとめてチェック／解除" style="font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:4px;padding:1px 5px;cursor:pointer;color:#3C3489">⇒全</button></td>';
+      /* 「⇒全」は講習モードだけ【川上さん確定 2026-09-19】
+       *  講習は毎日同じ時間帯にまとめて入れるので要る。テスト対策と通常期の自習は1日ずつ決めるので要らない。 */
+      var _showAll = (period.type !== 'test' && period.type !== 'normal_jishu');
+      gridHtml += '<tr data-wkrow="' + wi + '"' + (_wkFold ? ' style="display:none"' : '') + '><td style="padding:4px 6px;font-size:11px;color:var(--text-muted);white-space:nowrap;border-bottom:1px solid var(--border)">' + esc(kf) +
+        (_showAll ? ' <button onclick="kseToggleRow(this.dataset.kf)" data-kf="' + esc(kf) + '" title="この時間帯を期間中全日まとめてチェック／解除" style="font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:4px;padding:1px 5px;cursor:pointer;color:#3C3489">⇒全</button>' : '') + '</td>';
       wDays.forEach(function(ds) {
         var isOpen = openDays.indexOf(ds) >= 0;
         var key    = ds + '|' + kf;
@@ -9624,6 +9643,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
         var jOn    = !!(jRes && jRes.row && !aid);
         var jOff   = !!(jRes && jRes.off && !aid);
         var isOn   = !!aid || jOn;
+        if (jOn) _njCount++;
         if (!isOpen) {
           gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
             '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
@@ -9647,7 +9667,8 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
                    : '';
           gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
             '<button class="kse-cell-btn' + (isOn ? ' kse-cell-on' : '') + (((aRec2 && aRec2.type === 'jishu') || jOn) ? ' kse-cell-jishu' : '') + (_cf.length && !_noK ? ' kse-cell-lock' : '') + (_noK ? ' kse-cell-nokoma' : '') + (_onl.length ? ' kse-cell-onl' : '') + '"' +
-            (jRes && jRes.row ? ' data-jid="' + esc(jRes.row.id) + '" data-jkind="' + esc(jRes.row.kind || '') + '" data-jcr="' + esc(jRes.row.classroom || '') + '"' : '') +
+            (jRes && jRes.row ? ' data-jid="' + esc(jRes.row.id) + '" data-jkind="' + esc(jRes.row.kind || '') + '" data-jcr="' + esc(jRes.row.classroom || '') + '" data-jvf="' + esc(jRes.row.validFrom || '') + '" data-jvt="' + esc(jRes.row.validTo || '') + '"' : '') +
+            (_normalMode ? ' data-jm="1"' : '') +
             (jRes && jRes.off ? ' data-joff="' + esc(jRes.off.id) + '" data-jbase="' + esc((jRes.base && jRes.base.id) || '') + '" data-jkind="' + esc((jRes.base && jRes.base.kind) || '') + '" data-jcr="' + esc((jRes.base && jRes.base.classroom) || '') + '"' : '') +
             (_cf.length ? ' data-conf="' + esc(tkConflictText_(_cf)) + '"' : '') +
             (_noK ? ' data-nokoma="1"' : '') +
@@ -9681,19 +9702,35 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   var kseCountHtml  = '<span id="kse-count-badge" style="font-size:12px;font-weight:400;margin-left:10px;color:' + kseColor + '">' +
     (kseGoal > 0 ? kseRegistered + '回 / 目標' + kseGoal + '回 / ' + (kseRemain <= 0 ? '達成✓' : '残り' + kseRemain + '回') : kseRegistered + '回登録済') +
     '</span>';
+  /* 通常期は対策の回数を数えても必ず0になる（対策の割付が無いので）。自習の日数を出す【2026-09-19】 */
+  if (_normalMode) {
+    kseCountHtml = '<span id="kse-count-badge" style="font-size:12px;font-weight:400;margin-left:10px;color:#166534">この先8週で ' + _njCount + '日</span>';
+  }
 
   // 2026-06-10 UI刷新：区分・教室の事前選択バーを廃止。チェック＝所属教室・対策で追加し、下の一覧で行ごとに変更する
   var kseNote = '';
+  if (_normalMode) {
+    kseNote = '<div style="font-size:12px;color:#14532d;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:6px 10px;margin-bottom:8px">' +
+      'セルをクリックすると<b>その日だけの自習</b>で追加されます。毎週にする・期限を入れる・別の教室にするときは、下の「選択中のコマ」で行ごとに変えてください。' +
+      '</div>';
+  }
   if (period.type === 'test') {
     var homeCr = (s && s.classroom) || '';
     kseNote = '<div style="font-size:12px;color:#78350f;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:6px 10px;margin-bottom:8px">' +
       'セルをクリックすると<b>所属教室（' + esc(homeCr || '自動') + '）・📝対策</b>で追加されます。教室・自習への変更は下の「選択中のコマ」で行ごとに変えられます。' +
       '</div>';
   }
-  var kseListWrap = period.type === 'test'
+  /* 選択中のコマ【2026-09-19 川上さん確定】
+   *  通常期の自習でもこのリストを出す。カレンダーのセルは「その日だけ」しか作れないので、
+   *  繰り返し・期限・教室はここで変える。テスト対策と同じ作法にそろえる。 */
+  _kseJishuMode = _normalMode;
+  var kseListWrap = (period.type === 'test' || _normalMode)
     ? '<div style="border-top:2px solid var(--border);padding-top:10px;margin-bottom:8px">' +
-      '<div style="font-size:13px;font-weight:700;margin-bottom:6px">📝 選択中のコマ <span id="kse-list-count" style="font-weight:400;color:var(--text-muted)"></span><span style="font-weight:400;font-size:11px;color:var(--text-muted)">　行ごとに教室・区分を変更できます</span></div>' +
-      '<div id="kse-selected-list"></div></div>'
+      '<div style="font-size:13px;font-weight:700;margin-bottom:6px">📝 選択中のコマ <span id="kse-list-count" style="font-weight:400;color:var(--text-muted)"></span><span style="font-weight:400;font-size:11px;color:var(--text-muted)">　' +
+      (_normalMode ? '行ごとに繰り返し・期限・教室を変えられます' : '行ごとに教室・区分を変更できます') + '</span></div>' +
+      '<div id="kse-selected-list"></div>' +
+      (_normalMode ? '<div style="font-size:11px;color:var(--text-muted);margin-top:6px">毎週◯曜の行で期限や教室を変えると、これから先の全部の週に効きます。その日だけ来ないときは右の × を押してください。</div>' : '') +
+      '</div>'
     : '';
   var bodyHtml = kseNote + gridHtml + kseListWrap +
     '<div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;padding-top:4px">' +
@@ -9710,7 +9747,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   modal.onclick = function(e) { if (e.target === modal) closeModal('modal-kse'); };
   modal.innerHTML =
     '<div class="modal" style="max-width:90vw;width:900px">' +
-    '<div class="modal-header"><span>&#128203; ' + esc(studentName) + kseCountHtml + '</span>' +
+    '<div class="modal-header"><span>&#128203; ' + esc(studentName) + kseModeChipHtml_(period) + kseCountHtml + '</span>' +
     '<span class="modal-close" onclick="closeModal(\'modal-kse\')">&#215;</span></div>' +
     '<div class="modal-body" style="overflow-y:auto;max-height:calc(90vh - 80px)">' + bodyHtml + '</div>' +
     '</div>';
@@ -9719,19 +9756,67 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   kseRenderList();
 }
 
+/* どのモードの入力画面かを見出しに出す【川上さん指示 2026-09-19】
+ *  自習＝緑／テスト対策＝黄／講習＝青。セルの✓の色とそろえる。 */
+function kseModeChipHtml_(period) {
+  function md(d) { return d ? (String(d).substring(5, 7).replace(/^0/, '') + '/' + String(d).substring(8, 10).replace(/^0/, '')) : ''; }
+  var range = (period.startDate && period.endDate) ? ('（' + md(period.startDate) + '〜' + md(period.endDate) + '）') : '';
+  var bg, fg, bd, label;
+  if (period.type === 'normal_jishu') { bg = '#dcfce7'; fg = '#166534'; bd = '#16a34a'; label = '自習（通常）' + range; }
+  else if (period.type === 'test')    { bg = '#fef9c3'; fg = '#854d0e'; bd = '#f59e0b'; label = 'テスト対策' + (period.name ? '：' + period.name : '') + range; }
+  else                                { bg = '#dbeafe'; fg = '#1e40af'; bd = '#3b82f6'; label = '講習' + (period.name ? '：' + period.name : '') + range; }
+  return '<span style="font-size:11px;font-weight:600;margin-left:10px;padding:2px 8px;border-radius:999px;background:' + bg + ';color:' + fg + ';border:1px solid ' + bd + '">' + esc(label) + '</span>';
+}
+
+/* 週の折りたたみ【川上さん確定 2026-09-19】通常期は8週ぶん出すので5週目以降を閉じておく。
+ *  閉じている週に自習があるときは帯に日数を出す。閉じたまま見落とさないため。 */
+function kseToggleWeek(wi) {
+  var modal = document.getElementById('modal-kse');
+  if (!modal) return;
+  var rows = Array.prototype.slice.call(modal.querySelectorAll('tr[data-wkrow="' + wi + '"]'));
+  if (!rows.length) return;
+  var hidden = (rows[0].style.display === 'none');
+  rows.forEach(function(r) { r.style.display = hidden ? '' : 'none'; });
+  var ar = document.getElementById('kse-wk-arrow-' + wi);
+  if (ar) ar.innerHTML = hidden ? '&#9660;' : '&#9654;';
+  kseUpdateWeekCounts_();
+}
+function kseUpdateWeekCounts_() {
+  var modal = document.getElementById('modal-kse');
+  if (!modal) return;
+  var per = {};
+  Array.prototype.slice.call(modal.querySelectorAll('.kse-cell-btn.kse-cell-on')).forEach(function(c) {
+    var tr = c.closest ? c.closest('tr') : null;
+    if (!tr) return;
+    var wi = tr.getAttribute('data-wkrow');
+    if (wi === null) return;
+    per[wi] = (per[wi] || 0) + 1;
+  });
+  Array.prototype.slice.call(modal.querySelectorAll('[id^="kse-wk-cnt-"]')).forEach(function(el) {
+    var wi = el.id.replace('kse-wk-cnt-', '');
+    var rows = modal.querySelectorAll('tr[data-wkrow="' + wi + '"]');
+    var folded = rows.length && rows[0].style.display === 'none';
+    el.textContent = (folded && per[wi]) ? ('自習 ' + per[wi] + '日') : '';
+  });
+}
+
 // セルトグル（個別編集モーダル）- data属性からIDを取得
 /* 対面授業と重なるコマを押したとき（川上さん確定 2026-08-25）
  * ふだんは入れないが、元データを直すのが間に合わないときのために「それでも登録する」を残す。 */
 function kseForceAsk(btn) {
   var ds = btn.dataset.ds || '', kf = btn.dataset.kf || '', nm = btn.dataset.sname || '';
   var yb = ds ? YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()] : '';
+  // 2026-09-19：通常期の自習カレンダーから開いたときは「対策」ではなく「自習」と出す
+  var _jm = (btn.dataset.jm === '1');
   var body =
     '<p style="font-size:13px;margin:0 0 8px"><b>' + esc(nm) + '</b>さん　' + esc(ds) + '（' + esc(yb) + '） ' + esc(kf) + '</p>' +
     '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12px">すでに ' + esc(btn.dataset.conf || '') + ' があります。</div>' +
-    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">テスト対策は追加コマなので、ふだんはここに入れません。元データを直すのが間に合わないときだけ、承知のうえで登録できます。</p>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">' + (_jm
+      ? '自習も席を使うので、対面授業と重なる時間にはふだん入れません。元データを直すのが間に合わないときだけ、承知のうえで登録できます。'
+      : 'テスト対策は追加コマなので、ふだんはここに入れません。元データを直すのが間に合わないときだけ、承知のうえで登録できます。') + '</p>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
       '<button class="btn-secondary" onclick="closeModal(\'modal-kseforce\')">やめる</button>' +
-      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="kseForceDo()">&#9888; それでも対策として登録する</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="kseForceDo()">&#9888; それでも' + (_jm ? '自習' : '対策') + 'として登録する</button>' +
     '</div>';
   _kseForceBtn = btn;
   var ex = document.getElementById('modal-kseforce');
@@ -9749,6 +9834,7 @@ function kseForceAsk(btn) {
   openModal('modal-kseforce');
 }
 var _kseForceBtn = null;
+var _kseJishuMode = false;   // 1名カレンダーを通常期の自習として開いているか（2026-09-19）
 var _kseSeatForced = false;   // 定員の確認で「このまま保存」を選んだ直後だけ true（2026-08-26）
 function kseForceDo() {
   var btn = _kseForceBtn;
@@ -9768,15 +9854,17 @@ function kseForceDo() {
 function kseNoKomaAsk(btn) {
   var ds = btn.dataset.ds || '', kf = btn.dataset.kf || '', nm = btn.dataset.sname || '', cr = btn.dataset.hcr || '';
   var yb = ds ? YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()] : '';
+  // 2026-09-19：通常期の自習カレンダーから開いたときは「対策」ではなく「自習」と出す
+  var _jm = (btn.dataset.jm === '1');
   var body =
     '<p style="font-size:13px;margin:0 0 8px"><b>' + esc(nm) + '</b>さん　' + esc(ds) + '（' + esc(yb) + '） ' + esc(kf) + '</p>' +
     '<div style="border:1px solid #e5e7eb;background:#f8fafc;border-radius:6px;padding:8px 10px;font-size:12px">' +
       esc(cr || '所属教室') + 'の' + esc(yb) + '曜に、この時間のコマはありません。</div>' +
     (btn.dataset.conf ? '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12px;margin-top:6px">なお、この時間には ' + esc(btn.dataset.conf) + ' があります。</div>' : '') +
-    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">ふだんはここに対策を入れません。臨時で教室を開けるときだけ、承知のうえで登録できます。</p>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">ふだんはここに' + (_jm ? '自習' : '対策') + 'を入れません。臨時で教室を開けるときだけ、承知のうえで登録できます。</p>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
       '<button class="btn-secondary" onclick="closeModal(\'modal-kseforce\')">やめる</button>' +
-      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="kseNoKomaDo()">&#9888; それでも対策として登録する</button>' +
+      '<button class="btn-sm" style="border:1px solid #f59e0b;color:#92400e;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="kseNoKomaDo()">&#9888; それでも' + (_jm ? '自習' : '対策') + 'として登録する</button>' +
     '</div>';
   _kseForceBtn = btn;
   var ex = document.getElementById('modal-kseforce');
@@ -10187,6 +10275,9 @@ function kseToggleCell(btn) {
     delete btn.dataset.modtype;
     delete btn.dataset.modcr;
     delete btn.dataset.jnew;
+    delete btn.dataset.jrep;    // 2026-09-19：行で決めた繰り返し・期限・教室も一緒に捨てる
+    delete btn.dataset.jlim;
+    delete btn.dataset.jcrsel;
   } else {
     // オンライン表示のセルは、チェック中は「オン」の色を外して✓を出す（2026-08-28）
     if (btn.classList.contains('kse-cell-onl')) { btn.dataset.onl = '1'; btn.classList.remove('kse-cell-onl'); }
@@ -10295,6 +10386,48 @@ function kseRenderList() {
   var YB2 = ['日','月','火','水','木','金','土'];
   var sRec = _students.find(function(st){ return st.id === (cells[0].dataset.sid || '') || st.name === (cells[0].dataset.sname || ''); });
   var homeCr2 = (sRec && sRec.classroom) || '';
+  /* 通常期の自習【川上さん確定 2026-09-19】
+   *  カレンダーのセルは「その日だけ」しか作れない。繰り返し・期限・教室はここで変える。
+   *  🚨 区分（対策／自習）のプルダウンは出さない。ここは自習だけの画面。
+   *  🚨 毎週固定の行は 繰り返し を触らせない。やめるのは「毎週ごとやめる」ボタン1本にする。
+   *     同じプルダウンで「毎週を消す」と「その日を単発にする」が両方走ると事故になる。 */
+  if (_kseJishuMode) {
+    var _selSt = 'font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:6px;cursor:pointer';
+    listEl.innerHTML = cells.map(function(c, i) {
+      var d3  = new Date(c.dataset.ds + 'T00:00:00');
+      var yb3 = YB2[d3.getDay()];
+      var label3 = (d3.getMonth() + 1) + '/' + d3.getDate() + '(' + yb3 + ') ' + c.dataset.kf;
+      var isWeekly = (c.dataset.jkind === 'weekly');
+      var isExist  = !!c.dataset.jkind;
+      var rep3 = c.dataset.jrep || (isWeekly ? 'weekly' : 'single');
+      var lim3 = ('jlim' in c.dataset) ? c.dataset.jlim
+               : (isExist ? (c.dataset.jvt || '') : (rep3 === 'weekly' ? jishuDefaultLimit_() : ''));
+      var cr3  = c.dataset.jcrsel || c.dataset.jcr || c.dataset.hcr || homeCr2;
+      var saved3 = !!(c.dataset.jid || c.dataset.justsaved);
+      return '<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;flex-wrap:wrap">' +
+        '<span style="width:158px;font-weight:600;white-space:nowrap">' + esc(label3) + '</span>' +
+        (isWeekly ? '<span style="font-size:10px;color:#166534;background:#dcfce7;border:1px solid #16a34a;border-radius:999px;padding:1px 7px;white-space:nowrap">毎週' + esc(yb3) + '曜</span>' : '') +
+        (saved3 ? '<span style="font-size:10px;color:#059669;white-space:nowrap">登録済み</span>' : '') +
+        '<select onchange="kseJRow(' + i + ',\'rep\',this.value)"' + (isWeekly ? ' disabled title="毎週の設定を外すときは「毎週ごとやめる」を押してください"' : '') +
+          ' style="' + _selSt + (isWeekly ? ';opacity:.5' : '') + '">' +
+          '<option value="single"' + (rep3 === 'single' ? ' selected' : '') + '>この日だけ</option>' +
+          '<option value="weekly"' + (rep3 === 'weekly' ? ' selected' : '') + '>毎週' + esc(yb3) + '曜</option>' +
+        '</select>' +
+        '<span style="font-size:11px;color:var(--text-muted)">期限</span>' +
+        '<input type="date" value="' + esc(lim3) + '"' + (rep3 === 'weekly' ? '' : ' disabled') +
+          ' onchange="kseJRow(' + i + ',\'lim\',this.value)"' +
+          ' style="font-size:12px;padding:2px 4px;border:1px solid var(--border);border-radius:6px' + (rep3 === 'weekly' ? '' : ';opacity:.32') + '">' +
+        (rep3 === 'weekly' && !lim3 ? '<span style="font-size:10px;color:var(--text-muted);white-space:nowrap">なし＝無期限</span>' : '') +
+        '<select onchange="kseJRow(' + i + ',\'cr\',this.value)" style="' + _selSt + '">' +
+          ['北久里浜','久里浜'].map(function(x) { return '<option value="' + x + '"' + (cr3 === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') +
+        '</select>' +
+        (isWeekly ? '<button onclick="kseJStopAsk(' + i + ')" style="font-size:11px;border:1px solid #fca5a5;color:#b91c1c;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;white-space:nowrap">毎週ごとやめる</button>' : '') +
+        '<button onclick="kseRowRemove(' + i + ')" title="' + (isWeekly ? 'この日だけ外す' : 'このコマを外す') + '" style="margin-left:auto;border:none;background:none;color:#dc2626;font-weight:700;font-size:14px;cursor:pointer">&times;</button>' +
+        '</div>';
+    }).join('');
+    kseUpdateWeekCounts_();
+    return;
+  }
   listEl.innerHTML = cells.map(function(c, i) {
     var d2 = new Date(c.dataset.ds + 'T00:00:00');
     var dateLabel = (d2.getMonth() + 1) + '/' + d2.getDate() + '(' + YB2[d2.getDay()] + ') ' + c.dataset.kf;
@@ -10348,6 +10481,73 @@ function kseRowChange(idx, field, value) {
   kseRenderList();
 }
 
+/* 通常期の自習：行ごとの変更【2026-09-19】
+ *  セルの dataset に控えるだけ。実際の書き込みは kseSave でまとめて行う。 */
+function kseJRow(idx, field, value) {
+  var c = kseSortedOnCells_()[idx];
+  if (!c) return;
+  if (field === 'rep') {
+    c.dataset.jrep = value;
+    // 毎週に変えた直後に期限が空だと「無期限」になってしまう。既定は年度末を入れておく
+    if (value === 'weekly' && !('jlim' in c.dataset) && !c.dataset.jvt) c.dataset.jlim = jishuDefaultLimit_();
+  } else if (field === 'lim') {
+    c.dataset.jlim = value;
+  } else if (field === 'cr') {
+    c.dataset.jcrsel = value;
+  }
+  kseRenderList();
+}
+
+/* 毎週固定そのものをやめる【川上さん確定 2026-09-19】
+ *  🚨 これは「その日だけ外す」(×) とは別。先の週も全部出なくなる。
+ *     押し間違いが戻せないので、必ず確認を出してから消す。 */
+var _kseJStopCell = null;
+function kseJStopAsk(idx) {
+  var c = kseSortedOnCells_()[idx];
+  if (!c || c.dataset.jkind !== 'weekly' || !c.dataset.jid) return;
+  _kseJStopCell = c;
+  var yb = YOUBI_MAP[new Date(c.dataset.ds + 'T00:00:00').getDay()];
+  var ex = document.getElementById('modal-ksejstop');
+  if (ex) ex.remove();
+  var m = document.createElement('div');
+  m.id = 'modal-ksejstop';
+  m.className = 'modal-overlay';
+  m.onclick = function(e) { if (e.target === m) closeModal('modal-ksejstop'); };
+  m.innerHTML =
+    '<div class="modal" style="max-width:520px;width:92vw">' +
+    '<div class="modal-header"><span>&#9888; 毎週の自習をやめますか</span>' +
+      '<span class="modal-close" onclick="closeModal(\'modal-ksejstop\')">&times;</span></div>' +
+    '<div class="modal-body">' +
+      '<p style="font-size:13px;margin:0 0 8px"><b>' + esc(c.dataset.sname || '') + '</b>さん　毎週' + esc(yb) + '曜 ' + esc(c.dataset.kf || '') + '　' + esc(c.dataset.jcr || '') + '</p>' +
+      '<div style="border:1px solid #fecaca;background:#fff5f5;border-radius:6px;padding:8px 10px;font-size:12.5px">' +
+        'これから先の<b>全部の週</b>で、この自習が出なくなります。<br>1日だけ来ないだけなら、この画面を閉じて行の右の × を押してください。</div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
+        '<button class="btn-secondary" onclick="closeModal(\'modal-ksejstop\')">やめる</button>' +
+        '<button class="btn-sm" style="border:1px solid #dc2626;color:#b91c1c;background:#fff;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer" onclick="kseJStopDo()">毎週ごとやめる</button>' +
+      '</div></div></div>';
+  document.body.appendChild(m);
+  openModal('modal-ksejstop');
+}
+function kseJStopDo() {
+  closeModal('modal-ksejstop');
+  var c = _kseJStopCell;
+  _kseJStopCell = null;
+  if (!c || !c.dataset.jid) return;
+  var modal = document.getElementById('modal-kse');
+  if (!modal) return;
+  var jid = c.dataset.jid;
+  // 同じ毎週の行から出ているセルは全部落とす。画面とこれから保存する中身をそろえる
+  Array.prototype.slice.call(modal.querySelectorAll('.kse-cell-btn[data-jid="' + jid + '"]')).forEach(function(x) {
+    x.dataset.jstop = '1';
+    x.classList.remove('kse-cell-on');
+    x.classList.remove('kse-cell-jishu');
+    x.innerHTML = '';
+    delete x.dataset.jact;
+  });
+  kseUpdateCountBadgeLocal(c.dataset.sid || '', c.dataset.sname || '', c.dataset.pid || '');
+  kseRenderList();
+}
+
 function kseRowRemove(idx) {
   var c = kseSortedOnCells_()[idx];
   if (c) kseToggleCell(c);
@@ -10356,7 +10556,18 @@ function kseRowRemove(idx) {
 function kseUpdateCountBadgeLocal(studentId, studentName, periodId) {
   // モーダル内の現在のチェック状態をカウント
   var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
-  if (!period) return;   // 通常期（periodId が空）は回数バッジを出さない
+  if (!period) {
+    // 通常期の自習【2026-09-19】対策の回数ではなく、この先8週で来る日数を出す
+    if (!_kseJishuMode) return;
+    var badgeN = document.getElementById('kse-count-badge');
+    if (badgeN) {
+      var onN = document.querySelectorAll('#modal-kse .kse-cell-btn.kse-cell-on').length;
+      badgeN.style.color = '#166534';
+      badgeN.textContent = 'この先8週で ' + onN + '日';
+    }
+    kseUpdateWeekCounts_();
+    return;
+  }
   var checkedCells = document.querySelectorAll('#modal-kse .kse-cell-btn.kse-cell-on');
   var kseRegistered = 0;
   var isTestK = period.type === 'test';
@@ -10402,12 +10613,22 @@ function kseSave(studentId, studentName, periodId) {
      *  対策の toAdd に入れない。通常期に講習生徒割付へ書くと、期間に紐づかない行ができる。 */
     if (btn.dataset.jnew === '1' && isOn && !aid) {
       var _njs = _students.find(function(st){ return st.id === studentId || st.name === studentName; }) || {};
+      /* 2026-09-19：下の「選択中のコマ」で決めた 繰り返し・期限・教室 を反映する。
+       *  既定は「この日だけ・所属教室」。毎週にしたときだけ youbi と期限を持たせ、date は空にする。 */
+      var _jrep = btn.dataset.jrep || 'single';
+      var _jyb  = YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()];
+      var _jlim = ('jlim' in btn.dataset) ? btn.dataset.jlim : (_jrep === 'weekly' ? jishuDefaultLimit_() : '');
       jToSave.push({
         id: 'jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         studentId: studentId, studentName: studentName,
-        classroom: btn.dataset.hcr || _njs.classroom || '',
-        kind: 'single', youbi: '', date: ds, komaTime: normKomaTime_(kf),
-        validFrom: '', validTo: '', targetId: '', memo: ''
+        classroom: btn.dataset.jcrsel || btn.dataset.hcr || _njs.classroom || '',
+        kind: _jrep,
+        youbi: (_jrep === 'weekly' ? _jyb : ''),
+        date:  (_jrep === 'weekly' ? '' : ds),
+        komaTime: normKomaTime_(kf),
+        validFrom: (_jrep === 'weekly' ? isoDate(new Date()) : ''),
+        validTo:   (_jrep === 'weekly' ? _jlim : ''),
+        targetId: '', memo: ''
       });
       return;
     }
@@ -10416,6 +10637,12 @@ function kseSave(studentId, studentName, periodId) {
      *    入れると、自習で来る日が「対策の新規追加」として講習生徒割付に書かれる。 */
     if (btn.dataset.jkind && !aid) {
       var jact = btn.dataset.jact || '';
+      /* 毎週ごとやめる【川上さん確定 2026-09-19】weekly の行そのものを消す。
+       *  🚨 jact（その日だけ外す）より先に見る。両方立つことはないが、先に見ないと off の行だけ増える。 */
+      if (btn.dataset.jstop === '1') {
+        if (btn.dataset.jid && jToDel.indexOf(btn.dataset.jid) < 0) jToDel.push(btn.dataset.jid);
+        return;
+      }
       /* 自習 → 対策【§9-2】
        *  毎週固定がある日：対策の行を足すだけ。自習割付は触らない（上書きで対策が勝つ）
        *  その日だけの自習：対策を足してから、自習の行を消す（順番は §9-4） */
@@ -10442,6 +10669,32 @@ function kseSave(studentId, studentName, periodId) {
         if (btn.dataset.jid) jToDel.push(btn.dataset.jid);    // その日だけの自習＝行ごと消す
       } else if (jact === 'rmoff') {
         if (btn.dataset.joff) jToDel.push(btn.dataset.joff);  // 外してあったものを自習に戻す
+      }
+      /* 行の設定変更（繰り返し・期限・教室）【2026-09-19】
+       *  同じ id で上書きする（GAS の saveJishuAssignments は id での upsert）。
+       *  🚨 毎週の行を直すと、これから先の全部の週に効く。画面にもその旨を出してある。 */
+      if (isOn && !jact && btn.dataset.jid) {
+        var _orep = btn.dataset.jkind || 'single';
+        var _nrep = btn.dataset.jrep || _orep;
+        var _olim = btn.dataset.jvt || '';
+        var _nlim = ('jlim' in btn.dataset) ? btn.dataset.jlim : _olim;
+        var _ocr  = btn.dataset.jcr || '';
+        var _ncr  = btn.dataset.jcrsel || _ocr;
+        if (_nrep !== _orep || _nlim !== _olim || _ncr !== _ocr) {
+          var _nyb = YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()];
+          jToSave.push({
+            id: btn.dataset.jid,
+            studentId: studentId, studentName: studentName,
+            classroom: _ncr,
+            kind: _nrep,
+            youbi: (_nrep === 'weekly' ? _nyb : ''),
+            date:  (_nrep === 'weekly' ? '' : ds),
+            komaTime: normKomaTime_(kf),
+            validFrom: (_nrep === 'weekly' ? (btn.dataset.jvf || '') : ''),   // 元が空＝開始日の縛り無し。勝手に今日を入れない
+            validTo:   (_nrep === 'weekly' ? _nlim : ''),
+            targetId: '', memo: ''
+          });
+        }
       }
       return;
     }
@@ -10578,7 +10831,13 @@ function kseSave(studentId, studentName, periodId) {
     if (!jToSave.length) { doJishuDel(); return; }
     callGas(url, { action: 'saveJishuAssignments', rows: jToSave }, function(res) {
       if (res && res.success) {
-        jToSave.forEach(function(r) { _jishu.push(r); });
+        /* 2026-09-19：id での上書き保存を入れたので、push だけだと手元に同じ id が2件並ぶ。
+         *  あるものは差し替える。 */
+        jToSave.forEach(function(r) {
+          var _ix = -1;
+          for (var _i = 0; _i < _jishu.length; _i++) { if (_jishu[_i].id === r.id) { _ix = _i; break; } }
+          if (_ix >= 0) _jishu[_ix] = r; else _jishu.push(r);
+        });
         doJishuDel();
       } else {
         errors.push('自習の保存に失敗: ' + (res && res.error ? res.error : '不明'));
@@ -11017,8 +11276,10 @@ function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
     });
     html += '</tr>';
     komaFrames.forEach(function(kf) {
+      // 「⇒全」は講習モードだけ【川上さん確定 2026-09-19】
+      var _bShowAll = (period.type !== 'test');
       html += '<tr><td style="padding:4px 6px;font-size:11px;color:var(--text-muted);white-space:nowrap;border-bottom:1px solid var(--border)">' + esc(kf) +
-        ' <button onclick="bulkToggleRow(this.dataset.kf)" data-kf="' + esc(kf) + '" title="この時間帯を期間中全日まとめてチェック／解除" style="font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:4px;padding:1px 5px;cursor:pointer;color:#3C3489">⇒全</button></td>';
+        (_bShowAll ? ' <button onclick="bulkToggleRow(this.dataset.kf)" data-kf="' + esc(kf) + '" title="この時間帯を期間中全日まとめてチェック／解除" style="font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:4px;padding:1px 5px;cursor:pointer;color:#3C3489">⇒全</button>' : '') + '</td>';
       wDays.forEach(function(ds) {
         var isOpen = openDays.indexOf(ds) >= 0;
         if (!isOpen) {
