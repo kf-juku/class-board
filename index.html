@@ -16728,18 +16728,32 @@ function polPostPolicy(key, memo, base) {
     // 🚨 GASを貼り替える前にHTMLだけ先に出ても壊れないようにする。
     //    古いGASは updatePolicyMemo を「不明なアクション」で返す。
     //    Class Board からは生徒1人まるごとの保存をしないので、その旨を出して止める。
-    if (d && d.success === false && String(d.error || '').indexOf('不明なアクション') >= 0) {
+    //
+    // 🚨 判定は **action名まで一致したときだけ**（2026-09-20 本番で発覚）。
+    //    中継GASごしの応答は、ときどき doGet に落ちて
+    //    {success:false, error:'不明なアクション: undefined'} が返ってくる（中継の持病）。
+    //    前方一致で見ると、通信が揺れただけなのに「GASが古い」と言って保存をあきらめる。
+    //    action名が入っていない応答は、ただの失敗として扱って送り直す（polPush が再送する）。
+    if (d && d.success === false && String(d.error || '').indexOf('不明なアクション: updatePolicyMemo') >= 0) {
       return { success: false, error: 'GASがまだ新しくなっていません（会員管理GAS.gs の貼り替えが必要です）' };
     }
     return d;
   });
 }
-function polGetPolicy(key) {
+function polGetPolicy(key, retried) {
   var fd = new FormData();
   fd.append('action', 'getPolicyMemo');
   fd.append('sid', (polFindByKey_(key) || {}).sid || '');
   fd.append('studentName', polStudentName(key));
-  return polPostForm_(fd);
+  return polPostForm_(fd).then(function (d) {
+    // 中継が揺れて doGet に落ちた応答（不明なアクション: undefined）は1回だけ送り直す
+    if (!retried && d && d.success === false
+        && String(d.error || '').indexOf('不明なアクション') >= 0
+        && String(d.error || '').indexOf('getPolicyMemo') < 0) {
+      return polGetPolicy(key, true);
+    }
+    return d;
+  });
 }
 
 /* ----------------------------------------------------- 食い違いの窓 ----------------------------------------------------- */
