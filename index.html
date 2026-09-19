@@ -787,6 +787,27 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   .student-chip .s-sub { font-size: 8px !important; }
   .badge { font-size: 7px !important; padding: 0 3px !important; }
 
+  /* 川上さん確定(2026-09-19)：モノクロ印刷で「欠席」「振替確定」が判別できない問題の対処＝案A。
+     薄い背景色（#FDECEE / #dbeafe）のバッジはグレースケールで白に飛び、小さい灰色の文字しか残らない。
+     印刷のときだけ 欠席＝黒ベタ白抜き＋名前に打ち消し線／振替系＝白地に太い黒枠 にする。
+     ★画面（カラー表示）は変えない。ここは @media print の中だけ。
+     ★.badge-red 全体に当てないこと。タスク件数バッジ(4717行付近)も .badge-red を使っている。 */
+  .student-chip .cb-b-abs, .koushu-chip .chip-abs {
+    background: #111 !important; color: #fff !important; border: none !important;
+    border-radius: 3px !important; padding: 1px 5px !important; font-weight: 700 !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .student-chip .cb-b-subfix, .student-chip .cb-b-subdone, .student-chip .cb-sub-jump {
+    background: #fff !important; color: #000 !important; border: 1.5px solid #000 !important;
+    border-radius: 3px !important; padding: 0 4px !important; font-weight: 700 !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .student-chip-absent { background: #fff !important; border-color: var(--border) !important; }
+  .student-chip-absent .s-name {
+    color: var(--text) !important;
+    text-decoration: line-through !important; text-decoration-thickness: 1.5px;
+  }
+
   /* カード・シャドウなし */
   .card, .classroom-block { box-shadow: none !important; }
 
@@ -875,7 +896,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kp-b-taisaku { background: #fef3c7; color: #92400e; }
 .kp-b-jishu { background: #dcfce7; color: #166534; }
 .kp-b-koushu { background: #ede9fe; color: #5b21b6; }
-.kp-b-furikae { background: #dbeafe; color: #1d4ed8; }
+.kp-b-furikae { background: #fff; color: #000; border: 1.5px solid #000; } /* 2026-09-19 案A：モノクロで判別できるよう白地＋黒枠 */
 .kp-b-2koma { background: #fef3c7; color: #b45309; }
 .kp-b-cross { background: #dc2626; color: #fff; }
 .kp-b-ca { background: #e0f2fe; color: #0369a1; }
@@ -883,9 +904,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kp-b-enshuu { background: #d1fae5; color: #047857; }
 .kp-g-elem { color: #be185d !important; font-weight: 700; }
 .kp-g-high { color: #6d28d9 !important; font-weight: 700; }
-.kp-b-kesseki { background: #dc2626; color: #fff; }
+.kp-b-kesseki { background: #111; color: #fff; } /* 2026-09-19 案A：黒ベタ白抜き */
 .kp-stu-abs { background: #e5e7eb; border-radius: 4px; padding: 0 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.kp-abs-name { text-decoration: line-through; text-decoration-thickness: 1.5px; color: #6b7280; }
+.kp-abs-name { text-decoration: line-through; text-decoration-thickness: 1.5px; color: #111; } /* 2026-09-19 案A：薄すぎたので濃くする */
 .kp-stu-abs .kp-grade { color: #9ca3af; }
 @media print {
   body.kp-printing > :not(#kp-print-root) { display: none !important; }
@@ -4391,7 +4412,7 @@ function studentChipHtml(s, opts) {
     });
     if (aRec) {
       if (aRec.status === 'scheduled') {
-        absenceBadge = '<span class="badge" style="font-size:10px;margin-left:2px;background:#dbeafe;color:#1d4ed8">振替確定</span>';
+        absenceBadge = '<span class="badge cb-b-subfix" style="font-size:10px;margin-left:2px;background:#dbeafe;color:#1d4ed8">振替確定</span>';
         // 振替先（曜日つき）を生徒ポップアップ先頭に集約。別ツールチップを出さず重なりを防ぐ。
         var _sd = aRec.substituteDate || '';
         var _syb = '';
@@ -4401,9 +4422,9 @@ function studentChipHtml(s, opts) {
         if (popup) { popup = popup.replace('min-width:200px;max-width:280px">', 'min-width:200px;max-width:280px">' + _subRow); }
         else { popup = '<div class="s-popup" style="min-width:200px;max-width:280px">' + _subRow + '</div>'; }
       } else if (aRec.status === 'substituted') {
-        absenceBadge = '<span class="badge" style="font-size:10px;background:#6366f1;color:#fff;margin-left:2px">振替済</span>';
+        absenceBadge = '<span class="badge cb-b-subdone" style="font-size:10px;background:#6366f1;color:#fff;margin-left:2px">振替済</span>';
       } else {
-        absenceBadge = '<span class="badge badge-red" style="font-size:10px;margin-left:2px">欠席</span>';
+        absenceBadge = '<span class="badge badge-red cb-b-abs" style="font-size:10px;margin-left:2px">欠席</span>';
       }
       // 欠席済→さらに欠席（振替の連鎖）
       absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\')" title="この振替をさらに欠席処理">↩</button>';
