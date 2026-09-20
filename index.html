@@ -3999,6 +3999,60 @@ function jishuHiddenDate_(iso) {
 
 // そのコマに自習で来る生徒を [{student, row}] で返す。
 // 🚨 日付は文字列のまま比べる。new Date() を挟むと JST/UTC で1日ずれる（2026-08-18 の地雷）。
+// =====================================================
+// 自習割付の行 → 生徒オブジェクト（2026-09-20）
+// -----------------------------------------------------
+// 【なぜ】自習割付の studentId には3種類が混ざっている。
+//   ・移行ぶん（2026-09-18）… 氏名
+//   ・[＋自習] で作った行 …… 空文字（jpSave が s.id を書いていたが s.id は undefined）
+//   ・これから作る行 ……… 本物のID（s.sid）
+//   これを `studentId + '|' + studentName` の連結キーで突き合わせていたので、
+//   同じ生徒の「空|山田太郎」と「山田太郎|山田太郎」が別人になり、
+//   同じ子が2人ぶん数えられ、「この日だけ取り消し」も片方しか消せなかった。
+//   （ClassBoard_生徒キーとID化.md「生徒を突き合わせるキーに文字列を連結して使わない」に反していた）
+//
+// 【決まり】
+//   1. studentId が本物のID（s.sid）と一致したら、それがその生徒。氏名は見ない
+//   2. IDで引けないときだけ氏名で引く（移行前の古い行のため）
+//   3. 同じ氏名が2人以上いたら決めない（null）。黙ってどちらかに寄せない
+//      → 川上さん指示(2026-09-20)「同姓同名が今後いても不具合が起きないように」
+//   4. 突き合わせは必ず「解決した生徒」をキーにする。文字列の連結キーを作らない
+//
+// 🚨 s.id ではなく s.sid を見る。getStudentsForClassBoard が返しているのは sid。
+//    s.id を返させると講習割付・チェックリストの挙動まで変わるので、この改修では触らない
+//    （ClassBoard_生徒キーとID化.md の4段のうち、ここは自習だけを先に済ませる）。
+// =====================================================
+var _jishuUnresolved = [];     // 生徒を特定できなかった自習の行（同姓同名／マスタに居ない）
+
+function cbJishuStu_(studentId, studentName) {
+  var id = String(studentId || ''), nm = String(studentName || '');
+  var list = _students || [];
+  if (id) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].sid && String(list[i].sid) === id) return list[i];
+    }
+  }
+  if (!nm) return null;
+  var byName = [];
+  for (var j = 0; j < list.length; j++) { if (list[j].name === nm) byName.push(list[j]); }
+  if (byName.length === 1) return byName[0];
+  if (byName.length > 1) {
+    // 同姓同名。IDが入っていない行はどちらのものか決められない
+    if (_jishuUnresolved.indexOf(nm) < 0) _jishuUnresolved.push(nm);
+    console.warn('[自習] 同姓同名で生徒を特定できません:', nm, '（この行には生徒IDが入っていません）');
+  }
+  return null;
+}
+// 解決した生徒をキーにする。連結キーは作らない
+function cbStuKey_(s) { return s ? (s.sid ? 'sid:' + s.sid : 'nm:' + (s.name || '')) : ''; }
+
+// 自習割付に書き込む studentId。必ず本物のID（sid）にそろえる。
+// 特定できないときは空にする（氏名は studentName 列に入っているので情報は落ちない）。
+function cbJishuWriteId_(studentId, studentName) {
+  var st = cbJishuStu_(studentId, studentName);
+  return (st && st.sid) ? String(st.sid) : '';
+}
+
 function jishuOnKoma_(cr, kt, iso) {
   var ck = iso + '|' + cr + '|' + kt;
   if (_jishuCache[ck]) return _jishuCache[ck];
@@ -4008,21 +4062,26 @@ function jishuOnKoma_(cr, kt, iso) {
   var ktN = normKomaTime_(kt);
   var youbi = YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()];
   var rows = _jishu || [];
-  var hit = {};
-  function jkey_(r) { return String(r.studentId || '') + '|' + String(r.studentName || ''); }
+  var hit = {}, stuOf = {};
+  // 2026-09-20：連結キー（studentId + '|' + studentName）をやめ、解決した生徒をキーにする。
+  //   連結キーだと、同じ生徒の「空|山田太郎」と「山田太郎|山田太郎」が別人になっていた。
+  function jkey_(r) { return cbStuKey_(cbJishuStu_(r.studentId, r.studentName)); }
 
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
     if (!r || r.classroom !== cr) continue;
     if (normKomaTime_(r.komaTime) !== ktN) continue;
+    var rk = jkey_(r);
+    if (!rk) continue;                                  // 生徒を特定できない行は出さない
     if (r.kind === 'weekly') {
       if (r.youbi !== youbi) continue;
       if (r.validFrom && r.validFrom > iso) continue;   // 開始前
       if (r.validTo   && r.validTo   < iso) continue;   // 期限切れ
-      if (!hit[jkey_(r)]) hit[jkey_(r)] = r;
+      if (!hit[rk]) { hit[rk] = r; stuOf[rk] = cbJishuStu_(r.studentId, r.studentName); }
     } else if (r.kind === 'single') {
       if (r.date !== iso) continue;
-      hit[jkey_(r)] = r;   // 同じ生徒が weekly と single の両方に居たら1件にまとめる
+      hit[rk] = r;   // 同じ生徒が weekly と single の両方に居たら1件にまとめる
+      stuOf[rk] = cbJishuStu_(r.studentId, r.studentName);
     }
   }
 
@@ -4034,16 +4093,14 @@ function jishuOnKoma_(cr, kt, iso) {
     if (normKomaTime_(o.komaTime) !== ktN) continue;
     if (o.classroom && o.classroom !== cr) continue;
     var k = jkey_(o);
-    if (!hit[k]) continue;
+    if (!k || !hit[k]) continue;
     // targetId が空なら、その生徒のその日そのコマの自習を全部消す
     if (!o.targetId || String(o.targetId) === String(hit[k].id)) delete hit[k];
   }
 
   Object.keys(hit).forEach(function(k) {
     var r = hit[k];
-    var st = (_students || []).find(function(x) {
-      return (r.studentId && x.id === r.studentId) || x.name === r.studentName;
-    });
+    var st = stuOf[k];                                        // 2026-09-20：cbJishuStu_ で解決ずみ
     if (!st) return;                                          // 生徒マスタに居ない＝出さない
     if (st.status === '退会' || st.status === '休会') return;  // Class Board 全体の既存ルール
     out.push({ student: st, row: r });
@@ -4063,7 +4120,8 @@ function jishuCellOf_(stu, iso, kt) {
   var youbi = YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()];
   var mine = (_jishu || []).filter(function(r) {
     if (!r || normKomaTime_(r.komaTime) !== ktN) return false;
-    return (r.studentId && stu.id && r.studentId === stu.id) || r.studentName === stu.name;
+    // 2026-09-20：jishuOnKoma_ と同じ決まりで判定する（片方だけ直さない）
+    return cbJishuStu_(r.studentId, r.studentName) === stu;
   });
   var hit = null;
   mine.forEach(function(r) {
@@ -9268,8 +9326,8 @@ function ksJishuCount_(period) {
         var k1 = (st.name || '') + '|' + iso + '|' + normKomaTime_(pkt);
         if (tk[k1] || seen[k1]) return;
         seen[k1] = 1;
-        if (st.id)   out[st.id]   = (out[st.id]   || 0) + 1;
-        if (st.name) out[st.name] = (out[st.name] || 0) + 1;
+        if (st.sid)  out[st.sid]  = (out[st.sid]  || 0) + 1;   // 2026-09-20：s.id は undefined だった
+        if (st.name) out[st.name] = (out[st.name] || 0) + 1;   // 講習生徒割付が氏名キーなので氏名も残す
       });
     });
     d.setDate(d.getDate() + 1);
@@ -10139,8 +10197,8 @@ function jishuSameRow_(stu, cr, kt, iso, youbi) {
     if (!r || r.kind === 'off') return;
     if (normKomaTime_(r.komaTime) !== ktN) return;
     if ((r.classroom || '') !== (cr || '')) return;
-    var same = (r.studentId && stu.id && r.studentId === stu.id) || r.studentName === stu.name;
-    if (!same) return;
+    // 2026-09-20：jishuOnKoma_ と同じ決まりで判定する（片方だけ直さない）
+    if (cbJishuStu_(r.studentId, r.studentName) !== stu) return;
     if (r.kind === 'weekly') { if (youbi && r.youbi === youbi && !hitW) hitW = r; }
     else if (r.kind === 'single') { if (r.date === iso && !hitS) hitS = r; }
   });
@@ -10381,7 +10439,7 @@ function jpSave() {
     var exRow = r.jid ? null : jishuSameRow_(s, S.cr, S.kt, S.iso, weekly ? S.youbi : '');
     toSave.push({
       id: r.jid || (exRow && exRow.id) || ('jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
-      studentId: s.id || '', studentName: s.name || '',
+      studentId: s.sid || '', studentName: s.name || '',   // 2026-09-20：本物のIDを書く（s.id は undefined だった）
       classroom: S.cr,
       kind: weekly ? 'weekly' : 'single',
       youbi: weekly ? S.youbi : '',
@@ -10886,7 +10944,7 @@ function kseSave(studentId, studentName, periodId) {
       var _jlim = ('jlim' in btn.dataset) ? btn.dataset.jlim : (_jrep === 'weekly' ? jishuDefaultLimit_() : '');
       jToSave.push({
         id: 'jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-        studentId: studentId, studentName: studentName,
+        studentId: cbJishuWriteId_(studentId, studentName), studentName: studentName,   // 2026-09-20
         classroom: btn.dataset.jcrsel || btn.dataset.hcr || _njs.classroom || '',
         kind: _jrep,
         youbi: (_jrep === 'weekly' ? _jyb : ''),
@@ -10926,7 +10984,7 @@ function kseSave(studentId, studentName, periodId) {
         // 毎週固定を、その日だけ外す → off の行を1本足す。weekly 行は消さない（§8-2-2）
         jToSave.push({
           id: 'jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-          studentId: studentId, studentName: studentName,
+          studentId: cbJishuWriteId_(studentId, studentName), studentName: studentName,   // 2026-09-20
           classroom: btn.dataset.jcr || '',
           kind: 'off', youbi: '', date: ds, komaTime: kf,
           validFrom: '', validTo: '', targetId: btn.dataset.jid || '', memo: ''
@@ -10950,7 +11008,7 @@ function kseSave(studentId, studentName, periodId) {
           var _nyb = YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()];
           jToSave.push({
             id: btn.dataset.jid,
-            studentId: studentId, studentName: studentName,
+            studentId: cbJishuWriteId_(studentId, studentName), studentName: studentName,   // 2026-09-20
             classroom: _ncr,
             kind: _nrep,
             youbi: (_nrep === 'weekly' ? _nyb : ''),
@@ -10985,7 +11043,7 @@ function kseSave(studentId, studentName, periodId) {
           var _as = _students.find(function(st){ return st.id === studentId || st.name === studentName; }) || {};
           jToSave.push({
             id: 'jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-            studentId: studentId, studentName: studentName,
+            studentId: cbJishuWriteId_(studentId, studentName), studentName: studentName,   // 2026-09-20
             classroom: newCr || btn.dataset.acr || _as.classroom || '',
             kind: 'single', youbi: '', date: ds, komaTime: kf,
             validFrom: '', validTo: '', targetId: '', memo: ''
@@ -11785,7 +11843,7 @@ function submitKoushuBulkAssign(periodId) {
     if (a.type !== 'jishu') return true;
     jishuRows.push({
       id: 'jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-      studentId: a.studentId || '', studentName: a.studentName || '',
+      studentId: cbJishuWriteId_(a.studentId, a.studentName), studentName: a.studentName || '',   // 2026-09-20
       classroom: a.classroom || '',
       kind: 'single', youbi: '', date: a.date, komaTime: normKomaTime_(a.komaTime),
       validFrom: '', validTo: '', targetId: '', memo: ''
