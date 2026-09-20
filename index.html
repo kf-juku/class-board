@@ -16792,7 +16792,7 @@ function polPostForm_(fd) {
 function polPostPolicy(key, memo, base) {
   var fd = new FormData();
   fd.append('action', 'updatePolicyMemo');
-  fd.append('sid', (polFindByKey_(key) || {}).sid || '');
+  fd.append('skey', (polFindByKey_(key) || {}).sid || '');
   fd.append('studentName', polStudentName(key));
   fd.append('memo', memo);
   fd.append('base', base);
@@ -16815,7 +16815,7 @@ function polPostPolicy(key, memo, base) {
 function polGetPolicy(key, retried) {
   var fd = new FormData();
   fd.append('action', 'getPolicyMemo');
-  fd.append('sid', (polFindByKey_(key) || {}).sid || '');
+  fd.append('skey', (polFindByKey_(key) || {}).sid || '');
   fd.append('studentName', polStudentName(key));
   return polPostForm_(fd).then(function (d) {
     // 中継が揺れて doGet に落ちた応答（不明なアクション: undefined）は1回だけ送り直す
