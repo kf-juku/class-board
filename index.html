@@ -2332,7 +2332,7 @@ function testAssignCount_(cr, kt, dateIso) {
   var _norm = {};
   getStudentsForKoma(cr, _yb, kt).forEach(function(s) { _norm[cbStuKey_(s)] = 1; });
   (_absenceRecords || []).forEach(function(r) {
-    if (r.substituteDate === dateIso && r.substituteKomaTime === kt && r.substituteClassroom === cr && r.status === 'scheduled') _norm[cbKeyOfName_(r.studentName)] = 1;
+    if (r.substituteDate === dateIso && r.substituteKomaTime === kt && r.substituteClassroom === cr && r.status === 'scheduled') _norm[cbAbsKey_(r)] = 1;
   });
   // 🚨 行数ではなく「人数」を数える（2026-09-21）。同じ生徒の行が2本あっても1人。
   //    cbNormalRoster_ と同じ数え方にそろえる（人数の数え方をビューごとに変えない）。
@@ -2389,7 +2389,7 @@ function tkFaceConflicts_(s, dateIso, komaTime) {
     out.push({ label: label, time: k.time, classroom: k.classroom || '' });
   });
   (_absenceRecords || []).forEach(function(r) {
-    if (r.studentName !== (s.name || '')) return;
+    if (!cbAbsRowIsFor_(r, s)) return;
     if (r.status !== 'scheduled') return;
     if (r.substituteDate !== dateIso) return;
     if (!tkTimeOverlap_(r.substituteKomaTime, komaTime)) return;
@@ -2453,7 +2453,7 @@ function tkSubstituteHere_(s, dateIso, komaTime) {
   if (!s || !dateIso || !komaTime) return false;
   var t = normKomaTime_(komaTime);
   return (_absenceRecords || []).some(function(r) {
-    return r.status === 'scheduled' && r.studentName === (s.name || '') &&
+    return r.status === 'scheduled' && cbAbsRowIsFor_(r, s) &&
            r.substituteDate === dateIso && normKomaTime_(r.substituteKomaTime) === t;
   });
 }
@@ -2491,7 +2491,7 @@ function tkOnlineKomas_(s, dateIso, komaTime) {
 function subConflicts_(studentName, dateIso, komaTime, excludeRecordId) {
   if (!studentName || !dateIso || !komaTime) return [];
   var out = [];
-  var s = (_students || []).find(function(x) { return x.name === studentName; });
+  var s = cbFindStudent_('', studentName, '振替', _absUnresolved);
   var youbi = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
 
   // 通常の通塾コマ（オンラインは教室に来ないので数えない＝対策の判定と同じ）
@@ -2527,7 +2527,7 @@ function subConflicts_(studentName, dateIso, komaTime, excludeRecordId) {
   // ほかの振替（時間が重なればNG。以前は完全一致の文字列比較しか見ていなかった）
   (_absenceRecords || []).forEach(function(r) {
     if (r.id === excludeRecordId) return;
-    if (r.studentName !== studentName) return;
+    if (s ? !cbAbsRowIsFor_(r, s) : r.studentName !== studentName) return;
     if (r.status !== 'scheduled') return;
     if (r.substituteDate !== dateIso) return;
     if (!tkTimeOverlap_(r.substituteKomaTime, komaTime)) return;
@@ -3174,7 +3174,7 @@ function getActiveModeStudents() {
 function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn) {
   // 振替来塾チェック
   var subRec = (_absenceRecords||[]).find(function(r) {
-    return r.studentName===s.name &&
+    return cbAbsRowIsFor_(r, s) &&
            r.substituteDate===dateIso &&
            r.substituteKomaTime===komaTime &&
            r.substituteClassroom===classroom &&
@@ -3329,7 +3329,7 @@ function koushuChipHtml(s, opts) {
   var todayIso = opts.dateStr || '';
   // 欠席チェック
   var isAbsent = (_absenceRecords || []).some(function(r) {
-    return r.studentName === name &&
+    return cbAbsRowIsFor_(r, s) &&
            r.absenceDate === todayIso &&
            (!opts.komaTime || r.komaTime === opts.komaTime) &&
            (!opts.classroom || r.classroom === opts.classroom) &&
@@ -3787,9 +3787,13 @@ function _resetTwoKomaCache() { _twoKomaCache = {}; _jishuCache = {}; _ksJcntCac
 function _youbiFromIso_(iso) { try { return YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()]; } catch (e) { return ''; } }
 function _tkTimeKey_(t) { return parseInt((t || '').replace(/[：:]/, '').substring(0, 4)) || 0; }
 function _tkCountable_(t) { return t !== 'CA' && t !== 'オンライン' && t !== '英検'; }
-function _tkAbsent_(name, iso, kt, cr) {
+// 2026-09-21：生徒オブジェクトでも氏名でも受ける。オブジェクトで渡すほうが正しい（同姓同名で別人を拾わない）
+function _tkAbsent_(who, iso, kt, cr) {
+  var sObj = (who && typeof who === 'object') ? who : cbFindStudent_('', String(who || ''), '振替', _absUnresolved);
+  var nm = (who && typeof who === 'object') ? String(who.name || '') : String(who || '');
   return (_absenceRecords || []).some(function (r) {
-    return r.studentName === name && r.absenceDate === iso && r.status !== 'cancelled' &&
+    var mine = sObj ? cbAbsRowIsFor_(r, sObj) : (String(r.studentName || '') === nm);
+    return mine && r.absenceDate === iso && r.status !== 'cancelled' &&
       (!kt || r.komaTime === kt) && (!cr || !r.classroom || r.classroom === cr);
   });
 }
@@ -3841,7 +3845,7 @@ function komaDayIndex_(s, iso) {
   });
   // 3) 振替来塾（連鎖欠席・CA/オンライン/英検の元コマは除外）
   (_absenceRecords || []).forEach(function (r) {
-    if (r.studentName !== s.name) return;
+    if (!cbAbsRowIsFor_(r, s)) return;
     if (r.substituteDate !== iso || r.status === 'cancelled') return;
     if (_tkAbsent_(s.name, iso, r.substituteKomaTime, r.substituteClassroom)) return;
     var type = '振替';
@@ -3924,7 +3928,7 @@ var CB_CAT_LABEL = { ca:'CA', eiken:'英検', enshuu:'演習', koushu:'講習', 
  * 本番80件で75件（94%）判定でき、残りは退会などで生徒マスタに居ない人。判定できない分は fu_x（「振替」）。 */
 function cbFurikaeCat_(r) {
   if (!r) return 'fu_x';
-  var s = (_students || []).find(function(x){ return x.name === r.studentName; });
+  var s = cbAbsStu_(r);
   if (!s) return 'fu_x';
   var yb = '';
   try { yb = YOUBI_MAP[new Date(r.absenceDate + 'T00:00:00').getDay()]; } catch (e) { yb = ''; }
@@ -4038,6 +4042,7 @@ function jishuHiddenDate_(iso) {
 // =====================================================
 var _jishuUnresolved  = [];    // 生徒を特定できなかった自習の行（同姓同名／マスタに居ない）
 var _koushuUnresolved = [];    // 生徒を特定できなかった講習生徒割付の行（2026-09-21）
+var _absUnresolved    = [];    // 生徒を特定できなかった欠席振替の行（2026-09-21）
 
 // 生徒を指す行（studentId / studentName）から、生徒を1人に決める。
 // tag は console に出す面の名前、bucket は特定できなかった氏名をためる配列。
@@ -4097,6 +4102,35 @@ function cbJishuWriteId_(studentId, studentName) {
   var st = cbJishuStu_(studentId, studentName);
   return (st && st.sid) ? String(st.sid) : '';
 }
+// 欠席振替の行 → 生徒（2026-09-21）。
+//   欠席振替シートに M列 studentId を足したので、自習・講習と同じ形で引く。
+//   移行前の行は studentId が空なので、そのときだけ氏名で引く。
+function cbAbsStu_(r) {
+  return r ? cbFindStudent_(r.studentId, r.studentName, '振替', _absUnresolved) : null;
+}
+// 通常コマの生徒・割付の行と同じ器に入れるときのキー
+function cbAbsKey_(r) { return cbStuKey_(cbAbsStu_(r)) || ('nm:' + String((r && r.studentName) || '')); }
+// その振替の行がこの生徒のものか。🚨 氏名の一致だけで当てない
+function cbAbsRowIsFor_(r, sObj) {
+  if (!r || !sObj) return false;
+  var k = cbStuKey_(sObj);
+  if (!k) return false;
+  var st = cbAbsStu_(r);
+  if (st) return cbStuKey_(st) === k;
+  return String(r.studentName || '') === String(sObj.name || '');   // 移行前かつ特定できない行の保険
+}
+// 行どうしが同じ生徒か
+function cbAbsSameStu_(r1, r2) {
+  var a = cbAbsStu_(r1), b = cbAbsStu_(r2);
+  if (a && b) return cbStuKey_(a) === cbStuKey_(b);
+  return String((r1 && r1.studentName) || '') === String((r2 && r2.studentName) || '');
+}
+// 欠席振替に書く studentId。特定できないときは空（氏名は studentName 列に残る）
+function cbAbsWriteId_(sid, studentName) {
+  var st = cbFindStudent_(sid, studentName, '振替', _absUnresolved);
+  return (st && st.sid) ? String(st.sid) : '';
+}
+
 // 講習生徒割付に書き込む studentId。同上（2026-09-21）。
 function cbKoushuWriteId_(studentId, studentName) {
   var st = cbKoushuStu_(studentId, studentName);
@@ -4222,10 +4256,10 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
   (_absenceRecords || []).forEach(function(r) {
     if (r.status !== 'scheduled') return;
     if (r.substituteDate !== iso || r.substituteKomaTime !== kt || r.substituteClassroom !== cr) return;
-    var _rk = cbKeyOfName_(r.studentName);
+    var _rk = cbAbsKey_(r);
     if (ss.some(function(s){ return cbStuKey_(s) === _rk; })) return;
     if (used[_rk]) return;
-    var stu = (_students || []).find(function(x){ return x.name === r.studentName; }) || { name: r.studentName };
+    var stu = cbAbsStu_(r) || { name: r.studentName };
     if (stu.status === '退会' || stu.status === '休会') return;   // 川上さん指示(2026-06-14)
     used[_rk] = 1;
     var ok = (stu.komas || []).find(function(k){ return k.time === r.komaTime; });
@@ -4233,7 +4267,7 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
     out.push({
       name: r.studentName, grade: stu.grade || '',
       cat: tb ? tb : cbFurikaeCat_(r),
-      absent: _tkAbsent_(r.studentName, iso, kt, cr),
+      absent: _tkAbsent_(stu, iso, kt, cr),
       html: countOnly ? '' : studentChipHtml(stu, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, absenceCourse: r.absenceCourse || '', testBadge: tb }),
       key: attendSortKey_(stu, { isSub: true, subOrigType: _komaTypeOf_(ok) })
     });
@@ -4366,9 +4400,9 @@ function cbKoushuObjs_(cr, kt, iso, youbi) {
   });
   var subs = (_absenceRecords || []).filter(function(r) {
     return r.substituteDate === iso && r.substituteKomaTime === kt && r.substituteClassroom === cr &&
-           r.status === 'scheduled' && !ss.find(function(x){ return x.name === r.studentName; });
+           r.status === 'scheduled' && !ss.some(function(x){ return cbAbsRowIsFor_(r, x); });
   }).map(function(r) {
-    var stu = (_students || []).find(function(x){ return x.name === r.studentName; }) || { name: r.studentName };
+    var stu = cbAbsStu_(r) || { name: r.studentName };
     var _rok = (stu.komas || []).find(function(k){ return k.time === r.komaTime; });
     return { s: stu, assignType: undefined, isSub: true, subOrigType: _komaTypeOf_(_rok), r: r };
   });
@@ -4680,14 +4714,14 @@ function studentChipHtml(s, opts) {
   var absBtn = '';
   if (opts && opts.dateStr && opts.classroom && opts.komaTime) {
     var aRec = (_absenceRecords || []).find(function(r) {
-      return r.studentName === s.name &&
+      return cbAbsRowIsFor_(r, s) &&
              r.absenceDate === opts.dateStr &&
              r.komaTime === opts.komaTime &&
              r.classroom === opts.classroom &&
              r.status !== 'cancelled';
     });
     var subRec = (_absenceRecords || []).find(function(r) {
-      return r.studentName === s.name &&
+      return cbAbsRowIsFor_(r, s) &&
              r.substituteDate === opts.dateStr &&
              r.substituteKomaTime === opts.komaTime &&
              r.substituteClassroom === opts.classroom &&
@@ -4710,7 +4744,7 @@ function studentChipHtml(s, opts) {
         absenceBadge = '<span class="badge badge-red cb-b-abs" style="font-size:10px;margin-left:2px">欠席</span>';
       }
       // 欠席済→さらに欠席（振替の連鎖）
-      absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\')" title="この振替をさらに欠席処理">↩</button>';
+      absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\',\'' + esc(s.sid || '') + '\')" title="この振替をさらに欠席処理">↩</button>';
     } else if (subRec) {
       // ① 川上さん指示(2026-06-14)：振替の子のカードは「欠」ボタンを出さず、
       //   ⚡振替バッジをクリックで振替タブの該当カード（振替日編集）へ飛ばす。
@@ -4721,7 +4755,7 @@ function studentChipHtml(s, opts) {
         + 'title="クリックで振替日の編集へ">⚡振替（' + _subType.label + '）</span>';
       // 「欠」ボタンは出さない（振替の子は振替日修正が主操作のため）
     } else {
-      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\')" title="欠席を記録">欠</button>';
+      absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\',\'' + esc(s.sid || '') + '\')" title="欠席を記録">欠</button>';
     }
   }
 
@@ -5694,17 +5728,17 @@ function buildWeekGrid(days, todayIso) {
                r.substituteKomaTime === kt &&
                r.substituteClassroom === cr &&
                r.status === 'scheduled' &&
-               !ss.find(function(s){ return s.name === r.studentName; }); // 通常コマにいない生徒のみ
+               !ss.some(function(s){ return cbAbsRowIsFor_(r, s); }); // 通常コマにいない生徒のみ
       });
       // 振替生徒はオブジェクトとしてallKObjsに統合するためここでは生成しない
       // subChips は講習モード外（通常モード）でのみ使用
       var subChips = subStudents.map(function(r) {
-        var stu = (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
+        var stu = cbAbsStu_(r) || { name: r.studentName };
         return studentChipHtml(stu, {classroom:cr, komaTime:kt, youbi:YOUBIS[i], dateStr:iso, absenceCourse: r.absenceCourse || ''});
       });
       // 講習モード用：振替生徒をオブジェクト化（allKObjsでソート対象にする）
       var subObjs = subStudents.map(function(r) {
-        var stu = (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
+        var stu = cbAbsStu_(r) || { name: r.studentName };
         var _rok = (stu.komas || []).find(function(k){ return k.time === r.komaTime; });
         return { s: stu, assignType: undefined, isSub: true, subOrigType: _komaTypeOf_(_rok), r: r };
       });
@@ -6168,11 +6202,11 @@ function printKoushuPeriod() {
         (_absenceRecords || []).forEach(function(r) {
           if (r.status !== 'scheduled') return;
           if (r.substituteDate !== iso || r.substituteClassroom !== cr || r.substituteKomaTime !== kt) return;
-          var rs = _students.find(function(st) { return st.name === r.studentName; });
+          var rs = cbAbsStu_(r);
           if (rs && (rs.status === '退会' || rs.status === '休会')) return;
           if (items.some(function(it) { return it.name === r.studentName; })) return;
           var _rok = rs ? (rs.komas || []).find(function(k){ return k.time === r.komaTime; }) : null;
-          items.push({ name: r.studentName, grade: (rs && rs.grade) || '', badge: 'furikae', type: 'furikae', absent: _tkAbsent_(r.studentName, iso, kt, cr), sortKey: attendSortKey_({ grade: (rs && rs.grade) || '' }, { isSub: true, subOrigType: _komaTypeOf_(_rok) }) });
+          items.push({ name: r.studentName, grade: (rs && rs.grade) || '', badge: 'furikae', type: 'furikae', absent: _tkAbsent_(rs || r.studentName, iso, kt, cr), sortKey: attendSortKey_({ grade: (rs && rs.grade) || '' }, { isSub: true, subOrigType: _komaTypeOf_(_rok) }) });
         });
         /* 自習割付（2026-09-18）。期間印刷B4は cbNormalRoster_ を通らない独立実装なので、ここでも足す。
          *  🚨 通常コマ・対策・振替で既に出ている子は足さない（1人扱い）。
@@ -7577,10 +7611,10 @@ function komaCountLabel_(students, dateStr, komaTime, classroom) {
              r.substituteKomaTime === komaTime &&
              r.substituteClassroom === classroom &&
              r.status === 'scheduled' &&
-             !students.find(function(s){ return s.name === r.studentName; });
+             !students.some(function(s){ return cbAbsRowIsFor_(r, s); });
     })
     .map(function(r) {
-      return (_students || []).find(function(s){ return s.name === r.studentName; }) || { name: r.studentName };
+      return cbAbsStu_(r) || { name: r.studentName };
     });
 
   // 欠席者（席数カウントに含める・tooltip表示用に件数だけ取得）
@@ -7678,7 +7712,7 @@ function normalizeAbsenceRecord_(r) {
 function subKomaType_(rec, studentObj) {
   var s = studentObj;
   if (!s) {
-    s = (_students || []).find(function(x){ return x.name === rec.studentName; });
+    s = cbAbsStu_(rec);
   }
   var origKoma = null;
   if (s && s.komas) {
@@ -7857,10 +7891,12 @@ function reloadAbsence() {
   });
 }
 
-function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId, courseName) {
+// 2026-09-21：末尾に sid（生徒の本物のID）を足した。氏名だけで渡すと同姓同名で別人の欠席になる。
+function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId, courseName, sid) {
   // 重複チェック
+  var _modalStu = cbFindStudent_(sid, studentName, '振替', _absUnresolved);
   var existing = (_absenceRecords || []).find(function(r) {
-    return r.studentName === studentName &&
+    return (_modalStu ? cbAbsRowIsFor_(r, _modalStu) : r.studentName === studentName) &&
            r.absenceDate === dateStr &&
            r.komaTime === komaTime &&
            r.status !== 'cancelled';
@@ -7872,6 +7908,7 @@ function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId
 
   _absenceModalData = {
     studentName: studentName,
+    sid:         (_modalStu && _modalStu.sid) || String(sid || ''),
     dateStr:     dateStr,
     komaTime:    komaTime,
     classroom:   classroom,
@@ -7972,6 +8009,7 @@ function submitAbsence(mode) {
 
     var record = {
       studentName:          d.studentName,
+      studentId:            cbAbsWriteId_(d.sid, d.studentName),   // 2026-09-21
       absenceDate:          d.dateStr,
       komaTime:             d.komaTime,
       classroom:            d.classroom,
@@ -8022,6 +8060,7 @@ function submitAbsence(mode) {
 
     var record = {
       studentName: d.studentName,
+      studentId:   cbAbsWriteId_(d.sid, d.studentName),   // 2026-09-21
       absenceDate: d.dateStr,
       komaTime:    d.komaTime,
       classroom:   d.classroom,
@@ -8144,7 +8183,7 @@ function saveSubstitute(recordId, uid) {
   if (!rec) return;
   var conflict = (_absenceRecords || []).find(function(r) {
     return r.id !== recordId &&
-           r.studentName === rec.studentName &&
+           cbAbsSameStu_(r, rec) &&
            r.substituteDate === subDate &&
            r.substituteKomaTime === subKoma &&
            r.status !== 'cancelled';
@@ -17028,7 +17067,7 @@ function polDrawPicker() {
     });
     (_absenceRecords || []).forEach(function (r) {
       if (r.substituteDate === iso && r.status === 'scheduled' && r.studentName) {
-        todaySet[cbKeyOfName_(r.studentName)] = r.substituteClassroom || '';
+        todaySet[cbAbsKey_(r)] = r.substituteClassroom || '';
       }
     });
   }
