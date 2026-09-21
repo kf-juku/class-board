@@ -4319,18 +4319,25 @@ var CB_SEAT_LIMIT = 15;  // これ以上で赤＋登録時に確認ダイアロ�
 /* 割付名とマスタ名の表記揺れ対策（「倉茂（ハリス）エイサン」vs「ハリスエイサン倉茂」）
  * 週グリッドの講習分岐と cbKoushuObjs_ が共用する */
 function cbFindStudentLoose_(a) {
-  var s = _students.find(function(st){ return st.id === a.studentId || st.name === a.studentName; });
+  // 2026-09-21：まず本物のIDで引く（cbKoushuStu_）。表記揺れの救済はそのあと。
+  //   🚨 救済は「候補がちょうど1人のときだけ」。複数当たったら決めない（黙って誰かに寄せない）。
+  var s = cbKoushuStu_(a.studentId, a.studentName);
   if (!s && a.studentName) {
-    s = _students.find(function(st){
+    var cand = _students.filter(function(st){
       var an = a.studentName.replace(/[（）\(\)\s]/g,''); var sn = (st.name||'').replace(/[（）\(\)\s]/g,'');
       return an && sn && (an.indexOf(sn) >= 0 || sn.indexOf(an) >= 0);
     });
-    if (!s) {
-      s = _students.find(function(st){
+    if (cand.length !== 1) {
+      cand = _students.filter(function(st){
         var an = a.studentName.replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
         var sn = (st.name||'').replace(/[（）\(\)\s・]/g,'').split('').sort().join('');
         return an.length >= 2 && sn.length >= 2 && an === sn;
       });
+    }
+    if (cand.length === 1) s = cand[0];
+    else if (cand.length > 1 && _koushuUnresolved.indexOf(a.studentName) < 0) {
+      _koushuUnresolved.push(a.studentName);
+      console.warn('[講習] 表記揺れの候補が複数います:', a.studentName, cand.map(function(x){ return x.name; }));
     }
   }
   return s || { name: a.studentName };
