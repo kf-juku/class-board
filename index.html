@@ -3817,7 +3817,7 @@ function komaDayIndex_(s, iso) {
     (_koushuAssignments || []).forEach(function (a) {
       if (a.date !== iso || a.periodId !== ap.id) return;
       if (a.studentId !== s.id && a.studentName !== s.name) return;
-      if (_tkAbsent_(s.name, iso, a.komaTime, a.classroom)) return;
+      if (_tkAbsent_(s, iso, a.komaTime, a.classroom)) return;
       var type = a.type === 'taisaku' ? 'テスト対策' : a.type === 'jishu' ? '自習' : '講習';
       add(a.classroom, a.komaTime, type);
     });
@@ -3835,7 +3835,7 @@ function komaDayIndex_(s, iso) {
     }
     if (!matches) return;
     if (koushuView && !isNormalKomaInKoushu_(s, kt)) return;
-    if (_tkAbsent_(s.name, iso, kt, cr)) return;
+    if (_tkAbsent_(s, iso, kt, cr)) return;
     var type = k.online ? 'オンライン'
       : (k.id || '').indexOf('ca_') === 0 ? 'CA'
       : k.satType === 'eiken' ? '英検'
@@ -3847,7 +3847,7 @@ function komaDayIndex_(s, iso) {
   (_absenceRecords || []).forEach(function (r) {
     if (!cbAbsRowIsFor_(r, s)) return;
     if (r.substituteDate !== iso || r.status === 'cancelled') return;
-    if (_tkAbsent_(s.name, iso, r.substituteKomaTime, r.substituteClassroom)) return;
+    if (_tkAbsent_(s, iso, r.substituteKomaTime, r.substituteClassroom)) return;
     var type = '振替';
     var ok = (s.komas || []).find(function (k) { return k.time === r.komaTime; });
     if (ok) { if ((ok.id || '').indexOf('ca_') === 0) type = 'CA'; else if (ok.online) type = 'オンライン'; else if (ok.satType === 'eiken') type = '英検'; }
@@ -4247,7 +4247,7 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
       name: s.name, grade: s.grade || '',
       // 川上さん確定(2026-08-26)：通常コマがオンラインでも、対策・自習の割付があれば教室に来る＝席を使う
       cat: tb ? tb : ktype,
-      absent: _tkAbsent_(s.name, iso, kt, cr),
+      absent: _tkAbsent_(s, iso, kt, cr),
       html: countOnly ? '' : studentChipHtml(s, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, testBadge: tb, hideOnlineBadge: !!tb }),
       key: tb ? attendSortKey_(s, { assignType: tb }) : attendSortKey_(s, { komaType: ktype })
     });
@@ -4286,7 +4286,7 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
     out.push({
       name: js.name, grade: js.grade || '',
       cat: jtb ? jtb : 'jishu',
-      absent: _tkAbsent_(js.name, iso, kt, cr),
+      absent: _tkAbsent_(js, iso, kt, cr),
       html: countOnly ? '' : studentChipHtml(js, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, testBadge: jtb || 'jishu' }),
       key: attendSortKey_(js, { assignType: jtb || 'jishu' })
     });
@@ -4303,7 +4303,7 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
       var tb = (a.type === 'jishu') ? 'jishu' : 'taisaku';
       out.push({
         name: a.studentName, grade: ts.grade || '', cat: tb,
-        absent: _tkAbsent_(a.studentName, iso, kt, cr),
+        absent: _tkAbsent_(ts, iso, kt, cr),
         html: countOnly ? '' : studentChipHtml(ts, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, testBadge: tb }),
         key: attendSortKey_(ts, { assignType: tb })
       });
@@ -4335,7 +4335,7 @@ function cbJukenOnKoma_(cr, kt, iso, youbi) {
 
 function cbJukenItems_(students, iso) {
   return (students || []).map(function(s) {
-    return { name: s.name, grade: s.grade || '', cat: 'juken', absent: _tkAbsent_(s.name, iso, '19:00〜21:30', null) };
+    return { name: s.name, grade: s.grade || '', cat: 'juken', absent: _tkAbsent_(s, iso, '19:00〜21:30', null) };
   });
 }
 
@@ -4417,7 +4417,7 @@ function cbKoushuItems_(objs, cr, kt, iso, youbi) {
     else if (o.assignId !== undefined) cat = (o.assignType === 'taisaku') ? 'taisaku' : (o.assignType === 'jishu') ? 'jishu' : 'koushu';
     else cat = _komaTypeOf_(_matchedKoma_(o.s, cr, youbi, kt));
     return { name: (o.s && o.s.name) || '', grade: (o.s && o.s.grade) || '', cat: cat,
-             absent: _tkAbsent_((o.s && o.s.name) || '', iso, kt, cr) };
+             absent: _tkAbsent_(o.s || '', iso, kt, cr) };
   });
 }
 
@@ -6181,7 +6181,7 @@ function printKoushuPeriod() {
             });
             var _typ = 'juku';
             if (_mk) { if ((_mk.id || '').indexOf('ca_') === 0) _typ = 'ca'; else if (_mk.online) _typ = 'online'; else if (_mk.satType === 'eiken') _typ = 'eiken'; else if (_mk.satType === 'enshuu' || _mk.satType === 'hira' || _mk.satType === 'sat') _typ = 'enshuu'; }
-            items.push({ name: s.name, grade: s.grade || '', badge: '', type: _typ, absent: _tkAbsent_(s.name, iso, kt, cr), sortKey: attendSortKey_(s, { komaType: _typ }) });
+            items.push({ name: s.name, grade: s.grade || '', badge: '', type: _typ, absent: _tkAbsent_(s, iso, kt, cr), sortKey: attendSortKey_(s, { komaType: _typ }) });
           }
         });
         _koushuAssignments.forEach(function(a) {
@@ -6220,7 +6220,7 @@ function printKoushuPeriod() {
             return;
           }
           items.push({ name: _jst.name, grade: _jst.grade || '', badge: 'jishu', type: 'jishu',
-            absent: _tkAbsent_(_jst.name, iso, kt, cr),
+            absent: _tkAbsent_(_jst, iso, kt, cr),
             sortKey: attendSortKey_(_jst, { assignType: 'jishu' }) });
         });
         // 川上さん確定(2026-08-26)：オンラインだけの子はチップから外し、名前を1行でまとめる（席数にも入れない）
@@ -16758,7 +16758,7 @@ function polRowsForDay_(iso, youbi) {
       var here = [];
       if (koushu) {
         cbKoushuObjs_(cr, kt, iso, youbi).forEach(function (o) {
-          if (o && o.s && o.s.name) here.push({ name: o.s.name, absent: _tkAbsent_(o.s.name, iso, kt, cr) });
+          if (o && o.s && o.s.name) here.push({ name: o.s.name, absent: _tkAbsent_(o.s, iso, kt, cr) });
         });
       } else {
         cbNormalRoster_(cr, kt, iso, youbi, true).forEach(function (o) {
