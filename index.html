@@ -2279,7 +2279,7 @@ function testAssignPopupBadges_(s, forcePeriod) {
   var tp = forcePeriod || getActiveKoushuPeriod();
   if (!tp) return '';
   var list = (_koushuAssignments || []).filter(function(a) {
-    return a.periodId === tp.id && (a.studentId === s.id || a.studentName === s.name);
+    return a.periodId === tp.id && cbKoushuRowIsFor_(a, s);
   });
   if (!list.length) return '';
   list.sort(function(a, b) { return (a.date + a.komaTime) < (b.date + b.komaTime) ? -1 : 1; });
@@ -2330,13 +2330,20 @@ function testAssignCount_(cr, kt, dateIso) {
   // 川上さん確定(2026-08-25)：通常コマ・振替で既に数えている生徒は二重に数えない（1チップにまとめるため）
   var _yb = YOUBI_MAP[new Date(dateIso + 'T00:00:00').getDay()];
   var _norm = {};
-  getStudentsForKoma(cr, _yb, kt).forEach(function(s) { _norm[s.name] = 1; });
+  getStudentsForKoma(cr, _yb, kt).forEach(function(s) { _norm[cbStuKey_(s)] = 1; });
   (_absenceRecords || []).forEach(function(r) {
-    if (r.substituteDate === dateIso && r.substituteKomaTime === kt && r.substituteClassroom === cr && r.status === 'scheduled') _norm[r.studentName] = 1;
+    if (r.substituteDate === dateIso && r.substituteKomaTime === kt && r.substituteClassroom === cr && r.status === 'scheduled') _norm[cbKeyOfName_(r.studentName)] = 1;
   });
-  return _koushuAssignments.filter(function(a) {
-    return a.date === dateIso && a.classroom === cr && a.komaTime === kt && !_norm[a.studentName];
-  }).length;
+  // 🚨 行数ではなく「人数」を数える（2026-09-21）。同じ生徒の行が2本あっても1人。
+  //    cbNormalRoster_ と同じ数え方にそろえる（人数の数え方をビューごとに変えない）。
+  var _seen = {};
+  _koushuAssignments.forEach(function(a) {
+    if (a.date !== dateIso || a.classroom !== cr || a.komaTime !== kt) return;
+    var k = cbKeyOfRow_(a);
+    if (_norm[k]) return;
+    _seen[k] = 1;
+  });
+  return Object.keys(_seen).length;
 }
 
 /* ===== テスト対策の重複チェック（川上さん確定 2026-08-25） =====
@@ -2510,7 +2517,7 @@ function subConflicts_(studentName, dateIso, komaTime, excludeRecordId) {
 
   // テスト対策・自習・講習の割付
   (_koushuAssignments || []).forEach(function(a) {
-    if (!(a.studentName === studentName || (s && a.studentId === s.id))) return;
+    if (s ? !cbKoushuRowIsFor_(a, s) : a.studentName !== studentName) return;
     if (a.date !== dateIso) return;
     if (!tkTimeOverlap_(a.komaTime, komaTime)) return;
     var label = a.type === 'jishu' ? '自習' : a.type === 'taisaku' ? 'テスト対策' : '講習';
@@ -3338,7 +3345,7 @@ function koushuChipHtml(s, opts) {
     var goal = (activePeriod.gradeGoals || {})[grade] || 0;
     // 川上さん指示(2026-06-19)：二重レコード対策。日付×コマでユニーク化して数える
     var registered = kseUniqueCount_(_koushuAssignments.filter(function(a) {
-      if (a.periodId !== activePeriod.id || !(a.studentId === s.id || a.studentName === name)) return false;
+      if (a.periodId !== activePeriod.id || !cbKoushuRowIsFor_(a, s)) return false;
       if (isTestP) return a.type === 'taisaku'; // テスト対策：対策コマのみカウント（自習は別）
       return true;
     }));
@@ -3356,7 +3363,7 @@ function koushuChipHtml(s, opts) {
     var goal = (activePeriod.gradeGoals || {})[grade] || 0;
     // 川上さん指示(2026-06-19)：二重レコード対策。日付×コマでユニーク化して数える
     var registered2 = kseUniqueCount_(_koushuAssignments.filter(function(a) {
-      if (a.periodId !== activePeriod.id || !(a.studentId === s.id || a.studentName === name)) return false;
+      if (a.periodId !== activePeriod.id || !cbKoushuRowIsFor_(a, s)) return false;
       if (isTestP) return a.type === 'taisaku';
       return true;
     }));
@@ -3390,8 +3397,8 @@ function koushuChipHtml(s, opts) {
   var deleteBtn = assignId
     ? '<span class="koushu-chip-del" onclick="event.stopPropagation();deleteKoushuAssignmentOne(\'' + assignId + '\',\'' + esc(name) + '\',\'' + esc(opts.dateStr||'') + '\',\'' + esc(opts.komaTime||'') + '\')" title="このコマの登録を外す">×</span>'
     : '';
-  var clickAttr = s.id || name
-    ? ' onclick="openKoushuStudentEdit(\'' + esc(s.id || name) + '\',\'' + esc(name) + '\',\'' + periodId + '\')"'
+  var clickAttr = s.sid || name
+    ? ' onclick="openKoushuStudentEdit(\'' + esc(s.sid || name) + '\',\'' + esc(name) + '\',\'' + periodId + '\')"'
     : '';
   var typeBadge = opts.assignType === 'taisaku' ? '<span class="chip-taisaku">対策</span>'
                 : opts.assignType === 'jishu'   ? '<span class="chip-jishu">自習</span>'
@@ -3508,6 +3515,8 @@ function studentsAttendingOnDate_(dateStr, classroom) {
     });
   });
   // 講習・テスト対策の割付（その日・その教室に登録されている子）
+  // 🚨 ここは氏名キーのままにする（2026-09-21）。使う先がカスタムバッジの studentNames（氏名の配列）で、
+  //    そちらがまだID化されていない。カスタムバッジをID化するときに、両方そろえて生徒キーへ寄せる。
   (_koushuAssignments || []).forEach(function(a) {
     if (a.date === dateStr && a.classroom === classroom && a.studentName) set[String(a.studentName)] = true;
   });
@@ -4019,12 +4028,20 @@ function jishuHiddenDate_(iso) {
 //   4. 突き合わせは必ず「解決した生徒」をキーにする。文字列の連結キーを作らない
 //
 // 🚨 s.id ではなく s.sid を見る。getStudentsForClassBoard が返しているのは sid。
-//    s.id を返させると講習割付・チェックリストの挙動まで変わるので、この改修では触らない
-//    （ClassBoard_生徒キーとID化.md の4段のうち、ここは自習だけを先に済ませる）。
+//    s.id は undefined のまま。id を返させると一括登録のチェックボックス value など
+//    別の経路まで一度に変わるので、返させない（ClassBoard_生徒キーとID化.md §6-2）。
+//
+// 2026-09-21：同じ仕組みを講習生徒割付にも広げた。
+//   会員管理が生徒ごとにIDを発行しているのに、講習割付は氏名で紐づけたままだった。
+//   仕様どおりに動いていないので直す（川上さん判断 2026-09-21）。
+//   照合の本体は cbFindStudent_ 1本。自習・講習はその薄い入口を通るだけ。
 // =====================================================
-var _jishuUnresolved = [];     // 生徒を特定できなかった自習の行（同姓同名／マスタに居ない）
+var _jishuUnresolved  = [];    // 生徒を特定できなかった自習の行（同姓同名／マスタに居ない）
+var _koushuUnresolved = [];    // 生徒を特定できなかった講習生徒割付の行（2026-09-21）
 
-function cbJishuStu_(studentId, studentName) {
+// 生徒を指す行（studentId / studentName）から、生徒を1人に決める。
+// tag は console に出す面の名前、bucket は特定できなかった氏名をためる配列。
+function cbFindStudent_(studentId, studentName, tag, bucket) {
   var id = String(studentId || ''), nm = String(studentName || '');
   var list = _students || [];
   if (id) {
@@ -4038,18 +4055,51 @@ function cbJishuStu_(studentId, studentName) {
   if (byName.length === 1) return byName[0];
   if (byName.length > 1) {
     // 同姓同名。IDが入っていない行はどちらのものか決められない
-    if (_jishuUnresolved.indexOf(nm) < 0) _jishuUnresolved.push(nm);
-    console.warn('[自習] 同姓同名で生徒を特定できません:', nm, '（この行には生徒IDが入っていません）');
+    if (bucket && bucket.indexOf(nm) < 0) bucket.push(nm);
+    console.warn('[' + tag + '] 同姓同名で生徒を特定できません:', nm, '（この行には生徒IDが入っていません）');
   }
   return null;
 }
+function cbJishuStu_(studentId, studentName) {
+  return cbFindStudent_(studentId, studentName, '自習', _jishuUnresolved);
+}
+function cbKoushuStu_(studentId, studentName) {
+  return cbFindStudent_(studentId, studentName, '講習', _koushuUnresolved);
+}
 // 解決した生徒をキーにする。連結キーは作らない
 function cbStuKey_(s) { return s ? (s.sid ? 'sid:' + s.sid : 'nm:' + (s.name || '')) : ''; }
+
+// 通常コマの生徒・割付の行・振替の行を同じ器（1つの map）に入れるときのキー。
+// 同じ生徒なら同じ文字列になる。特定できないときだけ氏名をキーにする
+//（移行前の行・生徒マスタに居ない人。いまの挙動を落とさないため）。
+// 🚨 欠席振替はまだ studentId 列を持っていないので氏名から引く。列が増えたらここも行キーに寄せる。
+function cbKeyOfRow_(a)   { return cbStuKey_(cbKoushuStu_(a.studentId, a.studentName)) || ('nm:' + String(a.studentName || '')); }
+function cbKeyOfName_(nm) { return cbStuKey_(cbFindStudent_('', nm, '照合', null))     || ('nm:' + String(nm || '')); }
+
+// 割付・自習の行が、この生徒のものか。
+// 🚨 氏名の一致だけで当てない。同姓同名のとき別人の予定を拾う。
+//    生徒に解決してから、解決した生徒同士を比べる。
+function cbKoushuSameStu_(a, b) {
+  var ka = cbStuKey_(cbKoushuStu_(a.studentId, a.studentName));
+  var kb = cbStuKey_(cbKoushuStu_(b.studentId, b.studentName));
+  return !!ka && ka === kb;
+}
+function cbKoushuRowIsFor_(a, s) {
+  if (!a || !s) return false;
+  var k = cbStuKey_(s);
+  if (!k) return false;
+  return cbStuKey_(cbKoushuStu_(a.studentId, a.studentName)) === k;
+}
 
 // 自習割付に書き込む studentId。必ず本物のID（sid）にそろえる。
 // 特定できないときは空にする（氏名は studentName 列に入っているので情報は落ちない）。
 function cbJishuWriteId_(studentId, studentName) {
   var st = cbJishuStu_(studentId, studentName);
+  return (st && st.sid) ? String(st.sid) : '';
+}
+// 講習生徒割付に書き込む studentId。同上（2026-09-21）。
+function cbKoushuWriteId_(studentId, studentName) {
+  var st = cbKoushuStu_(studentId, studentName);
   return (st && st.sid) ? String(st.sid) : '';
 }
 
@@ -4149,13 +4199,15 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
   if (getActiveTestPeriod_()) {
     (_koushuAssignments || []).forEach(function(a) {
       if (a.date !== iso || a.classroom !== cr || a.komaTime !== kt) return;
-      if (!tkA[a.studentName]) tkA[a.studentName] = (a.type === 'jishu') ? 'jishu' : 'taisaku';
+      var _ak = cbKeyOfRow_(a);
+      if (!tkA[_ak]) tkA[_ak] = (a.type === 'jishu') ? 'jishu' : 'taisaku';
     });
   }
   // 1) 通常コマで来る子（対策・自習が重なる子は1チップにまとめる：川上さん確定 2026-08-25）
   ss.forEach(function(s) {
-    var tb = tkA[s.name];
-    if (tb) used[s.name] = 1;
+    var _sk = cbStuKey_(s);
+    var tb = tkA[_sk];
+    if (tb) used[_sk] = 1;
     var ktype = _komaTypeOf_(_matchedKoma_(s, cr, youbi, kt));
     out.push({
       name: s.name, grade: s.grade || '',
@@ -4170,13 +4222,14 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
   (_absenceRecords || []).forEach(function(r) {
     if (r.status !== 'scheduled') return;
     if (r.substituteDate !== iso || r.substituteKomaTime !== kt || r.substituteClassroom !== cr) return;
-    if (ss.find(function(s){ return s.name === r.studentName; })) return;
-    if (used[r.studentName]) return;
+    var _rk = cbKeyOfName_(r.studentName);
+    if (ss.some(function(s){ return cbStuKey_(s) === _rk; })) return;
+    if (used[_rk]) return;
     var stu = (_students || []).find(function(x){ return x.name === r.studentName; }) || { name: r.studentName };
     if (stu.status === '退会' || stu.status === '休会') return;   // 川上さん指示(2026-06-14)
-    used[r.studentName] = 1;
+    used[_rk] = 1;
     var ok = (stu.komas || []).find(function(k){ return k.time === r.komaTime; });
-    var tb = tkA[r.studentName];
+    var tb = tkA[_rk];
     out.push({
       name: r.studentName, grade: stu.grade || '',
       cat: tb ? tb : cbFurikaeCat_(r),
@@ -4191,10 +4244,11 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
   //     tb はテスト対策モードで見ているときだけ入る＝通常モードでは自習バッジのまま出る（人数は同じ1人）。
   jishuOnKoma_(cr, kt, iso).forEach(function(je) {
     var js = je.student;
-    if (used[js.name]) return;
-    if (ss.find(function(x) { return x.name === js.name; })) return;   // 通常コマで既に出ている
-    used[js.name] = 1;
-    var jtb = tkA[js.name];
+    var _jk = cbStuKey_(js);
+    if (used[_jk]) return;
+    if (ss.some(function(x) { return cbStuKey_(x) === _jk; })) return;   // 通常コマで既に出ている
+    used[_jk] = 1;
+    var jtb = tkA[_jk];
     out.push({
       name: js.name, grade: js.grade || '',
       cat: jtb ? jtb : 'jishu',
@@ -4207,10 +4261,11 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
   if (getActiveTestPeriod_()) {
     (_koushuAssignments || []).forEach(function(a) {
       if (a.date !== iso || a.classroom !== cr || a.komaTime !== kt) return;
-      if (used[a.studentName]) return;
-      var ts = (_students || []).find(function(st){ return st.id === a.studentId || st.name === a.studentName; }) || { name: a.studentName };
+      var _tk2 = cbKeyOfRow_(a);
+      if (used[_tk2]) return;
+      var ts = cbKoushuStu_(a.studentId, a.studentName) || { name: a.studentName };
       if (ts.status === '退会' || ts.status === '休会') return;
-      used[a.studentName] = 1;
+      used[_tk2] = 1;
       var tb = (a.type === 'jishu') ? 'jishu' : 'taisaku';
       out.push({
         name: a.studentName, grade: ts.grade || '', cat: tb,
@@ -4673,14 +4728,14 @@ function studentChipHtml(s, opts) {
   // 通常モード（期間モードでない）でもチップを押せるようにする【2026-09-18】
   //  期間IDを空で渡すと「今日から28日」の自習カレンダーが開く（機能仕様書 §8-2）。
   if (!tpc) {
-    tpClickAttr = ' onclick="openKoushuStudentEdit(\'' + esc(s.id || s.name) + '\',\'' + esc(s.name) + '\',\'\')" style="cursor:pointer"';
+    tpClickAttr = ' onclick="openKoushuStudentEdit(\'' + esc(s.sid || s.name) + '\',\'' + esc(s.name) + '\',\'\')" style="cursor:pointer"';
   }
   if (tpc) {
     var tpcEligible = (tpc.type === 'test')
       ? (s.attrJuku && ((s.grade || '').indexOf('中') === 0 || (s.grade || '').indexOf('高') === 0))
       : true; // 講習（夏期等）は全生徒OK（小学生・CAの追加受講もkseで登録可 2026-06-11）
     if (tpcEligible) {
-      tpClickAttr = ' onclick="openKoushuStudentEdit(\'' + esc(s.id || s.name) + '\',\'' + esc(s.name) + '\',\'' + tpc.id + '\')" style="cursor:pointer"';
+      tpClickAttr = ' onclick="openKoushuStudentEdit(\'' + esc(s.sid || s.name) + '\',\'' + esc(s.name) + '\',\'' + tpc.id + '\')" style="cursor:pointer"';
     }
   }
   var policyCorner = s.policy ? '<span class="cb-policy-corner"></span>' : '';  // 指導方針あり（2026-06-17）
@@ -9301,7 +9356,7 @@ function ksJishuCount_(period) {
   var tk = {};   // その日そのコマは対策で来る＝自習として数えない
   (_koushuAssignments || []).forEach(function(a) {
     if (!a || a.periodId !== period.id || a.type === 'jishu') return;
-    tk[(a.studentName || '') + '|' + a.date + '|' + normKomaTime_(a.komaTime)] = 1;
+    tk[cbKeyOfRow_(a) + '|' + a.date + '|' + normKomaTime_(a.komaTime)] = 1;
   });
 
   var pairs = {};
@@ -9323,7 +9378,7 @@ function ksJishuCount_(period) {
       var pcr = pk.substring(0, ix), pkt = pk.substring(ix + 1);
       jishuOnKoma_(pcr, pkt, iso).forEach(function(je) {
         var st = je.student;
-        var k1 = (st.name || '') + '|' + iso + '|' + normKomaTime_(pkt);
+        var k1 = cbStuKey_(st) + '|' + iso + '|' + normKomaTime_(pkt);
         if (tk[k1] || seen[k1]) return;
         seen[k1] = 1;
         if (st.sid)  out[st.sid]  = (out[st.sid]  || 0) + 1;   // 2026-09-20：s.id は undefined だった
@@ -9348,7 +9403,7 @@ function ksRows_(period) {
   });
   var goals = period.gradeGoals || {};
   var rows = Object.keys(countMap).map(function(sid) {
-    var s = _students.find(function(st) { return st.id === sid || st.name === nameMap[sid]; }) || { name: nameMap[sid] };
+    var s = cbKoushuStu_(sid, nameMap[sid]) || { name: nameMap[sid] };
     var grade = s.grade || '';
     return { s: s, sid: sid, name: nameMap[sid], grade: grade, goal: goals[grade] || 0,
              count: countMap[sid], jishu: (_jcnt[sid] || _jcnt[nameMap[sid]] || 0), isTest: isTestS };
@@ -9771,7 +9826,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   var _normalMode = (!period && !periodId);
   if (!period && !_normalMode) return;
   if (_normalMode) {
-    var _nS = _students.find(function(st) { return st.id === studentId || st.name === studentName; }) || {};
+    var _nS = cbKoushuStu_(studentId, studentName) || {};
     var _nKt = (typeof getKomasForClassroom === 'function') ? (getKomasForClassroom(_nS.classroom || '') || []) : [];
     if (!_nKt.length) { miniToast('この生徒のコマが分かりません'); return; }
     _nKt = _nKt.slice().sort(function(a, b) {
@@ -9800,8 +9855,9 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
       return;
     }
   }
+  var _kseStu = cbKoushuStu_(studentId, studentName);
   var assigns = _koushuAssignments.filter(function(a){
-    return a.periodId === periodId && (a.studentId === studentId || a.studentName === studentName);
+    return a.periodId === periodId && cbKoushuRowIsFor_(a, _kseStu);
   });
 
   var komaFrames  = (period.komaFrames && period.komaFrames.length) ? period.komaFrames : KOUSHU_DEFAULT_KOMA_FRAMES;
@@ -9841,7 +9897,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   if (week.length) weeks.push(week);
 
   // 川上さん確定(2026-08-25)：テスト対策期間は「対面授業と重なるコマ」を灰色にして、押したら確認を出す
-  var _kseS = _students.find(function(st) { return st.id === studentId || st.name === studentName; }) || { name: studentName };
+  var _kseS = cbKoushuStu_(studentId, studentName) || { name: studentName };
   var _kseCheck = (period.type === 'test' || period.type === 'normal_jishu');   // 2026-09-18：通常期でも動かす（§10-3）
   var _kseCr = (_kseS && _kseS.classroom) || '';   // 実在コマ枠の判定に使う所属教室（2026-08-28）
 
@@ -9949,7 +10005,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   gridHtml += '</table></div>';
 
   // ヘッダー回数
-  var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
+  var s = cbKoushuStu_(studentId, studentName);
   var kseGoal       = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
   var kseRegistered = period.type === 'test'
     ? kseUniqueCount_(assigns, 'taisaku')
@@ -10631,9 +10687,10 @@ function kseRemapAids_() {
   var sid  = cells[0].dataset.sid || '';
   var snm  = cells[0].dataset.sname || '';
   var idx = {};
+  var _cellStu = cbKoushuStu_(sid, snm);
   (_koushuAssignments || []).forEach(function(a) {
     if (a.periodId !== pid) return;
-    if (!(a.studentId === sid || a.studentName === snm)) return;
+    if (!cbKoushuRowIsFor_(a, _cellStu)) return;
     idx[a.date + '|' + a.komaTime] = a;
   });
   cells.forEach(function(btn) {
@@ -10902,7 +10959,7 @@ function kseUpdateCountBadgeLocal(studentId, studentName, periodId) {
     var ty = c.dataset.modtype || c.dataset.newtype || c.dataset.atype || 'taisaku';
     if (ty !== 'jishu') kseRegistered++;
   });
-  var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
+  var s = cbKoushuStu_(studentId, studentName);
   var kseGoal  = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
   var kseRemain = kseGoal > 0 ? kseGoal - kseRegistered : null;
   var kseColor  = kseRemain === null ? '#6b7280' : kseRemain <= 0 ? '#059669' : kseRemain <= 3 ? '#d97706' : '#dc2626';
@@ -10936,7 +10993,7 @@ function kseSave(studentId, studentName, periodId) {
     /* 通常期の自習カレンダーで新しく足したセル【2026-09-18】
      *  対策の toAdd に入れない。通常期に講習生徒割付へ書くと、期間に紐づかない行ができる。 */
     if (btn.dataset.jnew === '1' && isOn && !aid) {
-      var _njs = _students.find(function(st){ return st.id === studentId || st.name === studentName; }) || {};
+      var _njs = cbJishuStu_(studentId, studentName) || {};   // 自習の行なので自習側で引く
       /* 2026-09-19：下の「選択中のコマ」で決めた 繰り返し・期限・教室 を反映する。
        *  既定は「この日だけ・所属教室」。毎週にしたときだけ youbi と期限を持たせ、date は空にする。 */
       var _jrep = btn.dataset.jrep || 'single';
@@ -10971,9 +11028,10 @@ function kseSave(studentId, studentName, periodId) {
        *  毎週固定がある日：対策の行を足すだけ。自習割付は触らない（上書きで対策が勝つ）
        *  その日だけの自習：対策を足してから、自習の行を消す（順番は §9-4） */
       if ((btn.dataset.jmod || '') === 'taisaku' && isOn) {
-        var _js = _students.find(function(st){ return st.id === studentId || st.name === studentName; }) || {};
+        var _js = cbKoushuStu_(studentId, studentName) || {};
         toAdd.push({ btn: btn, data: {
-          id: '', periodId: periodId, studentId: studentId, studentName: studentName,
+          id: '', periodId: periodId,
+          studentId: cbKoushuWriteId_(studentId, studentName), studentName: studentName,   // 2026-09-21
           classroom: btn.dataset.modcr || btn.dataset.jcr || _js.classroom || '',
           date: ds, komaTime: kf, type: 'taisaku'
         } });
@@ -11024,10 +11082,12 @@ function kseSave(studentId, studentName, periodId) {
     }
     if (isOn && !aid) {
       // 新規追加（選択中一覧で変更した区分・教室を使う）
-      var s  = _students.find(function(st){ return st.id === studentId || st.name === studentName; }) || { id: studentId, name: studentName };
+      var s  = cbKoushuStu_(studentId, studentName) || { id: studentId, name: studentName };
       var cr = btn.dataset.newcr || s.classroom || (s.komas && s.komas[0] ? s.komas[0].classroom : '');
       var aType = (period.type === 'test') ? (btn.dataset.newtype || 'taisaku') : 'normal';
-      toAdd.push({ btn: btn, data: { id: '', periodId: periodId, studentId: studentId, studentName: studentName, classroom: cr, date: ds, komaTime: kf, type: aType } });
+      toAdd.push({ btn: btn, data: { id: '', periodId: periodId,
+        studentId: cbKoushuWriteId_(studentId, studentName), studentName: studentName,   // 2026-09-21
+        classroom: cr, date: ds, komaTime: kf, type: aType } });
     } else if (!isOn && aid) {
       // 削除
       toDelete.push({ btn: btn, aid: aid });
@@ -11040,7 +11100,7 @@ function kseSave(studentId, studentName, periodId) {
        *  無い日：自習割付にその日1日の行を足してから、対策の行を消す（順番は §9-4） */
       if (newType === 'jishu' && (btn.dataset.atype || 'taisaku') !== 'jishu') {
         if (!(btn.dataset.jkind && btn.dataset.jid)) {
-          var _as = _students.find(function(st){ return st.id === studentId || st.name === studentName; }) || {};
+          var _as = cbKoushuStu_(studentId, studentName) || {};
           jToSave.push({
             id: 'jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             studentId: cbJishuWriteId_(studentId, studentName), studentName: studentName,   // 2026-09-20
@@ -11055,7 +11115,7 @@ function kseSave(studentId, studentName, periodId) {
       if (newType !== (btn.dataset.atype || 'taisaku') || newCr !== (btn.dataset.acr || '')) {
         // 更新時は既存レコードの生徒名・IDを維持する（誤った名前での上書きを防止 2026-06-11）
         var recU = _koushuAssignments.find(function(a){ return a.id === aid; });
-        toUpdate.push({ btn: btn, data: { id: aid, periodId: periodId, studentId: (recU && recU.studentId) || studentId, studentName: (recU && recU.studentName) || studentName, classroom: newCr, date: ds, komaTime: kf, type: newType } });
+        toUpdate.push({ btn: btn, data: { id: aid, periodId: periodId, studentId: cbKoushuWriteId_((recU && recU.studentId) || studentId, (recU && recU.studentName) || studentName), studentName: (recU && recU.studentName) || studentName, classroom: newCr, date: ds, komaTime: kf, type: newType } });
       }
     }
   });
@@ -11298,10 +11358,10 @@ function kseSave(studentId, studentName, periodId) {
 function kseUpdateCountBadge(studentId, studentName, periodId) {
   var period = _koushuPeriods.find(function(p){ return p.id === periodId; });
   if (!period) return;
+  var s = cbKoushuStu_(studentId, studentName);
   var assigns = _koushuAssignments.filter(function(a){
-    return a.periodId === periodId && (a.studentId === studentId || a.studentName === studentName);
+    return a.periodId === periodId && cbKoushuRowIsFor_(a, s);
   });
-  var s = _students.find(function(st){ return st.id === studentId || st.name === studentName; });
   var kseGoal       = s ? ((period.gradeGoals || {})[s.grade] || 0) : 0;
   var kseRegistered = period.type === 'test'
     ? kseUniqueCount_(assigns, 'taisaku')
@@ -11403,7 +11463,7 @@ document.addEventListener('drop', function(e) {
   var dup = _koushuAssignments.some(function(x) {
     return x.id !== _ddAssignId &&
            x.periodId === a.periodId &&
-           (x.studentId === a.studentId || x.studentName === a.studentName) &&
+           cbKoushuSameStu_(x, a) &&
            x.date === newDate &&
            x.komaTime === newKoma;
   });
@@ -11555,7 +11615,7 @@ function renderBulkStudentList() {
     if (activePeriodForBulk) {
       // 川上さん指示(2026-06-19)：二重レコード対策。日付×コマでユニーク化して数える
       registered = kseUniqueCount_(_koushuAssignments.filter(function(a){
-        if (a.periodId !== activePeriodForBulk.id || !(a.studentId === s.id || a.studentName === s.name)) return false;
+        if (a.periodId !== activePeriodForBulk.id || !cbKoushuRowIsFor_(a, s)) return false;
         if (activePeriodForBulk.type === 'test') return a.type === 'taisaku';
         return true;
       }));
@@ -11565,7 +11625,7 @@ function renderBulkStudentList() {
         (goal > 0 ? registered + '/' + goal + '回' : registered + '回') + '</span>';
     }
     return '<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid #f3f4f6;cursor:pointer">' +
-      '<input type="checkbox" class="bulk-student-cb" value="' + esc(s.id || s.name) + '" data-name="' + esc(s.name) + '" data-cr="' + esc(s.classroom || '') + '" onchange="updateBulkSelectedCount()">' +
+      '<input type="checkbox" class="bulk-student-cb" value="' + esc(s.sid || s.name) + '" data-name="' + esc(s.name) + '" data-cr="' + esc(s.classroom || '') + '" onchange="updateBulkSelectedCount()">' +
       '<span style="font-size:13px;font-weight:600">' + esc(s.name) + '</span>' +
       '<span style="font-size:11px;color:var(--text-muted)">' + (s.grade||'') + '・' + (s.classroom||'') + '</span>' +
       countBadge +
@@ -11786,7 +11846,7 @@ function submitKoushuBulkAssign(periodId) {
 
   var assignments = [], conflicts = [];
   studentEls.forEach(function(el) {
-    var s = _students.find(function(st){ return st.id === el.value || st.name === el.dataset.name; });
+    var s = cbKoushuStu_(el.value, el.dataset.name);
     var isElemOrCa = s && ((s.grade && s.grade.indexOf('小') === 0) || (s.attrCa && !s.attrJuku));
     checkedCells.forEach(function(btn) {
       var date  = btn.dataset.ds;
@@ -11797,7 +11857,7 @@ function submitKoushuBulkAssign(periodId) {
         var hasNormalKoma = (s.komas || []).some(function(k){ return k.youbi === youbi && k.time === koma; });
         if (hasNormalKoma) { conflicts.push(el.dataset.name + '（' + date + ' ' + koma + '）'); return; }
       }
-      var _a = { periodId: periodId, studentId: el.value, studentName: el.dataset.name, classroom: bulkCrFix || el.dataset.cr, date: date, komaTime: koma, type: bulkType };
+      var _a = { periodId: periodId, studentId: cbKoushuWriteId_(el.value, el.dataset.name), studentName: el.dataset.name, classroom: bulkCrFix || el.dataset.cr, date: date, komaTime: koma, type: bulkType };
       // 川上さん確定(2026-08-25)：テスト対策は追加コマ。対面授業と重なるコマは基本ブロック（強行は可）
       if (isTestB) {
         var _cf = tkFaceConflicts_(s || { name: el.dataset.name }, date, koma);
@@ -16953,15 +17013,15 @@ function polDrawPicker() {
   if (_polPk.today) {
     ['北久里浜', '久里浜'].forEach(function (cr) {
       getKomasForClassroom(cr).forEach(function (kt) {
-        getStudentsForKoma(cr, youbi, kt).forEach(function (s) { todaySet[s.name] = cr; });
+        getStudentsForKoma(cr, youbi, kt).forEach(function (s) { todaySet[cbStuKey_(s)] = cr; });
       });
     });
     (_koushuAssignments || []).forEach(function (a) {
-      if (a.date === iso && a.studentName) todaySet[a.studentName] = a.classroom || '';
+      if (a.date === iso && a.studentName) todaySet[cbKeyOfRow_(a)] = a.classroom || '';
     });
     (_absenceRecords || []).forEach(function (r) {
       if (r.substituteDate === iso && r.status === 'scheduled' && r.studentName) {
-        todaySet[r.studentName] = r.substituteClassroom || '';
+        todaySet[cbKeyOfName_(r.studentName)] = r.substituteClassroom || '';
       }
     });
   }
@@ -16976,7 +17036,7 @@ function polDrawPicker() {
     if (_polPk.grade === '高' && g.indexOf('高') !== 0) return false;
     if (_polPk.grade && _polPk.grade !== '小' && _polPk.grade !== '高' && g !== _polPk.grade) return false;
     if (_polPk.blank && normNlJs_(s.policy || '')) return false;
-    if (_polPk.today && todaySet[s.name] === undefined) return false;
+    if (_polPk.today && todaySet[cbStuKey_(s)] === undefined) return false;
     return true;
   }).sort(function (a, b) {
     var d = polGradeRank_(a.grade) - polGradeRank_(b.grade);
