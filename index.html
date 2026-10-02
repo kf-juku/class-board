@@ -3817,7 +3817,10 @@ function leaveBadgeHtml_(s, dateStr) {
 // ===== 2コマバッジ（同一教室・当日のコマ数）2026-07-21 川上さん指示 =====
 // 川上さん確定(2026-10-02)：対面の授業はすべて数える。数えないのはオンラインと欠席だけ。
 //   塾・CA・英検・演習回・土曜演習・受験特訓・講習・テスト対策・自習・振替を数える。
-//   振替は元のコマが何でも数える（英検の振替も数える）。オンラインの授業の振替だけはオンラインのまま数えない。
+//   振替は元のコマが何でも数える（英検・オンラインの振替も数える 2026-10-03）。
+//   通常期の自習（_jishu）も数える（2026-10-03）。
+//   🚨 判定は「画面に出ている顔ぶれ」と必ず一致させる。数え方を変えたら、本番データで
+//      cbNormalRoster_ の顔ぶれ（＋受験特訓）と komaDayIndex_ のコマ数を全セル突き合わせる。
 //   ★2026-07-21 の「CA・英検・受験特訓は数えない」には戻さないこと（渡辺結斗 10/2 英検の振替で2コマが出なかった）。同じ教室でその日2コマ以上ならアンバーの「2コマ」バッジ。
 // 別教室にも数える対象のコマがある場合は「教室またぎ」赤バッジ＋本日バナー（登録ミス検知）。
 /* 本日タブで表示している日【2026-09-18】null＝今日。先の日を見ているときだけ入る。
@@ -3918,13 +3921,34 @@ function komaDayIndex_(s, iso) {
       : k.satType === 'sat' ? '土曜演習' : '塾';
     add(cr, kt, type);
   });
-  // 3) 振替来塾（連鎖欠席は除外。元コマがオンラインの振替だけは数えない 2026-10-02）
+  // 2.5) 通常期の自習（2026-10-03 川上さん指摘で追加）
+  //   🚨 2026-09-18 に自習を「自習」シート（_jishu）へ分けたとき、ここを足し忘れていた。
+  //      上の 1) は講習・テスト対策期間の割付しか見ないので、通常期の自習が数えられず
+  //      目野栞歩（10/5 久里浜 17:15・18:40・20:05 すべて自習）に3コマが出ていなかった。
+  //   画面と同じ jishuOnKoma_ で判定する（weekly/single/off・期限・講習期間の日の扱いをそろえる）。
+  (function () {
+    var seenJ = {};
+    (_jishu || []).forEach(function (r) {
+      if (!r || r.kind === 'off' || !r.classroom) return;
+      if (cbJishuStu_(r.studentId, r.studentName) !== s) return;
+      var cr = r.classroom, ktN = normKomaTime_(r.komaTime);
+      if (seenJ[cr + '|' + ktN]) return;
+      seenJ[cr + '|' + ktN] = 1;
+      // コマの時刻は教室のコマ表記にそろえる（同じコマを2つと数えないため）
+      var kt = getKomasForClassroom(cr).filter(function (k2) { return normKomaTime_(k2) === ktN; })[0] || r.komaTime;
+      if (!jishuOnKoma_(cr, kt, iso).some(function (je) { return je.student === s; })) return;
+      if (_tkAbsent_(s, iso, kt, cr)) return;
+      add(cr, kt, '自習');
+    });
+  })();
+  // 3) 振替来塾（連鎖欠席は除外。元コマが何でも数える 2026-10-03）
   (_absenceRecords || []).forEach(function (r) {
     if (!cbAbsRowIsFor_(r, s)) return;
     if (r.substituteDate !== iso || r.status === 'cancelled') return;
     if (_tkAbsent_(s, iso, r.substituteKomaTime, r.substituteClassroom)) return;
-    // 元コマの判定は cbFurikaeCat_（欠席日の曜日＋時刻＋教室で引く）にそろえる
-    var type = cbFurikaeCat_(r) === 'fu_online' ? 'オンライン' : '振替';
+    // 2026-10-03：元コマがオンラインの振替も数える。画面（cbNormalRoster_）はこの振替を
+    //   教室のチップで出し「計N人」にも入れているので、判定だけ外すと食い違う（髙橋蓮 9/4）。
+    var type = '振替';
     add(r.substituteClassroom, r.substituteKomaTime, type);
   });
   var out = {};
@@ -4344,7 +4368,7 @@ function cbFaceExtraAt_(stu, iso, kt) {
   return hit;
 }
 /* その子が その日・その教室・そのコマに「対面の振替」で来るときの振替の行（2026-10-02）
- * 元コマがオンラインの振替は返さない（オンラインのまま）。
+ * 振替はすべて対面（川上さん確定 2026-10-03「オンラインを振り替えすることはない」）。
  * 🚨 川上さん指摘(2026-10-02)：髙橋蓮 金20:05 はオンラインの通常コマ。木20:05（対面）の振替が
  *    同じ金20:05に入ったのに、「元コマに居る子の振替は足さない」作りのせいでオンラインのまま埋もれていた。
  *    優先順位（振替 ＞ 対策 ＞ 自習 ＞ オンライン 2026-09-30）どおり、振替を勝たせてオンラインは横線で残す。
@@ -4353,7 +4377,7 @@ function cbFaceSubAt_(stu, iso, kt, cr) {
   if (!stu) return null;
   return (_absenceRecords || []).find(function(r) {
     return r.status === 'scheduled' && r.substituteDate === iso && r.substituteKomaTime === kt &&
-           r.substituteClassroom === cr && cbAbsRowIsFor_(r, stu) && cbFurikaeCat_(r) !== 'fu_online';
+           r.substituteClassroom === cr && cbAbsRowIsFor_(r, stu);   // 川上さん確定(2026-10-03)：オンラインの振替は無い。振替はすべて対面
   }) || null;
 }
 function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
@@ -6397,7 +6421,7 @@ function printKoushuPeriod() {
           var _exF = items.filter(function(it) { return it.name === r.studentName; })[0];
           if (_exF) {
             // 2026-10-02：オンラインの元コマに対面の振替で来る子は振替が勝つ。オンラインは横線で残す（cbFaceSubAt_）
-            if ((_exF.type === 'online' || (_exF.struckOnl && _exF.type !== 'furikae')) && cbFurikaeCat_(r) !== 'fu_online') {
+            if (_exF.type === 'online' || (_exF.struckOnl && _exF.type !== 'furikae')) {   // 振替はすべて対面（2026-10-03）
               if (_exF.type === 'taisaku' || _exF.type === 'jishu') (_exF.marks = _exF.marks || {})[_exF.type] = 1;
               _exF.type = 'furikae'; _exF.badge = 'furikae'; _exF.fromAssign = false; _exF.struckOnl = true;
               _exF.sortKey = attendSortKey_({ grade: (rs && rs.grade) || _exF.grade || '' }, { isSub: true, subOrigType: cbFurikaeCat_(r).replace(/^fu_/, '') });
