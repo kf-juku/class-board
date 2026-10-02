@@ -1307,7 +1307,17 @@ tr.mx-done-row td { background: #f0fdf4; }
 .sf-b-single { background:#dbeafe; color:#1d4ed8; }
 .sf-b-change { background:#fef3c7; color:#92400e; }
 .sf-b-off { background:#e5e7eb; color:#4b5563; }
+/* この日だけカードの作り直し（2026-10-02 川上さん確定）
+   バーは単発を足すだけ。一覧の行はその場で直せる。時刻変更と休みは週カレンダーの小窓から。 */
+.sf-irrnote { font-size:11.5px; color:var(--text-muted); margin:0 0 6px; }
+.sf-irr .sf-sel, .sf-irr .sf-time { padding:3px 6px; font-size:11.5px; }
+.sf-irr .sf-irr-sp { margin-left:auto; display:flex; gap:6px; flex-shrink:0; }
+.sf-irr .sf-irr-base { color:var(--text-muted); }
+.sf-tilde { color:var(--text-muted); font-size:11px; }
+.sf-irr-d { font-weight:700; }
 .sf-off-text { text-decoration:line-through; color:#6b7280; }
+/* 取り消し線は休みになった勤務だけ。説明文には掛けない（2026-10-02） */
+.sf-off-note { color:var(--text-muted); }
 .sf-toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:#111827; color:#fff; padding:9px 16px; border-radius:8px; font-size:13px; z-index:9999; display:none; box-shadow:0 4px 14px rgba(0,0,0,.25); }
 /* 先生チップ（本日・今週タブ／2026-09-02 スライス4）
    生徒チップより小さく、先頭に👤を置いて生徒と見間違えないようにする。
@@ -1632,9 +1642,17 @@ tr.mx-done-row td { background: #f0fdf4; }
         <div class="sfc-fld"><label>開始</label><input type="time" id="sfe-start"></div>
         <div class="sfc-fld"><label>終了</label><input type="time" id="sfe-end"></div>
       </div>
+      <div id="sfe-offbox" style="border-top:1px dashed var(--border);padding-top:12px;margin-top:4px">
+        <label class="sfp-keep" style="font-size:12.5px">
+          <input type="checkbox" id="sfe-offall">
+          <span><b>この日は全部お休みにする</b><br>
+          <span class="sfp-hint">同じ日に他の勤務があっても、まとめて休みにします。</span></span>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-danger" onclick="sfEditDelete()">削除</button>
+      <button class="btn-secondary" id="sfe-offbtn" style="border-color:#fca5a5;color:#b91c1c" onclick="sfEditOff()">この日は休み</button>
       <span style="flex:1"></span>
       <button class="btn-secondary" onclick="closeModal('modal-sf-edit')">やめる</button>
       <button class="btn-primary" onclick="sfEditSave()">保存</button>
@@ -14533,6 +14551,9 @@ function sfWeeklyCardHtml_() {
     '<div class="card-body"><div class="sf-wcols">' + cols + '</div></div></div>';
 }
 
+/* 一覧の行をその場で直せるようにした【川上さん確定 2026-10-02】
+ *  直す処理は毎週の勤務カードと同じ sfEditShift / sfApplyKoma を使い回す。別実装を作らない。
+ *  休みの行は直すものが無いので「取り消す」だけ。取り消すとその日はふだんの勤務に戻る。 */
 function sfIrrListHtml_() {
   var rows = sfShiftsOf_(_sfStaffId, ['single', 'change', 'off']).slice().sort(function(a, b) {
     if (String(a.date) !== String(b.date)) return String(a.date) < String(b.date) ? -1 : 1;
@@ -14540,67 +14561,59 @@ function sfIrrListHtml_() {
   });
   if (!rows.length) return '<div class="sf-empty">この日だけの予定はまだありません。</div>';
   return rows.map(function(sh) {
+    var i = esc(sh.id);
     var b = sh.kind === 'single' ? '<span class="sf-b sf-b-single">単発</span>'
           : sh.kind === 'change' ? '<span class="sf-b sf-b-change">時刻変更</span>'
           : '<span class="sf-b sf-b-off">休み</span>';
     var body;
     if (sh.kind === 'off') {
       var tgt = sh.targetShiftId ? sfShiftById_(sh.targetShiftId) : null;
-      body = '<span class="sf-off-text">' + (tgt ? esc(tgt.startTime + '〜' + tgt.endTime + ' ' + tgt.classroom) : 'この日は全部お休み') + '</span>';
+      body = (tgt
+        ? '<span class="sf-off-text">' + esc('毎週' + tgt.youbi + ' ' + tgt.startTime + '〜' + tgt.endTime + ' ' + tgt.classroom) + '</span>' +
+          '<span class="sf-off-note">を休みにしています</span>'
+        : '<span class="sf-off-note">この日は全部お休み</span>') +
+        '<span class="sf-irr-sp"><button class="btn-danger" onclick="sfDelShift(\'' + i + '\')">取り消す</button></span>';
     } else {
-      body = esc(sh.startTime + '〜' + sh.endTime) + '　' + esc(sh.classroom);
+      var komas = sfKomaTimesFor_(sh.classroom, sfYoubiOf_(sh.date));
+      var base = '';
+      if (sh.kind === 'change') {
+        var w = sh.targetShiftId ? sfShiftById_(sh.targetShiftId) : null;
+        if (w) base = '<span class="sf-irr-base">毎週' + esc(w.youbi) + ' ' + esc(w.startTime + '〜' + w.endTime) + ' →</span>';
+      }
+      body = base +
+        '<select class="sf-sel" onchange="sfEditShift(\'' + i + '\',\'classroom\',this.value)">' + sfPlaceOpts_(sh.classroom) + '</select>' +
+        '<input class="sf-time" type="time" value="' + esc(sh.startTime) + '" onchange="sfEditShift(\'' + i + '\',\'startTime\',this.value)">' +
+        '<span class="sf-tilde">〜</span>' +
+        '<input class="sf-time" type="time" value="' + esc(sh.endTime) + '" onchange="sfEditShift(\'' + i + '\',\'endTime\',this.value)">' +
+        '<select class="sf-sel" onchange="sfApplyKoma(\'' + i + '\',this.value);this.selectedIndex=0;">' +
+          '<option value="">コマに合わせる…</option>' +
+          komas.map(function(x) { return '<option value="' + esc(x) + '">' + esc(x) + '</option>'; }).join('') +
+        '</select>' +
+        '<span class="sf-irr-sp"><button class="btn-danger" onclick="sfDelShift(\'' + i + '\')">削除</button></span>';
     }
-    return '<div class="sf-irr"><b class="sf-irr-d">' + esc(sfDateLabel_(sh.date)) + '</b>' + b + body +
-      '<button class="btn-danger" style="margin-left:auto" onclick="sfDelShift(\'' + esc(sh.id) + '\')">削除</button></div>';
+    return '<div class="sf-irr"><b class="sf-irr-d">' + esc(sfDateLabel_(sh.date)) + '</b>' + b + body + '</div>';
   }).join('');
 }
 
-/* 追加フォームの可変部分（対象の選択・時刻欄の出し分け）。日付と種別で中身が変わる */
+/* 単発を足すぶんだけ。種別の出し分けは無くなった（2026-10-02）
+ *  入力中の値は描き直しても残す（日付や勤務地を変えただけで時刻が戻らないように）。 */
 function sfIrrDynHtml_() {
   var date = (document.getElementById('sf-irr-date') || {}).value || '';
-  var kind = (document.getElementById('sf-irr-kind') || {}).value || 'single';
   var yb = sfYoubiOf_(date);
-  var html = '';
-  var selTarget = '';
-  if (kind === 'change' || kind === 'off') {
-    var cands = sfShiftsOf_(_sfStaffId, ['weekly']).filter(function(x) { return x.youbi === yb; })
-      .sort(function(a, b) { return sfTimeKey_(a.startTime) - sfTimeKey_(b.startTime); });
-    if (!cands.length && kind === 'change') {
-      return '<div class="sf-empty">' + (date ? esc(yb) + '曜' : 'その曜日') + 'に毎週の勤務がないので、時刻変更はできません。「単発追加」を使ってください。</div>';
-    }
-    // ★描き直しの途中では sf-irr-target がまだ無い。既定を先に決めてから option に selected を付ける。
-    //   これをしないと「時刻変更」に切り替えた直後、対象の時刻が入らない。
-    var prev = (document.getElementById('sf-irr-target') || {}).value || '';
-    var hasPrev = cands.some(function(x) { return x.id === prev; });
-    selTarget = hasPrev ? prev : ((kind === 'change' && cands.length) ? cands[0].id : '');
-    var opts = (kind === 'off' ? '<option value=""' + (selTarget ? '' : ' selected') + '>この日は全部お休み</option>' : '')
-      + cands.map(function(x) {
-          return '<option value="' + esc(x.id) + '"' + (x.id === selTarget ? ' selected' : '') + '>' +
-                 esc(x.startTime + '〜' + x.endTime + ' ' + x.classroom) + '</option>';
-        }).join('');
-    html += '<select class="sf-sel" id="sf-irr-target" onchange="sfIrrRefresh()">' + opts + '</select>';
-  }
-  if (kind !== 'off') {
-    var t = null;
-    if (kind === 'change') {
-      var tg = sfShiftById_(selTarget);
-      if (tg) t = { s: tg.startTime, e: tg.endTime, c: tg.classroom };
-    }
-    if (!t) {
-      var st = sfStaffById_(_sfStaffId);
-      t = { s: '17:00', e: '20:00', c: (st && st.defaultClassroom) || '北久里浜' };
-    }
-    var komas = sfKomaTimesFor_(t.c, yb);
-    html += '<select class="sf-sel" id="sf-irr-cr">' + sfPlaceOpts_(t.c) + '</select>' +
-      '<input class="sf-time" type="time" id="sf-irr-start" value="' + esc(t.s) + '">' +
-      '<input class="sf-time" type="time" id="sf-irr-end" value="' + esc(t.e) + '">' +
-      '<select class="sf-sel sf-komasel" onchange="sfIrrApplyKoma(this.value);this.selectedIndex=0;">' +
-        '<option value="">コマに合わせる…</option>' +
-        komas.map(function(x) { return '<option value="' + esc(x) + '">' + esc(x) + '</option>'; }).join('') +
-      '</select>';
-  }
-  html += '<button class="btn-primary btn-sm" onclick="sfAddIrr()">追加</button>';
-  return html;
+  var st = sfStaffById_(_sfStaffId);
+  var cr = (document.getElementById('sf-irr-cr') || {}).value || (st && st.defaultClassroom) || '北久里浜';
+  var s0 = (document.getElementById('sf-irr-start') || {}).value || '17:00';
+  var e0 = (document.getElementById('sf-irr-end') || {}).value || '20:00';
+  var komas = sfKomaTimesFor_(cr, yb);
+  return '<select class="sf-sel" id="sf-irr-cr" onchange="sfIrrRefresh()">' + sfPlaceOpts_(cr) + '</select>' +
+    '<input class="sf-time" type="time" id="sf-irr-start" value="' + esc(s0) + '">' +
+    '<span class="sf-tilde">〜</span>' +
+    '<input class="sf-time" type="time" id="sf-irr-end" value="' + esc(e0) + '">' +
+    '<select class="sf-sel sf-komasel" onchange="sfIrrApplyKoma(this.value);this.selectedIndex=0;">' +
+      '<option value="">コマに合わせる…</option>' +
+      komas.map(function(x) { return '<option value="' + esc(x) + '">' + esc(x) + '</option>'; }).join('') +
+    '</select>' +
+    '<button class="btn-primary btn-sm" onclick="sfAddIrr()">＋ 単発を追加</button>';
 }
 function sfIrrRefresh() {
   var host = document.getElementById('sf-irr-dyn');
@@ -14615,19 +14628,18 @@ function sfIrrApplyKoma(kt) {
   if (e) e.value = p.end;
 }
 
+/* 上のバーは「単発を足す」だけ【川上さん確定 2026-10-02】
+ *  種別プルダウン（単発追加／時刻変更／休み）を外した。何をするか先に選ばせる形が分かりにくかったため。
+ *  時刻変更と休みは週カレンダーの勤務を押して開く小窓から入れる（案B・川上さん確定 2026-10-02）。 */
 function sfIrregularCardHtml_() {
   var today = isoDate(new Date());
-  return '<div class="card"><div class="card-header">📌 この日だけ（単発・時刻変更・休み）　<span class="sf-who">' + esc(sfLabel_(_sfStaffId)) + '</span></div>' +
+  return '<div class="card"><div class="card-header">📌 この日だけ　<span class="sf-who">' + esc(sfLabel_(_sfStaffId)) + '</span></div>' +
     '<div class="card-body">' +
       '<div class="sf-irrform">' +
         '<input class="sf-time" type="date" id="sf-irr-date" value="' + esc(today) + '" onchange="sfIrrRefresh()">' +
-        '<select class="sf-sel" id="sf-irr-kind" onchange="sfIrrRefresh()">' +
-          '<option value="single">単発追加</option>' +
-          '<option value="change">時刻変更</option>' +
-          '<option value="off">休み</option>' +
-        '</select>' +
         '<span id="sf-irr-dyn"></span>' +
       '</div>' +
+      '<div class="sf-irrnote">時刻変更と休みは、下の週カレンダーの勤務を押して入れてください。</div>' +
       '<div class="sf-irrlist">' + sfIrrListHtml_() + '</div>' +
     '</div></div>';
 }
@@ -15178,6 +15190,11 @@ function sfOpenEdit(uid) {
   document.getElementById('sfe-place').innerHTML = sfPlaceOpts_(it.classroom);
   document.getElementById('sfe-start').value = it.start;
   document.getElementById('sfe-end').value = it.end;
+  /* 「この日は休み」は毎週の勤務にぶら下がるものだけ。単発には出さない（削除で消える）2026-10-02 */
+  var canOff = !!it.weeklyId;
+  document.getElementById('sfe-offbtn').style.display = canOff ? '' : 'none';
+  document.getElementById('sfe-offbox').style.display = canOff ? '' : 'none';
+  document.getElementById('sfe-offall').checked = false;
   openModal('modal-sf-edit');
 }
 function sfEditSave() {
@@ -15200,6 +15217,26 @@ function sfEditSave() {
   }
   sfAskScope('move', rec, n);
 }
+/* 週カレンダーのカードから「この日は休み」【川上さん確定 2026-10-02】
+ *  いままで「この日だけ」カードのバーにあった休みの入口を、ここへ移した。
+ *  チェックを入れると targetShiftId を空にして、その日の勤務を全部休みにする（前のバーと同じ動き）。
+ *  🚨 毎週の勤務そのものは消さない。off を1本足すだけ。 */
+function sfEditOff() {
+  var rec = _sfEdit; if (!rec) return;
+  var it = rec.it;
+  var all = !!(document.getElementById('sfe-offall') || {}).checked;
+  if (!it.weeklyId) { sfToast_('この日だけの予定は休みにできません。削除してください'); return; }
+  var target = all ? '' : it.weeklyId;
+  var dup = (_staffShifts || []).filter(function(x) {
+    return x.kind === 'off' && String(x.staffId) === String(it.staffId) &&
+           x.date === rec.date && String(x.targetShiftId || '') === String(target);
+  });
+  closeModal('modal-sf-edit');
+  if (dup.length) { sfToast_('その日の休みはもう入っています'); return; }
+  sfCommit_([sfNewRec_({ staffId: it.staffId, kind: 'off', date: rec.date, targetShiftId: target })], [],
+    all ? 'この日は全部お休みにしました' : 'この日を休みにしました');
+}
+
 function sfEditDelete() {
   var rec = _sfEdit; if (!rec) return;
   var it = rec.it;
@@ -15314,32 +15351,19 @@ function sfAddWeekly(youbi) {
   });
 }
 
+/* 単発だけを足す（2026-10-02）。時刻変更・休みは週カレンダーの小窓から入れる */
 function sfAddIrr() {
   var date = (document.getElementById('sf-irr-date') || {}).value || '';
-  var kind = (document.getElementById('sf-irr-kind') || {}).value || 'single';
   if (!date) { sfToast_('日付を選んでください'); return; }
-  var target = (document.getElementById('sf-irr-target') || {}).value || '';
-  if (kind === 'change' && !target) { sfToast_('どの勤務を変更するか選んでください'); return; }
-
-  var cr = '', s = '', e = '';
-  if (kind !== 'off') {
-    cr = (document.getElementById('sf-irr-cr') || {}).value || '';
-    s  = (document.getElementById('sf-irr-start') || {}).value || '';
-    e  = (document.getElementById('sf-irr-end') || {}).value || '';
-    if (!s || !e) { sfToast_('開始と終了の時刻を入れてください'); return; }
-    if (sfTimeKey_(s) >= sfTimeKey_(e)) { sfToast_('終了は開始より後にしてください'); return; }
-  }
-  // 同じ日・同じ対象の重複を防ぐ（change / off は1日1件でよい）
-  if (kind !== 'single') {
-    var dup = sfShiftsOf_(_sfStaffId, [kind]).filter(function(x) {
-      return x.date === date && String(x.targetShiftId || '') === String(target || '');
-    });
-    if (dup.length) { sfToast_('その日の同じ予定はもう入っています'); return; }
-  }
+  var cr = (document.getElementById('sf-irr-cr') || {}).value || '';
+  var s0 = (document.getElementById('sf-irr-start') || {}).value || '';
+  var e0 = (document.getElementById('sf-irr-end') || {}).value || '';
+  if (!s0 || !e0) { sfToast_('開始と終了の時刻を入れてください'); return; }
+  if (sfTimeKey_(s0) >= sfTimeKey_(e0)) { sfToast_('終了は開始より後にしてください'); return; }
   sfSave_({
-    id: sfNewId_(), staffId: _sfStaffId, kind: kind, youbi: '', date: date,
-    startTime: s, endTime: e, classroom: cr, komaTime: '',
-    validFrom: '', validTo: '', targetShiftId: target, memo: ''
+    id: sfNewId_(), staffId: _sfStaffId, kind: 'single', youbi: '', date: date,
+    startTime: s0, endTime: e0, classroom: cr, komaTime: '',
+    validFrom: '', validTo: '', koushuKeep: false, targetShiftId: '', memo: ''
   });
 }
 
