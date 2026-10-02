@@ -3750,8 +3750,10 @@ function leaveBadgeHtml_(s, dateStr) {
 }
 
 // ===== 2コマバッジ（同一教室・当日のコマ数）2026-07-21 川上さん指示 =====
-// 数える対象：塾・振替・講習・テスト対策・演習回・土曜演習。CA・オンライン・英検・受験特訓・欠席は数えない。
-// 振替で来たコマは数える。同じ教室でその日2コマ以上ならアンバーの「2コマ」バッジ。
+// 川上さん確定(2026-10-02)：対面の授業はすべて数える。数えないのはオンラインと欠席だけ。
+//   塾・CA・英検・演習回・土曜演習・受験特訓・講習・テスト対策・自習・振替を数える。
+//   振替は元のコマが何でも数える（英検の振替も数える）。オンラインの授業の振替だけはオンラインのまま数えない。
+//   ★2026-07-21 の「CA・英検・受験特訓は数えない」には戻さないこと（渡辺結斗 10/2 英検の振替で2コマが出なかった）。同じ教室でその日2コマ以上ならアンバーの「2コマ」バッジ。
 // 別教室にも数える対象のコマがある場合は「教室またぎ」赤バッジ＋本日バナー（登録ミス検知）。
 /* 本日タブで表示している日【2026-09-18】null＝今日。先の日を見ているときだけ入る。
  * 🚨 表示だけの仕組み。タスクの繰り越し（autoCarryOverTasks）は今日基準のまま動き、
@@ -3794,7 +3796,7 @@ var _twoKomaCache = {};
 function _resetTwoKomaCache() { _twoKomaCache = {}; _jishuCache = {}; _ksJcntCache = null; _ksJcntPid = ''; }
 function _youbiFromIso_(iso) { try { return YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()]; } catch (e) { return ''; } }
 function _tkTimeKey_(t) { return parseInt((t || '').replace(/[：:]/, '').substring(0, 4)) || 0; }
-function _tkCountable_(t) { return t !== 'CA' && t !== 'オンライン' && t !== '英検'; }
+function _tkCountable_(t) { return t !== 'オンライン'; }   // 川上さん確定(2026-10-02)：オンライン以外はすべて数える
 // 2026-09-21：生徒オブジェクトでも氏名でも受ける。オブジェクトで渡すほうが正しい（同姓同名で別人を拾わない）
 function _tkAbsent_(who, iso, kt, cr) {
   var sObj = (who && typeof who === 'object') ? who : cbFindStudent_('', String(who || ''), '振替', _absUnresolved);
@@ -3830,9 +3832,8 @@ function komaDayIndex_(s, iso) {
       add(a.classroom, a.komaTime, type);
     });
   }
-  // 2) 通常コマ（受験特訓は数えない）
+  // 2) 通常コマ（受験特訓も数える 2026-10-02）
   (s.komas || []).forEach(function (k) {
-    if (k.satType === 'juken') return;
     var cr = k.classroom || getMainClassroom(s);
     var kt = k.time, matches = false;
     if (k.satType === 'hira' && k.hiraKoma) {
@@ -3847,18 +3848,18 @@ function komaDayIndex_(s, iso) {
     var type = k.online ? 'オンライン'
       : (k.id || '').indexOf('ca_') === 0 ? 'CA'
       : k.satType === 'eiken' ? '英検'
+      : k.satType === 'juken' ? '受験特訓'
       : (k.satType === 'enshuu' || k.satType === 'hira') ? '演習回'
       : k.satType === 'sat' ? '土曜演習' : '塾';
     add(cr, kt, type);
   });
-  // 3) 振替来塾（連鎖欠席・CA/オンライン/英検の元コマは除外）
+  // 3) 振替来塾（連鎖欠席は除外。元コマがオンラインの振替だけは数えない 2026-10-02）
   (_absenceRecords || []).forEach(function (r) {
     if (!cbAbsRowIsFor_(r, s)) return;
     if (r.substituteDate !== iso || r.status === 'cancelled') return;
     if (_tkAbsent_(s, iso, r.substituteKomaTime, r.substituteClassroom)) return;
-    var type = '振替';
-    var ok = (s.komas || []).find(function (k) { return k.time === r.komaTime; });
-    if (ok) { if ((ok.id || '').indexOf('ca_') === 0) type = 'CA'; else if (ok.online) type = 'オンライン'; else if (ok.satType === 'eiken') type = '英検'; }
+    // 元コマの判定は cbFurikaeCat_（欠席日の曜日＋時刻＋教室で引く）にそろえる
+    var type = cbFurikaeCat_(r) === 'fu_online' ? 'オンライン' : '振替';
     add(r.substituteClassroom, r.substituteKomaTime, type);
   });
   var out = {};
@@ -4589,7 +4590,7 @@ function twoKomaBadgeHtml_(s, iso, classroom) {
   if (parts.length < 2) return '';
   var tip = 'この日 ' + parts.length + 'コマ\n' +
     parts.map(function (p) { return p.time + ' ' + p.type; }).join('\n') +
-    '\n──\n同じ教室で2コマ以上を表示。CA・オンライン・英検・欠席は数えません。';
+    '\n──\n同じ教室で2コマ以上を表示。オンラインと欠席だけは数えません。';
   return '<span class="badge-2koma" data-tooltip="' + esc(tip) + '">' + parts.length + 'コマ</span>';
 }
 // 教室またぎバッジHTML（別教室にも数える対象のコマがある）
@@ -4624,7 +4625,7 @@ function crossBannerHtml_(iso) {
 function komaBadgeNoteHtml_() {
   var body = '<b>2コマバッジの見方</b><br>' +
     '・同じ教室でその日2コマ以上ある子に「2コマ」バッジ（アンバー）を付けます。バッジにカーソルを合わせると内訳が出ます。<br>' +
-    '・数える対象：塾・振替・講習・テスト対策・演習回・土曜演習。<b>CA・オンライン・英検・受験特訓・欠席は数えません</b>。振替で来たコマは数えます。<br>' +
+    '・教室で受ける授業はすべて数えます（塾・CA・英検・演習回・土曜演習・受験特訓・講習・テスト対策・自習・振替）。<b>オンラインと欠席だけは数えません</b>。<br>' +
     '・「教室またぎ」赤バッジ：同じ日に別の教室にも授業があるときの注意表示（通常はありません。登録ミスの可能性）。';
   return '<span class="cb-help" style="margin-left:8px;cursor:help">' +
     '<span style="font-size:12px;color:var(--text-muted);font-weight:600;border-bottom:1px dotted var(--text-muted)">ⓘ 2コマバッジの見方</span>' +
@@ -7832,7 +7833,12 @@ function subKomaType_(rec, studentObj) {
   }
   var origKoma = null;
   if (s && s.komas) {
+    // 2026-10-02：欠席日の曜日も見る（同じ時刻のコマが別の曜日にあると、別のコマを拾っていた）
+    var _yb = '';
+    try { _yb = YOUBI_MAP[new Date(rec.absenceDate + 'T00:00:00').getDay()]; } catch (e) { _yb = ''; }
     origKoma = s.komas.find(function(k) {
+      return k.classroom === rec.classroom && k.time === rec.komaTime && (!_yb || !k.youbi || k.youbi === _yb);
+    }) || s.komas.find(function(k) {
       return k.classroom === rec.classroom && k.time === rec.komaTime;
     });
   }
@@ -7841,6 +7847,10 @@ function subKomaType_(rec, studentObj) {
   }
   if (origKoma && (origKoma.satType === 'enshuu' || origKoma.satType === 'hira')) {
     return { label: '演習回', bg: '#dcfce7', fg: '#16a34a' };
+  }
+  // 2026-10-02：英検コマの振替を「塾」と出していた（コマ見出しの「振英検」と食い違い）
+  if (origKoma && origKoma.satType === 'eiken') {
+    return { label: '英検', bg: '#FAEEDA', fg: '#854F0B' };
   }
   return { label: '塾', bg: '#0ea5e9', fg: '#ffffff' };
 }
