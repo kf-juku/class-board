@@ -1338,6 +1338,18 @@ tr.mx-done-row td { background: #f0fdf4; }
 .sf-wnone { font-size:11px; color:var(--text-muted); text-align:center; padding:2px 0; }
 .sf-wadd { font-size:11px; border:1px dashed var(--border); border-radius:6px; background:#fff; padding:4px; cursor:pointer; color:var(--text-muted); }
 .sf-wadd:hover { border-color:var(--crimson); color:var(--crimson); }
+/* 毎週の勤務：期間ボタンと小窓（2026-10-02 川上さん確定） */
+.sf-wper { width:100%; font-family:inherit; font-size:10px; line-height:1.45; text-align:left;
+  border:1px solid var(--border); border-radius:5px; padding:2px 4px; cursor:pointer;
+  background:#f8f9fb; color:var(--text-muted); }
+.sf-wper:hover { border-color:var(--crimson); color:var(--crimson); }
+.sf-wper.lim  { background:#fff4f4; border-color:#f4c7c3; color:#a50e0e; font-weight:700; }
+.sf-wper.keep { background:#eff6ff; border-color:#bfdbfe; color:#1e40af; font-weight:700; }
+.sfp-hint { font-size:11.5px; color:var(--text-muted); line-height:1.7; }
+.sfp-keep { display:flex; align-items:flex-start; gap:7px; font-size:13px; cursor:pointer;
+  background:#f6f9ff; border:1px solid #c9ddf7; border-radius:8px; padding:10px 12px; }
+.sfp-keep input { margin-top:2px; }
+.sfp-keep.sfp-off { opacity:.4; pointer-events:none; }
 @media (max-width:1100px) { .sf-wcols { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 /* ── 勤務割タブ：週カレンダー（2026-09-02 スライス3）──
    クラス名は sfc- 接頭辞。既存の .card / .day 等と衝突させない */
@@ -1388,6 +1400,10 @@ tr.mx-done-row td { background: #f0fdf4; }
 .sfc-card.juku { background:#fce8e6; border-color:#f4c7c3; border-left-color:#c5221f; color:#a50e0e; }
 .sfc-card.ca   { background:#f3e8ff; border-color:#e0ccff; border-left-color:#7c3aed; color:#6d28d9; }
 .sfc-card.home { background:#f1f3f4; border-color:#dadce0; border-left-color:#80868b; color:#5f6368; }
+/* 講習期間に止まっている「ふだんの勤務」。薄い点線で残す（川上さん確定 2026-10-02）。
+   クリックもドラッグもできない（sfDayDown で弾いている） */
+.sfc-card.ghost { background:repeating-linear-gradient(135deg,#f6f7f8,#f6f7f8 4px,#eceef0 4px,#eceef0 8px);
+  border:1px dashed #c3c8ce; border-left:3px dashed #aab0b7; color:#8a9199; box-shadow:none; cursor:default; }
 .sfc-homehead { padding:6px 12px; font-weight:700; font-size:13px; background:#faf7ff; border-bottom:1px solid #e2d9f5; }
 .sfc-homegrid { display:grid; grid-template-columns:62px repeat(7,minmax(0,1fr)); }
 .sfc-homegrid .hl { font-size:10px; font-weight:700; padding:6px; border-right:2px solid var(--border); display:flex; align-items:center; }
@@ -1614,6 +1630,37 @@ tr.mx-done-row td { background: #f0fdf4; }
       <span style="flex:1"></span>
       <button class="btn-secondary" onclick="closeModal('modal-sf-edit')">やめる</button>
       <button class="btn-primary" onclick="sfEditSave()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-sf-period" onclick="if(event.target===this)closeModal('modal-sf-period')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span>&#128197; この勤務の期間</span>
+      <span class="modal-close" onclick="closeModal('modal-sf-period')">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="sfc-fixed" id="sfp-who" style="margin-bottom:12px"></div>
+      <div class="sfc-fld"><label>講習期間から選ぶ</label>
+        <select id="sfp-period" onchange="sfPerPick(this.value)"></select>
+        <div class="sfp-hint">選ぶと下の日付が入ります。入れたあと日付を直してもかまいません。</div>
+      </div>
+      <div class="sfc-row2">
+        <div class="sfc-fld"><label>開始日</label><input type="date" id="sfp-from" onchange="sfPerSync_()"></div>
+        <div class="sfc-fld"><label>終了日</label><input type="date" id="sfp-to" onchange="sfPerSync_()"></div>
+      </div>
+      <div class="sfp-hint" style="margin:-4px 0 12px">両方とも空なら「ずっと」。片方だけ入れてもかまいません。</div>
+      <label class="sfp-keep" id="sfp-keepbox">
+        <input type="checkbox" id="sfp-keep">
+        <span><b>講習期間中もこの勤務を続ける</b><br>
+        <span class="sfp-hint">チェックを入れないと、講習期間の日はこの勤務が止まります。事務など、講習期間でも勤務が変わらない人はチェックを入れてください。</span></span>
+      </label>
+      <div class="sfp-hint" id="sfp-keepoff" style="display:none;color:#a50e0e;margin-top:6px">期間が入っているので、この設定は使いません（この期間だけの勤務です）。</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-sf-period')">やめる</button>
+      <button class="btn-primary" onclick="sfPerSave()">保存</button>
     </div>
   </div>
 </div>
@@ -14380,8 +14427,87 @@ function sfWeeklyItemHtml_(sh) {
       '<input type="time" value="' + esc(sh.endTime) + '" onchange="sfEditShift(\'' + i + '\',\'endTime\',this.value)">' +
     '</div>' +
     '<select onchange="sfApplyKoma(\'' + i + '\',this.value);this.selectedIndex=0;">' + opts + '</select>' +
+    '<button class="sf-wper ' + sfPerCls_(sh) + '" onclick="sfOpenPeriod(\'' + i + '\')">' + esc(sfPerLabel_(sh)) + '</button>' +
     '<button class="sf-wdel" onclick="sfDelShift(\'' + i + '\')">削除</button>' +
     '</div>';
+}
+
+/* ── 毎週の勤務の期間【川上さん確定 2026-10-02】────────────────────────────
+ *  開始日(validFrom)・終了日(validTo) は空＝ずっと。既存レコードは空なので挙動は変わらない。
+ *  「期間なし」かつ koushuKeep にチェックが無い毎週の勤務は、講習期間の日だけ止める。
+ *  テスト対策期間では止めない（川上さん確定 2026-10-02）。判定は自習と同じ jishuHiddenDate_ を使う。
+ *  その日に「時刻変更（change）」が入っている勤務は本人が明示した予定なので止めない。
+ *  期間つきの勤務（講習用に足したもの）は koushuKeep を使わない。その期間だけの勤務だから。
+ */
+function sfKoushuStopped_(w, dateIso) {
+  if (!w || w.kind !== 'weekly') return false;
+  if (w.validFrom || w.validTo) return false;
+  if (w.koushuKeep) return false;
+  return jishuHiddenDate_(dateIso);
+}
+function sfPerCls_(sh) {
+  if (sh.validFrom || sh.validTo) return 'lim';
+  return sh.koushuKeep ? 'keep' : '';
+}
+function sfPerMd_(iso) {
+  var p = String(iso || '').split('-');
+  return p.length === 3 ? (Number(p[1]) + '/' + Number(p[2])) : String(iso || '');
+}
+function sfPerLabel_(sh) {
+  if (sh.validFrom || sh.validTo) {
+    return '\ud83d\udcc5 ' + (sh.validFrom ? sfPerMd_(sh.validFrom) : '') + '〜' + (sh.validTo ? sfPerMd_(sh.validTo) : '');
+  }
+  return sh.koushuKeep ? '\ud83d\udcc5 ずっと・講習中も' : '\ud83d\udcc5 ずっと';
+}
+
+var _sfPerId = '';
+function sfOpenPeriod(shiftId) {
+  var sh = sfShiftById_(shiftId);
+  if (!sh) return;
+  _sfPerId = shiftId;
+  document.getElementById('sfp-who').textContent =
+    sfLabel_(sh.staffId) + '　' + sh.youbi + '曜 ' + sh.startTime + '〜' + sh.endTime + '　' + sh.classroom;
+  var ps = (_koushuPeriods || []).filter(function(p) {
+      return p && p.type !== 'test' && p.startDate && p.endDate;
+    }).sort(function(a, b) { return a.startDate < b.startDate ? -1 : 1; });
+  var sel = document.getElementById('sfp-period');
+  sel.innerHTML = '<option value="">（選ばない）</option>' +
+    ps.map(function(p) {
+      return '<option value="' + esc(p.startDate) + '|' + esc(p.endDate) + '">' +
+        esc(p.name) + '　' + esc(p.startDate) + '〜' + esc(p.endDate) + '</option>';
+    }).join('');
+  sel.value = '';
+  document.getElementById('sfp-from').value = sh.validFrom || '';
+  document.getElementById('sfp-to').value   = sh.validTo || '';
+  document.getElementById('sfp-keep').checked = !!sh.koushuKeep;
+  sfPerSync_();
+  openModal('modal-sf-period');
+}
+function sfPerPick(v) {
+  var p = String(v || '').split('|');
+  document.getElementById('sfp-from').value = p[0] || '';
+  document.getElementById('sfp-to').value   = p[1] || '';
+  sfPerSync_();
+}
+/* 期間が入っているときは「講習中も同じ」を押せなくする（その期間だけの勤務なので使わない） */
+function sfPerSync_() {
+  var has = !!(document.getElementById('sfp-from').value || document.getElementById('sfp-to').value);
+  document.getElementById('sfp-keepbox').classList.toggle('sfp-off', has);
+  document.getElementById('sfp-keepoff').style.display = has ? 'block' : 'none';
+  if (has) document.getElementById('sfp-keep').checked = false;
+}
+function sfPerSave() {
+  var sh = sfShiftById_(_sfPerId);
+  if (!sh) { closeModal('modal-sf-period'); return; }
+  var f = document.getElementById('sfp-from').value || '';
+  var t = document.getElementById('sfp-to').value || '';
+  if (f && t && f > t) { sfToast_('終了日は開始日より後にしてください'); return; }
+  var copy = JSON.parse(JSON.stringify(sh));
+  copy.validFrom  = f;
+  copy.validTo    = t;
+  copy.koushuKeep = (f || t) ? false : document.getElementById('sfp-keep').checked;
+  closeModal('modal-sf-period');
+  sfSave_(copy);
 }
 
 /* 曜日は横並び（カレンダーと同じ並び・川上さん指摘 2026-09-02）。日曜も出す */
@@ -14564,7 +14690,7 @@ function shiftsOnDate_(dateIso, youbi) {
     var c = null;
     chgs.forEach(function(x) { if (x.targetShiftId === w.id) c = x; });
     if (c) out.push({ staffId: w.staffId, start: c.startTime, end: c.endTime, classroom: c.classroom, kind: 'change', weeklyId: w.id, oneoffId: c.id });
-    else   out.push({ staffId: w.staffId, start: w.startTime, end: w.endTime, classroom: w.classroom, kind: 'weekly', weeklyId: w.id, oneoffId: '' });
+    else   out.push({ staffId: w.staffId, start: w.startTime, end: w.endTime, classroom: w.classroom, kind: 'weekly', weeklyId: w.id, oneoffId: '', stopped: sfKoushuStopped_(w, dateIso) });
   });
   offs.forEach(function(o) {
     var tg = o.targetShiftId ? sfShiftById_(o.targetShiftId) : null;
@@ -14585,6 +14711,7 @@ function shiftsOnDate_(dateIso, youbi) {
 function shiftsForKoma_(dateIso, youbi, classroom, komaTime) {
   return shiftsOnDate_(dateIso, youbi).filter(function(x) {
     if (x.kind === 'off') return false;                 // 休みはコマに出さない
+    if (x.stopped) return false;                        // 講習期間で止まっている勤務（2026-10-02）
     if (x.classroom !== classroom) return false;        // 在宅は教室のコマに出さない
     if (!x.start || !x.end) return false;
     return tkTimeOverlap_(x.start + '〜' + x.end, komaTime);
@@ -14805,11 +14932,20 @@ function sfCardHtml_(c, dIso, cr, segs) {
   var h = Math.max(15, Math.round(sfM2px_(segs, c.e)) - top);
   var w = 100 / c.of, left = c.lane * w;
   var bd = x.kind === 'single' ? '<span class="bd">単発</span>' : x.kind === 'change' ? '<span class="bd">変更</span>' : '';
-  return '<div class="sfc-card ' + sfWorkKind_(x) + '" data-uid="' + uid + '" style="top:' + top + 'px;height:' + h + 'px;' +
+  /* 期間限定の勤務【川上さん確定 2026-10-02】
+     カードの幅は1枠45〜90pxしかなく、「📅 9/29〜10/12」は必ず切れる（2026-10-02 実測）。
+     名前の前に 📅 を置き、期間そのものはホバー（title）で見せる。 */
+  var wk = x.weeklyId ? sfShiftById_(x.weeklyId) : null;
+  var hasPer = !!(wk && (wk.validFrom || wk.validTo));
+  var tip = x.stopped ? 'ふだんの勤務。講習期間は止まっています'
+          : (hasPer ? ('期間限定：' + (wk.validFrom || '') + ' 〜 ' + (wk.validTo || '')) : '');
+  return '<div class="sfc-card ' + (x.stopped ? 'ghost' : sfWorkKind_(x)) + '" data-uid="' + uid + '"' +
+    (tip ? ' title="' + esc(tip) + '"' : '') +
+    ' style="top:' + top + 'px;height:' + h + 'px;' +
     'left:calc(' + left + '% + 2px);width:calc(' + w + '% - 4px)">' +
-    '<span class="nm">' + esc(sfLabel_(x.staffId).replace('先生','')) + ' ' + bd + '</span>' +
+    '<span class="nm">' + (hasPer ? '\ud83d\udcc5' : '') + esc(sfLabel_(x.staffId).replace('先生','')) + ' ' + bd + '</span>' +
     (h >= 30 ? '<span class="tm">' + esc(x.start + '〜' + x.end) + '</span>' : '') +
-    '<div class="rz"></div></div>';
+    (x.stopped ? '' : '<div class="rz"></div>') + '</div>';
 }
 function sfHchipHtml_(x, dIso) {
   var uid = 'sfk' + (++_sfCardUid);
@@ -14852,7 +14988,7 @@ function sfNewRec_(o) {
     youbi: o.youbi || '', date: o.date || '',
     startTime: o.startTime || '', endTime: o.endTime || '',
     classroom: o.classroom || '', komaTime: o.komaTime || '',
-    validFrom: o.validFrom || '', validTo: o.validTo || '',
+    validFrom: o.validFrom || '', validTo: o.validTo || '', koushuKeep: !!o.koushuKeep,
     targetShiftId: o.targetShiftId || '', memo: o.memo || ''
   };
 }
@@ -14872,6 +15008,7 @@ function sfDayDown(ev, dayEl) {
   ev.preventDefault();
   var uid = cardEl.getAttribute('data-uid');
   var rec = _sfCards[uid]; if (!rec) return;
+  if (rec.it && rec.it.stopped) return;   // 講習期間で止まっている勤務は動かさせない（2026-10-02）
   var isRz = !!(ev.target.classList && ev.target.classList.contains('rz'));
   var r = cardEl.getBoundingClientRect();
   _sfDrag = { uid: uid, rec: rec, el: cardEl, mode: isRz ? 'resize' : 'move',
@@ -15025,6 +15162,7 @@ function sfScopePick(scope) {
 // ── 修正・削除 ──
 function sfOpenEdit(uid) {
   var rec = _sfCards[uid]; if (!rec) return;
+  if (rec.it && rec.it.stopped) return;   // 講習期間で止まっている勤務は開かせない（2026-10-02）
   _sfEdit = rec;
   var it = rec.it;
   var kindLabel = it.kind === 'weekly' ? '毎週の勤務' : it.kind === 'change' ? '時刻変更（この日だけ）' : '単発（この日だけ）';
@@ -15164,7 +15302,7 @@ function sfAddWeekly(youbi) {
     id: sfNewId_(), staffId: _sfStaffId, kind: 'weekly', youbi: youbi, date: '',
     startTime: p ? p.start : '17:00', endTime: p ? p.end : '20:00',
     classroom: cr, komaTime: p ? komas[0] : '',
-    validFrom: '', validTo: '', targetShiftId: '', memo: ''
+    validFrom: '', validTo: '', koushuKeep: false, targetShiftId: '', memo: ''
   });
 }
 
