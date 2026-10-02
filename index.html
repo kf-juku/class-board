@@ -1642,17 +1642,9 @@ tr.mx-done-row td { background: #f0fdf4; }
         <div class="sfc-fld"><label>開始</label><input type="time" id="sfe-start"></div>
         <div class="sfc-fld"><label>終了</label><input type="time" id="sfe-end"></div>
       </div>
-      <div id="sfe-offbox" style="border-top:1px dashed var(--border);padding-top:12px;margin-top:4px">
-        <label class="sfp-keep" style="font-size:12.5px">
-          <input type="checkbox" id="sfe-offall">
-          <span><b>この日は全部お休みにする</b><br>
-          <span class="sfp-hint">同じ日に他の勤務があっても、まとめて休みにします。</span></span>
-        </label>
-      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-danger" onclick="sfEditDelete()">削除</button>
-      <button class="btn-secondary" id="sfe-offbtn" style="border-color:#fca5a5;color:#b91c1c" onclick="sfEditOff()">この日は休み</button>
       <span style="flex:1"></span>
       <button class="btn-secondary" onclick="closeModal('modal-sf-edit')">やめる</button>
       <button class="btn-primary" onclick="sfEditSave()">保存</button>
@@ -14639,7 +14631,7 @@ function sfIrregularCardHtml_() {
         '<input class="sf-time" type="date" id="sf-irr-date" value="' + esc(today) + '" onchange="sfIrrRefresh()">' +
         '<span id="sf-irr-dyn"></span>' +
       '</div>' +
-      '<div class="sf-irrnote">時刻変更と休みは、下の週カレンダーの勤務を押して入れてください。</div>' +
+      '<div class="sf-irrnote">時刻を変える・休みにするときは、下の週カレンダーの勤務を押してください。</div>' +
       '<div class="sf-irrlist">' + sfIrrListHtml_() + '</div>' +
     '</div></div>';
 }
@@ -15098,17 +15090,22 @@ function sfAskScope(mode, src, next) {
   _sfScope = { mode: mode, src: src, next: next };
   var it = src.it, w = sfShiftById_(it.weeklyId);
   var base = w ? (w.youbi + '曜 ' + w.startTime + '〜' + w.endTime + ' ' + w.classroom) : '';
-  document.getElementById('sfs-title').textContent = (mode === 'delete') ? 'どこまで削除しますか' : 'どこまで反映しますか';
+  /* 文言は「何が起きるか」を書く【川上さん指摘 2026-10-02】
+     前は変更なしで保存すると「9/30(水) だけ 9/30(水) 16:20〜17:10 久里浜 にする」と同じ値が並んで意味が通らなかった。
+     削除の「この予定だけ」＝その日を休みにする、と言い切る（休みの入口はこれ1つ）。 */
+  document.getElementById('sfs-title').textContent = (mode === 'delete') ? 'どこまで消しますか' : 'どこまで変えますか';
   document.getElementById('sfs-desc').textContent = sfLabel_(it.staffId) + '　毎週の勤務（' + base + '）　対象日 ' + sfDateLabel_(src.date);
   if (mode === 'delete') {
-    document.getElementById('sfs-one').textContent    = sfDateLabel_(src.date) + ' の分だけ消す。毎週の勤務は残る';
-    document.getElementById('sfs-future').textContent = sfDateLabel_(src.date) + ' 以降をやめる。それより前の週は残る';
+    document.getElementById('sfs-one').textContent    = sfDateLabel_(src.date) + ' を休みにする。毎週の勤務は残る';
+    document.getElementById('sfs-future').textContent = sfDateLabel_(src.date) + ' 以降の毎週の勤務をやめる。それより前の週は残る';
     document.getElementById('sfs-all').textContent    = '毎週の勤務そのものを消す。過去の週からも消える';
   } else {
     var t = next.startTime + '〜' + next.endTime + ' ' + next.classroom;
-    document.getElementById('sfs-one').textContent    = sfDateLabel_(src.date) + ' だけ ' + sfDateLabel_(next.date) + ' ' + t + ' にする';
-    document.getElementById('sfs-future').textContent = sfDateLabel_(next.date) + ' 以降を毎週 ' + t + ' にする';
-    document.getElementById('sfs-all').textContent    = '毎週の勤務そのものを ' + t + ' に変える';
+    var moved = (next.date !== src.date);
+    document.getElementById('sfs-one').textContent    = sfDateLabel_(src.date) + ' だけ ' + t +
+      (moved ? ('（' + sfDateLabel_(next.date) + ' に動かす）') : '') + ' にする。毎週の勤務は変わらない';
+    document.getElementById('sfs-future').textContent = sfDateLabel_(next.date) + ' 以降の毎週の勤務を ' + t + ' にする。それより前の週は変わらない';
+    document.getElementById('sfs-all').textContent    = '毎週の勤務そのものを ' + t + ' に変える。過去の週も変わる';
   }
   openModal('modal-sf-scope');
 }
@@ -15190,11 +15187,6 @@ function sfOpenEdit(uid) {
   document.getElementById('sfe-place').innerHTML = sfPlaceOpts_(it.classroom);
   document.getElementById('sfe-start').value = it.start;
   document.getElementById('sfe-end').value = it.end;
-  /* 「この日は休み」は毎週の勤務にぶら下がるものだけ。単発には出さない（削除で消える）2026-10-02 */
-  var canOff = !!it.weeklyId;
-  document.getElementById('sfe-offbtn').style.display = canOff ? '' : 'none';
-  document.getElementById('sfe-offbox').style.display = canOff ? '' : 'none';
-  document.getElementById('sfe-offall').checked = false;
   openModal('modal-sf-edit');
 }
 function sfEditSave() {
@@ -15217,26 +15209,6 @@ function sfEditSave() {
   }
   sfAskScope('move', rec, n);
 }
-/* 週カレンダーのカードから「この日は休み」【川上さん確定 2026-10-02】
- *  いままで「この日だけ」カードのバーにあった休みの入口を、ここへ移した。
- *  チェックを入れると targetShiftId を空にして、その日の勤務を全部休みにする（前のバーと同じ動き）。
- *  🚨 毎週の勤務そのものは消さない。off を1本足すだけ。 */
-function sfEditOff() {
-  var rec = _sfEdit; if (!rec) return;
-  var it = rec.it;
-  var all = !!(document.getElementById('sfe-offall') || {}).checked;
-  if (!it.weeklyId) { sfToast_('この日だけの予定は休みにできません。削除してください'); return; }
-  var target = all ? '' : it.weeklyId;
-  var dup = (_staffShifts || []).filter(function(x) {
-    return x.kind === 'off' && String(x.staffId) === String(it.staffId) &&
-           x.date === rec.date && String(x.targetShiftId || '') === String(target);
-  });
-  closeModal('modal-sf-edit');
-  if (dup.length) { sfToast_('その日の休みはもう入っています'); return; }
-  sfCommit_([sfNewRec_({ staffId: it.staffId, kind: 'off', date: rec.date, targetShiftId: target })], [],
-    all ? 'この日は全部お休みにしました' : 'この日を休みにしました');
-}
-
 function sfEditDelete() {
   var rec = _sfEdit; if (!rec) return;
   var it = rec.it;
