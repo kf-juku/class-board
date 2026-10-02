@@ -4278,6 +4278,19 @@ function cbFaceExtraAt_(stu, iso, kt) {
   }
   return hit;
 }
+/* その子が その日・その教室・そのコマに「対面の振替」で来るときの振替の行（2026-10-02）
+ * 元コマがオンラインの振替は返さない（オンラインのまま）。
+ * 🚨 川上さん指摘(2026-10-02)：髙橋蓮 金20:05 はオンラインの通常コマ。木20:05（対面）の振替が
+ *    同じ金20:05に入ったのに、「元コマに居る子の振替は足さない」作りのせいでオンラインのまま埋もれていた。
+ *    優先順位（振替 ＞ 対策 ＞ 自習 ＞ オンライン 2026-09-30）どおり、振替を勝たせてオンラインは横線で残す。
+ *    画面 cbNormalRoster_／講習 cbKoushuObjs_／B4 printKoushuPeriod の3か所がこれを使う。 */
+function cbFaceSubAt_(stu, iso, kt, cr) {
+  if (!stu) return null;
+  return (_absenceRecords || []).find(function(r) {
+    return r.status === 'scheduled' && r.substituteDate === iso && r.substituteKomaTime === kt &&
+           r.substituteClassroom === cr && cbAbsRowIsFor_(r, stu) && cbFurikaeCat_(r) !== 'fu_online';
+  }) || null;
+}
 function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
   var ss = getStudentsForKoma(cr, youbi, kt);
   var out = [], used = {}, tkA = {};
@@ -4305,6 +4318,19 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
     var ktype = _komaTypeOf_(_matchedKoma_(s, cr, youbi, kt));
     var addB = cbAddBadges_(tb, jb);
     if (ktype === 'online') {
+      // 2026-10-02：同じコマに対面の振替で来るなら振替が勝つ（cbFaceSubAt_ の説明）
+      var _fsr = cbFaceSubAt_(s, iso, kt, cr);
+      if (_fsr) {
+        var _fcat = cbFurikaeCat_(_fsr);
+        out.push({
+          name: s.name, grade: s.grade || '', cat: _fcat,
+          absent: _tkAbsent_(s, iso, kt, cr),
+          html: countOnly ? '' : studentChipHtml(s, { classroom: cr, komaTime: kt, youbi: youbi, dateStr: iso, absenceCourse: _fsr.absenceCourse || '', testBadge: addB, hideOnlineBadge: true }),
+          key: attendSortKey_(s, { isSub: true, subOrigType: _fcat.replace(/^fu_/, '') })
+        });
+        out.push({ name: s.name, grade: s.grade || '', cat: 'online', struck: true, absent: false, html: '', key: [9, 9, 99] });
+        return;
+      }
       var win = (tb === 'taisaku') ? 'taisaku' : (tb || jb) ? 'jishu' : '';
       if (win) {
         // 対策・自習が勝つ：教室に来る＝席を使う。オンラインバッジは出さない
@@ -4468,8 +4494,11 @@ function cbKoushuObjs_(cr, kt, iso, youbi) {
   });
   var ids = kAssigns.map(function(a){ return a.studentId; }).filter(Boolean);
   var nms = kAssigns.map(function(a){ return a.studentName; }).filter(Boolean);
+  // 2026-10-02：オンラインの元コマに対面の振替で来る子は、元コマ側から外して振替側に出す（cbFaceSubAt_）
+  function _onlFaceSub_(x) { var mk = _matchedKoma_(x, cr, youbi, kt); return !!(mk && mk.online && cbFaceSubAt_(x, iso, kt, cr)); }
   var normals = ss.filter(function(s){
     if (!isNormalKomaInKoushu_(s, kt)) return false;
+    if (_onlFaceSub_(s)) return false;
     if (s.id && ids.indexOf(s.id) >= 0) return false;
     if (s.name && nms.indexOf(s.name) >= 0) return false;
     return true;
@@ -4479,7 +4508,7 @@ function cbKoushuObjs_(cr, kt, iso, youbi) {
   });
   var subs = (_absenceRecords || []).filter(function(r) {
     return r.substituteDate === iso && r.substituteKomaTime === kt && r.substituteClassroom === cr &&
-           r.status === 'scheduled' && !ss.some(function(x){ return cbAbsRowIsFor_(r, x); });
+           r.status === 'scheduled' && !ss.some(function(x){ return cbAbsRowIsFor_(r, x) && !_onlFaceSub_(x); });
   }).map(function(r) {
     var stu = cbAbsStu_(r) || { name: r.studentName };
     var _rok = (stu.komas || []).find(function(k){ return k.time === r.komaTime; });
@@ -6302,6 +6331,13 @@ function printKoushuPeriod() {
           var _rok = rs ? (rs.komas || []).find(function(k){ return k.time === r.komaTime; }) : null;
           var _exF = items.filter(function(it) { return it.name === r.studentName; })[0];
           if (_exF) {
+            // 2026-10-02：オンラインの元コマに対面の振替で来る子は振替が勝つ。オンラインは横線で残す（cbFaceSubAt_）
+            if ((_exF.type === 'online' || (_exF.struckOnl && _exF.type !== 'furikae')) && cbFurikaeCat_(r) !== 'fu_online') {
+              if (_exF.type === 'taisaku' || _exF.type === 'jishu') (_exF.marks = _exF.marks || {})[_exF.type] = 1;
+              _exF.type = 'furikae'; _exF.badge = 'furikae'; _exF.fromAssign = false; _exF.struckOnl = true;
+              _exF.sortKey = attendSortKey_({ grade: (rs && rs.grade) || _exF.grade || '' }, { isSub: true, subOrigType: cbFurikaeCat_(r).replace(/^fu_/, '') });
+              return;
+            }
             // 川上さん確定(2026-09-30)：振替は対策・自習に勝つ（cbNormalRoster_ と同じ）
             if (_exF.fromAssign) {
               (_exF.marks = _exF.marks || {})[_exF.type] = 1;   // 負けた対策・自習はバッジで添える
