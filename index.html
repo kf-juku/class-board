@@ -1333,7 +1333,15 @@ tr.mx-done-row td { background: #f0fdf4; }
 .sf-wcol-b { padding:6px; display:flex; flex-direction:column; gap:6px; }
 .sf-witem { border:1px solid var(--border); border-radius:6px; padding:5px; display:flex; flex-direction:column; gap:4px; }
 .sf-witem select, .sf-witem input { width:100%; min-width:0; border:1px solid var(--border); border-radius:5px; padding:3px 2px; font-size:10.5px; background:#fff; }
-.sf-wtimes { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+.sf-wtimes { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+/* 時刻が「17:1」と見切れていた（2026-10-02 川上さん指摘）。7列だと1枠50〜70pxしかなく、
+   Chromeの時計アイコン（約18px）と内側の余白にほとんど食われていた。
+   アイコンと内側の余白を消して数字を出す。キーボード入力と上下キーはそのまま使える。 */
+.sf-witem input[type=time] { padding:3px 0; text-align:center; }
+.sf-witem input[type=time]::-webkit-calendar-picker-indicator { display:none; }
+.sf-witem input[type=time]::-webkit-datetime-edit { padding:0; }
+.sf-witem input[type=time]::-webkit-datetime-edit-fields-wrapper { padding:0; }
+.sf-witem input[type=time]::-webkit-inner-spin-button { display:none; }
 .sf-wdel { font-size:10px; color:#b91c1c; background:none; border:none; cursor:pointer; padding:0; align-self:flex-end; }
 .sf-wnone { font-size:11px; color:var(--text-muted); text-align:center; padding:2px 0; }
 .sf-wadd { font-size:11px; border:1px dashed var(--border); border-radius:6px; background:#fff; padding:4px; cursor:pointer; color:var(--text-muted); }
