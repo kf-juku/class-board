@@ -3831,6 +3831,12 @@ var CB_VIEW_MAX_AHEAD = 27;   // 今日から何日先まで見られるか（4�
 function cbViewDate_() { return _todayViewIso ? new Date(_todayViewIso + 'T00:00:00') : new Date(); }
 function cbViewIso_()  { return _todayViewIso || isoDate(new Date()); }
 function cbIsFutureView_() { return !!_todayViewIso; }
+/* 新しく登録するものの初期日付【2026-10-05 川上さん指示】
+ * 本日タブで先の日を見ているときは、その日を自動で入れる（タスク追加の期日・チェックリストの開始日・小テストの実施日）。
+ * 赤い帯の「ここでの登録は ◯/◯ で保存されます」と一致させるため。
+ * 本日タブ以外の画面から開いたときは今日（_todayViewIso は本日タブを開き直すまで残るため、タブで判定する）。
+ * 🚨 初期値を入れるだけ。手で変えた日付は上書きしない。既存データの日付も書き換えない。 */
+function cbEntryIso_() { return (_currentTab === 'today') ? cbViewIso_() : isoDate(new Date()); }
 
 function cbShiftViewDate(n) {
   var iso = isoDate(addDays(cbViewDate_(), n));
@@ -5230,7 +5236,7 @@ function renderToday() {
   }
 
   function quickAddFormHtml_(cr, taskType, uid) {
-    var today = getTodayStr();
+    var today = cbEntryIso_();   // 2026-10-05：先の日を見ているときはその日
     return '<div class="quick-add-form" id="qa-form-' + uid + '" style="display:none;clear:both;margin-bottom:6px">' +
         '<input type="text" id="qa-title-' + uid + '" placeholder="タスク内容を入力..." class="quick-add-input" />' +
         '<input type="text" id="qa-memo-' + uid  + '" placeholder="メモ（任意）" class="quick-add-input" style="font-size:11px;margin-top:4px" />' +
@@ -7079,6 +7085,9 @@ function addTestRow() {
   box.insertAdjacentHTML('beforeend', testRowHtml_());
   // 2026-08-27：モーダル本文がスクロールするようになったので、足した行まで自動で送る
   var last = box.lastElementChild;
+  // 2026-10-05：本日タブで先の日を見ているときは実施日にその日を入れる（今日表示のときは従来どおり空欄）。
+  //   編集で開いたときは openEditTestModal が task.dueDate で上書きする。
+  if (last && _currentTab === 'today' && cbIsFutureView_()) { var _td = last.querySelector('.tr-date'); if (_td) _td.value = cbViewIso_(); }
   if (last && last.scrollIntoView) { try { last.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
 }
 
@@ -12835,7 +12844,7 @@ function submitQuickAdd(uid, classroom, taskType) {
   var title = (titleEl && titleEl.value || '').trim();
   if (!title) { miniToast('タスク内容を入力してください'); titleEl && titleEl.focus(); return; }
   var memo     = (memoEl  && memoEl.value  || '').trim();
-  var dueDate  = (dateEl  && dateEl.value  || getTodayStr());
+  var dueDate  = (dateEl  && dateEl.value  || cbEntryIso_());
   var dueTime  = (timeEl  && timeEl.value  || '');
   var category = (catEl   && catEl.value   || '');
   var url = localStorage.getItem(GAS_TASK_URL_KEY) || '';
@@ -14007,7 +14016,7 @@ function openAddChecklist() {
   var tl = document.getElementById('cl-title-list');
   tl.innerHTML = '<div class="cl-title-row" style="display:flex;gap:6px;margin-bottom:6px"><input type="text" class="cl-title-input" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box" placeholder="例：保護者連絡済み確認" /></div>';
   document.getElementById('cl-new-memo').value = '';
-  document.getElementById('cl-new-date').value = isoDate(new Date());
+  document.getElementById('cl-new-date').value = cbEntryIso_();   // 2026-10-05：先の日を見ているときはその日
   // 対象選択（2列トランスファー・新規は空）
   tpInit('cl', { idOf: function(s){ return s.uid || s.name; }, preselect: [] });
   openModal('modal-add-checklist');
@@ -14028,7 +14037,7 @@ function submitChecklist() {
   });
   if (titles.length === 0) { miniToast('タイトルを入力してください'); return; }
 
-  var startDate = document.getElementById('cl-new-date').value || isoDate(new Date());
+  var startDate = document.getElementById('cl-new-date').value || cbEntryIso_();
   var memo = document.getElementById('cl-new-memo').value.trim();
 
   // 選択中リスト（2列トランスファーの右カラム＝隠れる子がいないので全員ここに揃う）
@@ -14240,7 +14249,7 @@ function duplicateChecklist() {
   openAddChecklistWithData({
     title: cl.title,
     memo: cl.memo || '',
-    startDate: isoDate(new Date()),
+    startDate: cbEntryIso_(),   // 2026-10-05：先の日を見ているときはその日
     items: cl.items // 対象者（チェックはリセット）
   });
 }
@@ -14285,7 +14294,7 @@ function openChecklistFromCard(clData) {
   openAddChecklistWithData({
     title:     clData.title || '',
     memo:      clData.memo  || '',
-    startDate: isoDate(new Date()),
+    startDate: cbEntryIso_(),   // 2026-10-05：先の日を見ているときはその日
     items:     items
   });
 }
@@ -14295,7 +14304,7 @@ function openAddChecklistWithData(data) {
   var tl = document.getElementById('cl-title-list');
   tl.innerHTML = '<div class="cl-title-row" style="display:flex;gap:6px;margin-bottom:6px"><input type="text" class="cl-title-input" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box" value="' + esc(data.title || '') + '" placeholder="タイトルを入力" /></div>';
   // 開始日・メモ
-  document.getElementById('cl-new-date').value = data.startDate || isoDate(new Date());
+  document.getElementById('cl-new-date').value = data.startDate || cbEntryIso_();
   document.getElementById('cl-new-memo').value = data.memo || '';
   // 対象選択（既存itemsを選択中に復元。絞り込みで隠れないので保持ロジックは不要）
   tpInit('cl', { idOf: function(s){ return s.uid || s.name; }, preselect: (data.items || []) });
