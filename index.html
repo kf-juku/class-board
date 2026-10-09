@@ -85,6 +85,11 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
 .btn-danger { background: #dc2626; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
 .btn-danger:hover { background: #b91c1c; }
+/* 川上さん指示(2026-10-09)：モーダル下段の「削除」と「保存」が両方赤い塗りで区別できなかった。
+   下段の削除は白地＋赤い文字・枠にする。赤い塗りは「保存」の1つだけ（ui-standards「赤は1つだけ」）。
+   一覧の中の小さな削除ボタンは対象外（.modal-footer の中だけ）。 */
+.modal-footer .btn-danger { background:#fff; color:#b91c1c; border:1px solid #fca5a5; padding:7px 16px; font-size:13px; font-weight:600; border-radius:7px; }
+.modal-footer .btn-danger:hover { background:#fef2f2; }
 
 /* バッジ */
 /* カスタムバッジ（手動・2026-06-17）。授業種別バッジの右横に並べる。詳細はホバー/タップ */
@@ -1797,10 +1802,11 @@ tr.mx-done-row td { background: #f0fdf4; }
       </div></div>
       <div class="tl-frow"><span class="tl-flabel">貸した日</span><div class="tl-fbody"><input type="date" class="tl-finput auto" id="tl-lent" oninput="tlRenderDue_('a')"><div class="tl-fhint">表示している日が自動で入ります。違うときは直してください</div></div></div>
       <div class="tl-frow"><span class="tl-flabel">回収日</span><div class="tl-fbody" id="tl-a-due-box"></div></div>
+      <div class="tl-frow"><span class="tl-flabel">メモ</span><div class="tl-fbody"><textarea class="tl-finput" id="tl-memo" rows="2" placeholder="任意（例：表紙に名前あり・付録CDも一緒）" style="resize:vertical"></textarea></div></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('modal-tl-add')">キャンセル</button>
-      <button class="btn-teal" onclick="tlSubmit_()">登録</button>
+      <button class="btn-primary" onclick="tlSubmit_()">保存</button>
     </div>
   </div>
 </div>
@@ -1813,11 +1819,13 @@ tr.mx-done-row td { background: #f0fdf4; }
       <div class="tl-frow"><span class="tl-flabel">テキスト</span><div class="tl-fbody"><div class="tl-fval" id="tl-d-text"></div></div></div>
       <div class="tl-frow"><span class="tl-flabel">貸した日</span><div class="tl-fbody"><input type="date" class="tl-finput auto" id="tl-d-lent"></div></div>
       <div class="tl-frow"><span class="tl-flabel">回収日</span><div class="tl-fbody" id="tl-d-due-box"></div></div>
+      <div class="tl-frow"><span class="tl-flabel">メモ</span><div class="tl-fbody"><textarea class="tl-finput" id="tl-d-memo" rows="2" placeholder="任意" style="resize:vertical"></textarea></div></div>
     </div>
     <div class="modal-footer">
-      <button class="tl-del-link" onclick="tlDeleteLend_()" title="間違えて登録したときに使う">削除</button>
-      <button class="btn-secondary" onclick="tlSaveDetail_()">変更を保存</button>
+      <button class="btn-danger" style="margin-right:auto" onclick="tlDeleteLend_()">削除</button>
+      <button class="btn-secondary" onclick="closeModal('modal-tl-detail')">キャンセル</button>
       <button class="btn-done-green" onclick="tlCollect_()">回収済み</button>
+      <button class="btn-primary" onclick="tlSaveDetail_()">保存</button>
     </div>
   </div>
 </div>
@@ -2208,7 +2216,7 @@ tr.mx-done-row td { background: #f0fdf4; }
       <input type="hidden" id="test-edit-task-id" />
     </div>
     <div class="modal-footer">
-      <button class="btn-danger" id="test-delete-btn" style="display:none;margin-right:auto;padding:7px 16px;font-weight:600" onclick="deleteTestFromModal()">削除</button>
+      <button class="btn-danger" id="test-delete-btn" style="display:none;margin-right:auto" onclick="deleteTestFromModal()">削除</button>
       <button class="btn-secondary" onclick="closeModal('modal-add-test')">キャンセル</button>
       <button class="btn-primary" onclick="submitAddTest()">保存</button>
     </div>
@@ -17699,8 +17707,10 @@ function textLendBarHtml_() {
       cls = l.dueDate < base ? ' overdue' : (l.dueDate === base ? ' due-today' : '');
       due = '<span class="lc-due">回収' + (l.dueDate === base ? (cbIsFutureView_() ? 'この日' : '今日') : tlMd_(l.dueDate)) + '</span>';
     }
-    return '<span class="lend-chip' + cls + '" onclick="tlOpenDetail_(\'' + esc(l.id) + '\')" title="押すと回収日の変更・回収済み">' +
-      '<span class="lc-name">' + esc(tlFirstName_(l.studentName)) + '</span><span>' + tlTextLabel_(l) + '</span>' + due + '</span>';
+    // 川上さん指示(2026-10-09)：ホバーの説明は出さない。メモはチップを押して開く画面で見る。📝はメモがある印だけ
+    var memoMark = l.memo ? '<span class="lc-due">📝</span>' : '';
+    return '<span class="lend-chip' + cls + '" onclick="tlOpenDetail_(\'' + esc(l.id) + '\')">' +
+      '<span class="lc-name">' + esc(tlFirstName_(l.studentName)) + '</span><span>' + tlTextLabel_(l) + '</span>' + due + memoMark + '</span>';
   }).join('');
   return '<div class="lend-bar"><span class="lend-bar-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>貸出中（' + act.length + '）</span>' +
     '<div class="lend-chips">' + chips + '</div></div>';
@@ -17850,6 +17860,7 @@ function openTextLendAdd() {
   document.getElementById('tl-lent').value = cbEntryIso_();   // 表示している日（手で直せる）
   document.getElementById('tl-text-other').value = '';
   document.getElementById('tl-text-other').style.display = 'none';
+  document.getElementById('tl-memo').value = '';
   tlSetupFilters_(); tlStuRender_(); tlRenderPicks_(); tlRenderDue_('a');
   openModal('modal-tl-add');
 }
@@ -17877,7 +17888,8 @@ function tlSubmit_() {
     studentId: _tlAddStu.sid || '', studentName: _tlAddStu.name,            // 生徒は ID と氏名の両方を持たせる（スキル原則）
     textName: name, textGrade: _tlSelGrade, textSubject: _tlSelSubj,
     lentDate: document.getElementById('tl-lent').value || cbEntryIso_(),
-    dueDate: tlDueValue_('a'), returnedDate: '', by: getUserName()
+    dueDate: tlDueValue_('a'), returnedDate: '', by: getUserName(),
+    memo: (document.getElementById('tl-memo').value || '').trim()   // 2026-10-09 川上さん指示：最後にメモ欄
   };
   _textLends.push(lend);
   closeModal('modal-tl-add'); tlRerender_();
@@ -17892,6 +17904,7 @@ function tlOpenDetail_(id) {
   document.getElementById('tl-d-stu').textContent = l.studentName;
   document.getElementById('tl-d-text').innerHTML = tlTextLabel_(l);
   document.getElementById('tl-d-lent').value = l.lentDate || '';
+  document.getElementById('tl-d-memo').value = l.memo || '';
   var cands = tlDueCandidates_(tlStudentOf_(l), isoDate(new Date()));
   _tlDue.d = !l.dueDate ? { mode: 'none', val: '' } : (cands.indexOf(l.dueDate) !== -1 ? { mode: 'cand', val: l.dueDate } : { mode: 'pick', val: l.dueDate });
   tlRenderDue_('d');
@@ -17899,12 +17912,13 @@ function tlOpenDetail_(id) {
 }
 function tlSaveDetail_() {
   var l = _textLends.find(function(x) { return x.id === _tlCurId; }); if (!l) return;
-  var prev = { lentDate: l.lentDate, dueDate: l.dueDate };
+  var prev = { lentDate: l.lentDate, dueDate: l.dueDate, memo: l.memo };
   l.dueDate = tlDueValue_('d');
   l.lentDate = document.getElementById('tl-d-lent').value || l.lentDate;
+  l.memo = (document.getElementById('tl-d-memo').value || '').trim();
   closeModal('modal-tl-detail'); tlRerender_();
-  tlSave_({ id: l.id, lentDate: l.lentDate, dueDate: l.dueDate, by: getUserName() }, '保存しました（回収日：' + (l.dueDate ? tlMd_(l.dueDate) : 'なし') + '）',
-    function() { l.lentDate = prev.lentDate; l.dueDate = prev.dueDate; tlRerender_(); });
+  tlSave_({ id: l.id, lentDate: l.lentDate, dueDate: l.dueDate, memo: l.memo, by: getUserName() }, '保存しました（回収日：' + (l.dueDate ? tlMd_(l.dueDate) : 'なし') + '）',
+    function() { l.lentDate = prev.lentDate; l.dueDate = prev.dueDate; l.memo = prev.memo; tlRerender_(); });
 }
 function tlCollect_() {
   var l = _textLends.find(function(x) { return x.id === _tlCurId; }); if (!l) return;
