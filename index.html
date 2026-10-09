@@ -281,6 +281,74 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
   padding:2px 11px; font-size:12px; cursor:pointer; font-family:inherit; font-weight:700; margin-left:auto; }
 .cb-dn-back:hover { background:var(--crimson-light); }
 @media print { .cb-datenav { display:none !important; } }
+/* ===== テキスト貸出（2026-10-09 川上さん確定・仕様＝ClassBoard_テキスト貸出.md）=====
+   帯は1行。スペースを取らないこと（川上さん指示）。0件なら帯ごと出さない。 */
+.lend-bar { display:flex; align-items:flex-start; gap:8px; background:#fff; border:1px solid #99f6e4; border-left:4px solid #0f766e; border-radius:8px; padding:5px 10px; margin-bottom:10px; }
+.lend-bar-label { font-size:12px; font-weight:700; color:#0f766e; white-space:nowrap; display:flex; align-items:center; gap:4px; padding-top:2px; }
+.lend-chips { display:flex; flex-wrap:wrap; gap:4px; flex:1; }
+.lend-chip { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 8px; border-radius:5px; white-space:nowrap; line-height:1.5; cursor:pointer; background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; }
+.lend-chip:hover { opacity:.75; }
+.lend-chip .lc-name { font-weight:700; }
+.lend-chip .lc-grade { color:#6b7280; }
+.lend-chip .lc-due { font-size:10px; color:#6b7280; }
+.lend-chip.due-today { background:#fef3c7; color:#92400e; border-color:#f59e0b; font-weight:600; }
+.lend-chip.due-today .lc-due { color:#92400e; font-weight:700; }
+.lend-chip.overdue { background:#fff1f1; color:var(--crimson); border-color:#fecaca; }
+.lend-chip.overdue .lc-due, .lend-chip.overdue .lc-grade { color:var(--crimson); font-weight:700; }
+.lend-bar-err { font-size:12px; color:#991b1b; background:#fff1f1; border:1px solid #fecaca; border-radius:8px; padding:5px 10px; margin-bottom:10px; }
+.btn-teal { background:#0f766e; color:#fff; border:none; padding:7px 16px; border-radius:7px; cursor:pointer; font-size:13px; font-weight:600; font-family:inherit; }
+.btn-teal:hover { background:#115e59; }
+.tl-frow { display:flex; align-items:flex-start; gap:8px; margin-bottom:12px; }
+.tl-flabel { font-size:11px; font-weight:700; color:var(--text-muted); width:52px; flex-shrink:0; padding-top:7px; }
+.tl-fbody { flex:1; min-width:0; }
+.tl-finput { width:100%; border:1px solid var(--border); border-radius:6px; padding:6px 9px; font-size:13px; font-family:inherit; color:var(--text); background:#fff; }
+.tl-finput.auto { width:auto; }
+.tl-fhint { font-size:11px; color:var(--text-muted); margin-top:4px; }
+.tl-fval { font-size:13px; padding-top:6px; }
+.tl-stu-box { border:1px solid var(--border); border-radius:8px; padding:8px; }
+.tl-stu-box .cl-filter-row { margin-bottom:7px; gap:5px; }
+.tl-stu-box .cl-filter-chip { padding:2px 9px; font-size:11.5px; }
+.tl-stu-picked { font-size:13px; margin-bottom:7px; padding:5px 9px; border-radius:6px; background:#f3f4f6; color:var(--text-muted); }
+.tl-stu-picked.on { background:#f0fdfa; color:#0f766e; font-weight:700; border:1px solid #99f6e4; }
+.tl-stu-rows { max-height:150px; overflow-y:auto; border-top:1px solid var(--border); padding-top:4px; }
+.tl-stu-row { display:flex; gap:6px; padding:4px 6px; border-radius:5px; font-size:12.5px; cursor:pointer; }
+.tl-stu-row:hover { background:#f0fdfa; }
+.tl-stu-row.on { background:#0f766e; color:#fff; }
+.tl-stu-row .m { margin-left:auto; font-size:10.5px; color:#9ca3af; }
+.tl-stu-row.on .m { color:#ccfbf1; }
+.tl-stu-count { font-size:11px; color:var(--text-muted); margin:2px 0 3px; }
+.tl-pick-row { display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:6px; }
+.tl-pick-row .pl { font-size:10.5px; font-weight:700; color:var(--text-muted); width:30px; }
+.tl-pick { padding:3px 10px; border-radius:20px; border:1.5px solid #d1d5db; background:#fff; font-size:12px; cursor:pointer; user-select:none; font-family:inherit; color:var(--text); white-space:nowrap; }
+.tl-pick:hover { border-color:#0f766e; }
+.tl-pick.on { border-color:#0f766e; background:#0f766e; color:#fff; font-weight:700; }
+.tl-pick.off { opacity:.3; cursor:default; border-style:dashed; }
+.tl-pick-grp { font-size:11px; border:1px dashed #94a3b8; color:#475569; background:#f8fafc; border-radius:20px; padding:2px 9px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+.tl-pick-grp:hover { border-color:#0f766e; color:#0f766e; }
+.tl-due-opts { display:flex; flex-wrap:wrap; gap:6px; }
+.tl-due-opt { border:1.5px solid #d1d5db; background:#fff; border-radius:8px; padding:4px 10px; cursor:pointer; font-family:inherit; color:var(--text); text-align:left; line-height:1.3; }
+.tl-due-opt small { display:block; font-size:10px; color:var(--text-muted); }
+.tl-due-opt b { font-size:13px; }
+.tl-due-opt:hover { border-color:#0f766e; }
+.tl-due-opt.on { border-color:#0f766e; background:#f0fdfa; box-shadow:inset 0 0 0 1px #0f766e; }
+.tl-due-opt.on small { color:#0f766e; }
+.tl-due-src { font-size:11px; color:var(--text-muted); margin-bottom:6px; }
+.tl-due-result { margin-top:8px; font-size:12.5px; font-weight:700; color:#0f766e; }
+.tl-due-result.none { color:var(--text-muted); font-weight:400; }
+.tl-del-link { background:none; border:none; color:#9ca3af; font-size:12px; cursor:pointer; font-family:inherit; text-decoration:underline; margin-right:auto; }
+.tl-del-link:hover { color:var(--crimson); }
+.tlm-table { width:100%; border-collapse:collapse; font-size:13px; }
+.tlm-table th { text-align:left; font-size:11px; color:var(--text-muted); font-weight:700; padding:5px 8px; border-bottom:1px solid var(--border); }
+.tlm-table td { padding:5px 8px; border-bottom:1px solid #eef1f5; }
+.tlm-table td.t { font-weight:600; }
+.tlm-table td.s { font-size:12px; color:#475569; }
+.tlm-edit { background:none; border:1px solid var(--border); border-radius:5px; font-size:11px; padding:1px 7px; cursor:pointer; font-family:inherit; color:var(--text-muted); }
+.tlm-del { background:none; border:none; color:#9ca3af; cursor:pointer; font-size:15px; }
+.tlm-del:hover { color:var(--crimson); }
+.tlm-form { margin-top:12px; border:1px solid #99f6e4; background:#f0fdfa; border-radius:8px; padding:10px 12px; }
+.tlm-form-title { font-size:12px; font-weight:700; color:#0f766e; margin-bottom:8px; }
+.tlm-line { display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-bottom:5px; }
+.tlm-line .gl { font-size:10.5px; color:var(--text-muted); width:44px; }
 .jishu-add { font-size:10px; border:1px solid var(--border); background:#fff; border-radius:5px;
   padding:1px 7px; cursor:pointer; color:#166534; font-family:inherit; line-height:1.6;
   white-space:nowrap; margin-left:auto; flex-shrink:0; }
@@ -1703,6 +1771,68 @@ tr.mx-done-row td { background: #f0fdf4; }
   </div>
 </div>
 
+<!-- ===== テキスト貸出（2026-10-09）：登録 ===== -->
+<div class="modal-overlay" id="modal-tl-add">
+  <div class="modal" style="width:600px">
+    <div class="modal-header">テキスト貸出<span class="modal-close" onclick="closeModal('modal-tl-add')">×</span></div>
+    <div class="modal-body">
+      <div class="tl-frow"><span class="tl-flabel">生徒</span><div class="tl-fbody">
+        <div class="tl-stu-box">
+          <div class="tl-stu-picked" id="tl-picked"></div>
+          <input class="tp-search" id="tl-tp-search" placeholder="🔍 名前で検索" oninput="tlStuRender_()">
+          <div class="tp-filter-label">種別</div><div class="cl-filter-row" id="tl-filter-type"></div>
+          <div class="tp-filter-label">教室</div><div class="cl-filter-row" id="tl-filter-cr"></div>
+          <div class="tp-filter-label">中学校</div><div class="cl-filter-row" id="tl-filter-school"></div>
+          <div class="tp-filter-label">学年</div><div class="cl-filter-row" id="tl-filter-grade"></div>
+          <div class="tl-stu-count" id="tl-stu-count"></div>
+          <div class="tl-stu-rows" id="tl-stu-rows"></div>
+        </div>
+      </div></div>
+      <div class="tl-frow"><span class="tl-flabel">テキスト</span><div class="tl-fbody">
+        <select class="tl-finput" id="tl-text" onchange="tlOnTextSel_()"></select>
+        <input class="tl-finput" id="tl-text-other" placeholder="テキスト名を入力（学年・教科は選ばなくても登録できます）" style="display:none;margin-top:6px">
+        <div class="tl-pick-row" id="tl-grades"></div>
+        <div class="tl-pick-row" id="tl-subjects"></div>
+        <div class="tl-fhint">テキストを先に選ぶと、そのテキストの学年・教科だけが押せます。学年や教科を先に押すと、テキストの一覧が絞られます。</div>
+      </div></div>
+      <div class="tl-frow"><span class="tl-flabel">貸した日</span><div class="tl-fbody"><input type="date" class="tl-finput auto" id="tl-lent" oninput="tlRenderDue_('a')"><div class="tl-fhint">表示している日が自動で入ります。違うときは直してください</div></div></div>
+      <div class="tl-frow"><span class="tl-flabel">回収日</span><div class="tl-fbody" id="tl-a-due-box"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-tl-add')">キャンセル</button>
+      <button class="btn-teal" onclick="tlSubmit_()">登録</button>
+    </div>
+  </div>
+</div>
+<!-- ===== テキスト貸出：チップを押したとき ===== -->
+<div class="modal-overlay" id="modal-tl-detail">
+  <div class="modal" style="width:540px">
+    <div class="modal-header"><span id="tl-d-title"></span><span class="modal-close" onclick="closeModal('modal-tl-detail')">×</span></div>
+    <div class="modal-body">
+      <div class="tl-frow"><span class="tl-flabel">生徒</span><div class="tl-fbody"><div class="tl-fval" id="tl-d-stu"></div></div></div>
+      <div class="tl-frow"><span class="tl-flabel">テキスト</span><div class="tl-fbody"><div class="tl-fval" id="tl-d-text"></div></div></div>
+      <div class="tl-frow"><span class="tl-flabel">貸した日</span><div class="tl-fbody"><input type="date" class="tl-finput auto" id="tl-d-lent"></div></div>
+      <div class="tl-frow"><span class="tl-flabel">回収日</span><div class="tl-fbody" id="tl-d-due-box"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="tl-del-link" onclick="tlDeleteLend_()" title="間違えて登録したときに使う">削除</button>
+      <button class="btn-secondary" onclick="tlSaveDetail_()">変更を保存</button>
+      <button class="btn-done-green" onclick="tlCollect_()">回収済み</button>
+    </div>
+  </div>
+</div>
+<!-- ===== テキスト貸出：削除の確認（confirm()は使わない） ===== -->
+<div class="modal-overlay" id="modal-tl-confirm" style="z-index:350">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">削除の確認<span class="modal-close" onclick="closeModal('modal-tl-confirm')">×</span></div>
+    <div class="modal-body"><div id="tl-cf-msg" style="font-size:14px;line-height:1.7"></div><div id="tl-cf-sub" class="tl-fhint" style="margin-top:6px"></div></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-tl-confirm')">キャンセル</button>
+      <button class="btn-primary" id="tl-cf-ok">削除する</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add-checklist">
   <div class="modal" style="max-width:none;width:min(96vw,1040px)">
     <div class="modal-header">
@@ -3011,6 +3141,8 @@ function loadAll() {
     }, 'GET', false, 2);
   }
   function legacyTaskPhase1() {
+    // テキスト貸出（2026-10-09）：背景で取る（失敗は帯に赤で出す）
+    tlLoad_(taskUrl, function() { tlRerender_(); });
 
     // チェックリスト
     p1++;
@@ -3158,6 +3290,9 @@ function cbApplyTaskBootstrap_(res, taskUrl) {
   _checklistsLoaded = true;
   if (Array.isArray(res.checklists)) { _checklistsFailed = false; _checklists = res.checklists; }
   else { _checklistsFailed = true; _checklists = []; }
+  // テキスト貸出（2026-10-09）。undefined＝GASが未対応（貼り替え前）→ 単独で取りに行く。null＝取得失敗。
+  if (res.textLends === undefined || res.textMaster === undefined) tlLoad_(taskUrl, function() { tlRerender_(); });
+  else tlApplyData_(res.textLends, res.textMaster);
 }
 
 function reloadAll() {
@@ -5270,6 +5405,7 @@ function renderToday() {
     cbDateNavHtml_() +
     alerts +
     checklistBarHtml() +
+    textLendBarHtml_() +   // テキスト貸出（2026-10-09）：チェックリスト帯の下・タスク帯の上に1行
     '<div class="task-bar">' +
     '<div class="task-bar-header"><div class="task-bar-label" style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> ' + (cbIsFutureView_()
        ? ((cbViewDate_().getMonth() + 1) + '/' + cbViewDate_().getDate() + '(' + YOUBI_MAP[cbViewDate_().getDay()] + ') のタスク')
@@ -5280,6 +5416,7 @@ function renderToday() {
     '<div style="display:flex;gap:6px;margin-left:auto">' +
     '<button class="btn-indigo btn-sm" onclick="openAddChecklist()" style="font-size:12px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> チェックリスト作成</button>' +
     '<button class="btn-primary btn-sm" onclick="openAddTestModal(\'\')" style="font-size:12px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 小テスト追加</button>' +
+    '<button class="btn-teal btn-sm" onclick="openTextLendAdd()" style="font-size:12px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> テキスト貸出</button>' +
     '</div>' +
     '</div>' +
     '<div class="task-bar-cols">' + kitaCol + kuriCol + '</div>' +
@@ -6145,6 +6282,13 @@ function buildA4Pages_(onlyCr) {
   var clC   = cloneOf('.cl-zone');
   if (clC) clC.querySelectorAll('.cl-card-body').forEach(function(b) { b.classList.add('open'); });
   if (onlyOne && clC) pruneToClassroom_(clC, onlyCr);
+  // テキスト貸出の帯（2026-10-09 川上さん確定）：チェックリストと同じページに入れる（余白が空きがちなため）。
+  //   チェックリストが無い日はタスクの下に付ける。教室で分けない（貸出は教室に属さない）。
+  var lendC = (!isWeek) ? cloneOf('.lend-bar') : null;
+  if (lendC) {
+    if (clC) clC.appendChild(lendC);
+    else if (taskC) taskC.appendChild(lendC);
+  }
   var gridC = cloneOf(isWeek ? '.week-grid-wrap' : '.today-grid');
   if (onlyOne && gridC) { pruneToClassroom_(gridC, onlyCr); gridC.classList.add('print-one-cr'); }
   // 川上さん確定(2026-09-14)：本日A4の1ページ目の先頭にアラート圧縮ブロックを入れる。
@@ -8766,8 +8910,10 @@ function renderSettings() {
     '</div></div>' +
     renderKoushuSettingCard_() +
     renderCustomBadgeSettingCard_() +
+    renderTextMasterSettingCard_() +   // テキスト一覧（貸出用）2026-10-09
     '</div>';
   renderCustomBadgeList_();
+  tlRenderMasterCard_();
 }
 
 
@@ -17482,6 +17628,406 @@ function policyPrintHtml_(onlyCr) {
   }
   return '<div class="pp-box"><div class="pp-t">📋 本日の指導方針（' + rows.length + '人）</div>'
     + block('北久里浜') + block('久里浜') + '</div>';
+}
+
+
+/* =====================================================================
+ * テキスト貸出【2026-10-09 川上さん確定】仕様の正＝ジョブス用/仕様書/ClassBoard_テキスト貸出.md
+ *  ・保存先は task-manager GAS（シート「テキスト貸出」「テキスト一覧」）。起動のまとめ取得に相乗り。
+ *  ・帯は本日タブのチェックリスト帯の下に1行。0件なら出さない。スペースを取らない（川上さん指示）。
+ *  ・回収済みにしても行は消さない（returnedDate を入れる）。削除は誤登録用で、確認画面を必ず挟む。
+ *  ・テキストの学年はテキスト側に持つ。生徒の学年で絞り込まない（中3が中2のテキストを使う）。
+ *  ・生徒の「種別」チップは選ぶための絞り込み。バッジ・並び順の判定とは別の話。
+ *  🚨 取得失敗を空で塗り潰さない（_tlFailed）。
+ * ===================================================================== */
+var _textLends = [];
+var _textMaster = [];
+var _tlLoaded = false;
+var _tlFailed = false;
+var TL_GRADE_GROUPS = [
+  { label: '小学生', items: ['小1','小2','小3','小4','小5','小6'] },
+  { label: '中学生', items: ['中1','中2','中3'] },
+  { label: '高校生', items: ['高校'] }
+];
+var TL_GRADES = [].concat.apply([], TL_GRADE_GROUPS.map(function(g) { return g.items; }));
+var TL_SUBJECTS = ['英語','数学','国語','理科','地理','歴史','公民'];
+function tlGradeLabel_(g) { return g === '高校' ? '高校生' : g; }
+
+function tlApplyData_(lends, texts) {
+  _tlLoaded = true;
+  if (Array.isArray(lends) && Array.isArray(texts)) { _textLends = lends; _textMaster = texts; _tlFailed = false; }
+  else { _tlFailed = true; }
+}
+// まとめ取得に載っていないとき（GAS貼り替え前・従来経路）の単独取得
+function tlLoad_(taskUrl, cb) {
+  if (!taskUrl) { tlApplyData_(null, null); if (cb) cb(); return; }
+  callGas(taskUrl, { action: 'getTextLendData' }, function(res) {
+    if (res && res.success) tlApplyData_(res.lends, res.texts); else tlApplyData_(null, null);
+    if (cb) cb();
+  }, 'GET', true, 2);
+}
+function tlTaskUrl_() { return localStorage.getItem(GAS_TASK_URL_KEY) || ''; }
+function tlReloadAndRender_() { tlLoad_(tlTaskUrl_(), function() { tlRerender_(); }); }
+function tlRerender_() {
+  if (_currentTab === 'today') renderToday();
+  else if (_currentTab === 'settings') tlRenderMasterCard_();
+}
+
+function tlMd_(s) { var d = new Date(s + 'T00:00:00'); return (d.getMonth() + 1) + '/' + d.getDate(); }
+function tlMdw_(s) { var d = new Date(s + 'T00:00:00'); return (d.getMonth() + 1) + '/' + d.getDate() + '(' + YOUBI_MAP[d.getDay()] + ')'; }
+function tlFirstName_(n) { var p = String(n || '').trim().split(/[ 　]+/); return p.length > 1 ? p[p.length - 1] : String(n || ''); }
+function tlTextLabel_(l) {
+  var a = [l.textGrade ? tlGradeLabel_(l.textGrade) : '', l.textSubject].filter(Boolean).join('・');
+  return esc(l.textName) + (a ? '<span class="lc-grade">（' + esc(a) + '）</span>' : '');
+}
+function tlStudentOf_(l) { return cbFindStudent_(l.studentId, l.studentName, 'テキスト貸出'); }
+
+// ── 本日タブの帯 ──
+function textLendBarHtml_() {
+  if (!_tlLoaded) return '';
+  if (_tlFailed) {
+    return '<div class="lend-bar-err">&#9888; テキスト貸出を読み込めませんでした（表示されていないだけで、データは消えていません）' +
+      '<button class="btn-sm" onclick="tlReloadAndRender_()" style="margin-left:8px;border:1px solid #dc2626;color:#dc2626;background:#fff;border-radius:5px;padding:2px 8px;cursor:pointer">&#128260; 再読み込み</button></div>';
+  }
+  var act = _textLends.filter(function(l) { return !l.returnedDate; });
+  if (!act.length) return '';
+  var base = cbViewIso_();   // 先の日を見ているときはその日を基準に色を付ける（翌日分の印刷用）
+  act = act.slice().sort(function(a, b) { var da = a.dueDate || '9999', db = b.dueDate || '9999'; return da < db ? -1 : da > db ? 1 : 0; });
+  var chips = act.map(function(l) {
+    var cls = '', due = '';
+    if (l.dueDate) {
+      cls = l.dueDate < base ? ' overdue' : (l.dueDate === base ? ' due-today' : '');
+      due = '<span class="lc-due">回収' + (l.dueDate === base ? (cbIsFutureView_() ? 'この日' : '今日') : tlMd_(l.dueDate)) + '</span>';
+    }
+    return '<span class="lend-chip' + cls + '" onclick="tlOpenDetail_(\'' + esc(l.id) + '\')" title="押すと回収日の変更・回収済み">' +
+      '<span class="lc-name">' + esc(tlFirstName_(l.studentName)) + '</span><span>' + tlTextLabel_(l) + '</span>' + due + '</span>';
+  }).join('');
+  return '<div class="lend-bar"><span class="lend-bar-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>貸出中（' + act.length + '）</span>' +
+    '<div class="lend-chips">' + chips + '</div></div>';
+}
+
+// ── 回収日の候補：その生徒の毎週のコマの曜日から、基準日より後を3回分（欠席・振替は見ない） ──
+function tlYoubiSet_(stu) {
+  var ys = {};
+  ((stu && stu.komas) || []).forEach(function(k) { var i = YOUBI_MAP.indexOf(k.youbi); if (i >= 0) ys[i] = true; });
+  return ys;
+}
+function tlDueCandidates_(stu, fromIso) {
+  var out = [], ys = tlYoubiSet_(stu);
+  if (!stu || !fromIso || !Object.keys(ys).length) return out;
+  var d = new Date(fromIso + 'T00:00:00');
+  for (var i = 1; i <= 60 && out.length < 3; i++) { d.setDate(d.getDate() + 1); if (ys[d.getDay()]) out.push(isoDate(d)); }
+  return out;
+}
+function tlYoubiText_(stu) {
+  var ys = tlYoubiSet_(stu);
+  return [1,2,3,4,5,6,0].filter(function(i) { return ys[i]; }).map(function(i) { return YOUBI_MAP[i]; }).join('・');
+}
+
+var _tlDue = { a: { mode: 'none', val: '' }, d: { mode: 'none', val: '' } };
+var _tlAddStu = null, _tlSelText = '', _tlSelGrade = '', _tlSelSubj = '', _tlCurId = null;
+
+function tlRenderDue_(p) {
+  var box = document.getElementById('tl-' + p + '-due-box'); if (!box) return;
+  var st = _tlDue[p];
+  var today = isoDate(new Date());
+  var stu = null;
+  if (p === 'a') stu = _tlAddStu;
+  else { var cl = _textLends.find(function(x) { return x.id === _tlCurId; }); stu = cl ? tlStudentOf_(cl) : null; }
+  var lentV = p === 'a' ? (document.getElementById('tl-lent').value || today) : today;
+  var base = lentV > today ? lentV : today;   // 貸した日を前にずらしても、候補は今日より後にする
+  var cands = tlDueCandidates_(stu, base);
+  var names = ['次の授業', 'その次', '3回後'];
+  var src = !stu ? (p === 'a' ? '生徒を選ぶと、その子の授業日がここに出ます' : '生徒の授業日が分からないため、候補は出せません（カレンダーで選んでください）')
+          : (cands.length ? (tlFirstName_(stu.name) + 'の授業日（毎週 ' + tlYoubiText_(stu) + '）から、' + (base === today ? '今日' : '貸した日') + 'より後の3回')
+                          : (tlFirstName_(stu.name) + 'は毎週のコマが登録されていません（カレンダーで選んでください）'));
+  var h = '<div class="tl-due-src">' + esc(src) + '</div><div class="tl-due-opts">';
+  h += '<button class="tl-due-opt' + (st.mode === 'none' ? ' on' : '') + '" onclick="tlDueSet_(\'' + p + '\',\'none\')"><small>回収日は</small><b>決めない</b></button>';
+  cands.forEach(function(c, i) {
+    h += '<button class="tl-due-opt' + (st.mode === 'cand' && st.val === c ? ' on' : '') + '" onclick="tlDueSet_(\'' + p + '\',\'cand\',\'' + c + '\')"><small>' + names[i] + '</small><b>' + tlMdw_(c) + '</b></button>';
+  });
+  h += '<button class="tl-due-opt' + (st.mode === 'pick' ? ' on' : '') + '" onclick="tlDueSet_(\'' + p + '\',\'pick\')"><small>カレンダーで</small><b>日付を選ぶ</b></button></div>';
+  if (st.mode === 'pick') h += '<input type="date" class="tl-finput auto" style="margin-top:6px" value="' + esc(st.val || '') + '" oninput="_tlDue.' + p + '.val=this.value;tlDueResult_(\'' + p + '\')">';
+  h += '<div class="tl-due-result" id="tl-' + p + '-due-result"></div>';
+  box.innerHTML = h;
+  tlDueResult_(p);
+}
+function tlDueSet_(p, mode, val) { _tlDue[p] = { mode: mode, val: val || (mode === 'pick' ? _tlDue[p].val : '') }; tlRenderDue_(p); }
+function tlDueResult_(p) {
+  var st = _tlDue[p], el = document.getElementById('tl-' + p + '-due-result'); if (!el) return;
+  var v = st.mode === 'none' ? '' : st.val;
+  if (!v) { el.className = 'tl-due-result none'; el.textContent = '→ 回収日なし（帯のチップに色は付きません）'; return; }
+  var n = Math.round((new Date(v + 'T00:00:00') - new Date(isoDate(new Date()) + 'T00:00:00')) / 86400000);
+  el.className = 'tl-due-result'; el.textContent = '→ 回収日：' + tlMdw_(v) + '（' + (n === 0 ? '今日' : n > 0 ? n + '日後' : (-n) + '日前') + '）';
+}
+function tlDueValue_(p) { var st = _tlDue[p]; return st.mode === 'none' ? '' : (st.val || ''); }
+
+// ── 登録：生徒（チェックリスト作成と同じ絞り込み。種別は最初から「塾」だけON＝川上さん指示） ──
+function tlChipsHtml_(vals, onVals) {
+  return vals.map(function(v) { return '<span class="cl-filter-chip' + (onVals.indexOf(v) !== -1 ? ' active' : '') + '" data-val="' + esc(v) + '">' + esc(v) + '</span>'; }).join('');
+}
+function tlSetupFilters_() {
+  var schools = {};
+  (_students || []).forEach(function(s) { if (s.status === '在籍' && s.school && /中/.test(s.school)) schools[s.school] = true; });
+  document.getElementById('tl-filter-type').innerHTML = tlChipsHtml_(['塾', 'CA'], ['塾']);
+  document.getElementById('tl-filter-cr').innerHTML = tlChipsHtml_(['北久里浜', '久里浜'], []);
+  document.getElementById('tl-filter-school').innerHTML = tlChipsHtml_(Object.keys(schools).sort(), []);
+  document.getElementById('tl-filter-grade').innerHTML = tlChipsHtml_(['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'], []);
+  ['tl-filter-type', 'tl-filter-cr', 'tl-filter-school', 'tl-filter-grade'].forEach(function(id) {
+    document.querySelectorAll('#' + id + ' .cl-filter-chip').forEach(function(c) { c.onclick = function() { c.classList.toggle('active'); tlStuRender_(); }; });
+  });
+}
+function tlStuKey_(s) { return s ? (s.sid || s.name) : ''; }
+function tlStuRender_() {
+  var list = tpCandidates('tl');   // 絞り込みの判定はチェックリスト作成と共通（在籍のみ・塾/CA・教室・中学校・学年・名前）
+  document.getElementById('tl-stu-count').textContent = list.length + '名';
+  var rows = document.getElementById('tl-stu-rows');
+  rows.innerHTML = list.map(function(s, i) {
+    return '<div class="tl-stu-row' + (_tlAddStu && tlStuKey_(_tlAddStu) === tlStuKey_(s) ? ' on' : '') + '" data-i="' + i + '"><span>' + esc(s.name) + '</span><span class="m">' + esc(((s.grade || '') + ' ' + (s.classroom || '')).trim()) + '</span></div>';
+  }).join('') || '<div class="tp-empty">条件に合う生徒がいません</div>';
+  rows.onclick = function(e) {
+    var r = e.target.closest('.tl-stu-row'); if (!r) return;
+    _tlAddStu = list[Number(r.getAttribute('data-i'))]; tlStuRender_(); tlRenderDue_('a');
+  };
+  var pk = document.getElementById('tl-picked');
+  if (_tlAddStu) { pk.className = 'tl-stu-picked on'; pk.textContent = '選択中：' + _tlAddStu.name + '（' + (_tlAddStu.grade || '') + '・' + (_tlAddStu.classroom || '') + '）'; }
+  else { pk.className = 'tl-stu-picked'; pk.textContent = 'まだ選んでいません（下の一覧から押して選ぶ）'; }
+}
+
+// ── 登録：テキスト → 学年・教科（どちらからでも絞れる） ──
+function tlTextObj_() { var id = _tlSelText; return _textMaster.find(function(t) { return t.id === id; }); }
+function tlRenderTextSel_() {
+  var list = _textMaster.filter(function(t) {
+    return (!_tlSelGrade || t.grades.indexOf(_tlSelGrade) !== -1) && (!_tlSelSubj || t.subjects.indexOf(_tlSelSubj) !== -1);
+  }).slice().sort(function(a, b) { return a.name.localeCompare(b.name, 'ja'); });
+  var f = [_tlSelGrade ? tlGradeLabel_(_tlSelGrade) : '', _tlSelSubj].filter(Boolean).join('・');
+  document.getElementById('tl-text').innerHTML = '<option value="">テキストを選ぶ' + (f ? '（' + esc(f) + ' で絞り込み中）' : '') + '</option>' +
+    list.map(function(t) { return '<option value="' + esc(t.id) + '"' + (t.id === _tlSelText ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') +
+    '<option value="__other"' + (_tlSelText === '__other' ? ' selected' : '') + '>その他（手入力）</option>';
+}
+function tlOnTextSel_() {
+  _tlSelText = document.getElementById('tl-text').value;
+  document.getElementById('tl-text-other').style.display = _tlSelText === '__other' ? '' : 'none';
+  var t = tlTextObj_();
+  if (t) {
+    if (t.grades.indexOf(_tlSelGrade) === -1) _tlSelGrade = '';
+    if (t.subjects.indexOf(_tlSelSubj) === -1) _tlSelSubj = '';
+    if (t.grades.length === 1) _tlSelGrade = t.grades[0];
+    if (t.subjects.length === 1) _tlSelSubj = t.subjects[0];
+  }
+  tlRenderPicks_();
+}
+function tlRenderPicks_() {
+  var t = tlTextObj_();
+  function avail(kind) {
+    if (t) return kind === 'g' ? t.grades : t.subjects;
+    if (_tlSelText === '__other' || !_textMaster.length) return kind === 'g' ? TL_GRADES : TL_SUBJECTS;
+    var other = kind === 'g' ? _tlSelSubj : _tlSelGrade, set = {};
+    _textMaster.forEach(function(x) {
+      if (!other || (kind === 'g' ? x.subjects : x.grades).indexOf(other) !== -1) (kind === 'g' ? x.grades : x.subjects).forEach(function(v) { set[v] = 1; });
+    });
+    return Object.keys(set);
+  }
+  var ag = avail('g'), as = avail('s');
+  document.getElementById('tl-grades').innerHTML = '<span class="pl">学年</span>' + TL_GRADES.map(function(g) {
+    var ok = ag.indexOf(g) !== -1;
+    return '<button class="tl-pick' + (g === _tlSelGrade ? ' on' : '') + (ok ? '' : ' off') + '"' + (ok ? ' onclick="tlPickG_(\'' + g + '\')"' : ' disabled') + '>' + tlGradeLabel_(g) + '</button>';
+  }).join('');
+  document.getElementById('tl-subjects').innerHTML = '<span class="pl">教科</span>' + TL_SUBJECTS.map(function(s) {
+    var ok = as.indexOf(s) !== -1;
+    return '<button class="tl-pick' + (s === _tlSelSubj ? ' on' : '') + (ok ? '' : ' off') + '"' + (ok ? ' onclick="tlPickS_(\'' + s + '\')"' : ' disabled') + '>' + s + '</button>';
+  }).join('');
+  tlRenderTextSel_();
+}
+function tlPickG_(g) { _tlSelGrade = _tlSelGrade === g ? '' : g; tlRenderPicks_(); }
+function tlPickS_(s) { _tlSelSubj = _tlSelSubj === s ? '' : s; tlRenderPicks_(); }
+
+function openTextLendAdd() {
+  if (!_tlLoaded || _tlFailed) { miniToast('テキスト貸出のデータを読み込めていません。再読み込みしてください'); return; }
+  _tlAddStu = null; _tlSelText = ''; _tlSelGrade = ''; _tlSelSubj = ''; _tlDue.a = { mode: 'none', val: '' };
+  document.getElementById('tl-tp-search').value = '';
+  document.getElementById('tl-lent').value = cbEntryIso_();   // 表示している日（手で直せる）
+  document.getElementById('tl-text-other').value = '';
+  document.getElementById('tl-text-other').style.display = 'none';
+  tlSetupFilters_(); tlStuRender_(); tlRenderPicks_(); tlRenderDue_('a');
+  openModal('modal-tl-add');
+}
+
+function tlSave_(lend, okMsg, onFail) {
+  var url = tlTaskUrl_();
+  if (!url) { miniToast('タスクマネージャーGAS URLが未設定です'); if (onFail) onFail(); return; }
+  callGas(url, { action: 'saveTextLend', lend: JSON.stringify(lend) }, function(res) {
+    if (res && res.success) { if (okMsg) miniToast(okMsg); }
+    else { miniToast('保存できませんでした。画面を最新に戻します'); if (onFail) onFail(); tlReloadAndRender_(); }
+  }, 'POST', true);
+}
+
+function tlSubmit_() {
+  if (!_tlAddStu) { miniToast('生徒を選んでください'); return; }
+  var other = _tlSelText === '__other';
+  var t = tlTextObj_();
+  var name = other ? document.getElementById('tl-text-other').value.trim() : (t ? t.name : '');
+  if (!name) { miniToast('テキストを選んでください'); return; }
+  // 一覧から選んだテキストは学年・教科が必須。「その他（手入力）」は選ばなくてもよい（川上さん指示 2026-10-09）
+  if (!other && !_tlSelGrade) { miniToast('学年を選んでください'); return; }
+  if (!other && !_tlSelSubj) { miniToast('教科を選んでください'); return; }
+  var lend = {
+    id: 'tl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),   // 採番はこちら（POST再送で2行にしない）
+    studentId: _tlAddStu.sid || '', studentName: _tlAddStu.name,            // 生徒は ID と氏名の両方を持たせる（スキル原則）
+    textName: name, textGrade: _tlSelGrade, textSubject: _tlSelSubj,
+    lentDate: document.getElementById('tl-lent').value || cbEntryIso_(),
+    dueDate: tlDueValue_('a'), returnedDate: '', by: getUserName()
+  };
+  _textLends.push(lend);
+  closeModal('modal-tl-add'); tlRerender_();
+  tlSave_(lend, '貸出を登録しました', function() { _textLends = _textLends.filter(function(x) { return x.id !== lend.id; }); tlRerender_(); });
+}
+
+// ── チップを押したとき ──
+function tlOpenDetail_(id) {
+  var l = _textLends.find(function(x) { return x.id === id; }); if (!l) return;
+  _tlCurId = id;
+  document.getElementById('tl-d-title').textContent = l.studentName + '　' + l.textName;
+  document.getElementById('tl-d-stu').textContent = l.studentName;
+  document.getElementById('tl-d-text').innerHTML = tlTextLabel_(l);
+  document.getElementById('tl-d-lent').value = l.lentDate || '';
+  var cands = tlDueCandidates_(tlStudentOf_(l), isoDate(new Date()));
+  _tlDue.d = !l.dueDate ? { mode: 'none', val: '' } : (cands.indexOf(l.dueDate) !== -1 ? { mode: 'cand', val: l.dueDate } : { mode: 'pick', val: l.dueDate });
+  tlRenderDue_('d');
+  openModal('modal-tl-detail');
+}
+function tlSaveDetail_() {
+  var l = _textLends.find(function(x) { return x.id === _tlCurId; }); if (!l) return;
+  var prev = { lentDate: l.lentDate, dueDate: l.dueDate };
+  l.dueDate = tlDueValue_('d');
+  l.lentDate = document.getElementById('tl-d-lent').value || l.lentDate;
+  closeModal('modal-tl-detail'); tlRerender_();
+  tlSave_({ id: l.id, lentDate: l.lentDate, dueDate: l.dueDate, by: getUserName() }, '保存しました（回収日：' + (l.dueDate ? tlMd_(l.dueDate) : 'なし') + '）',
+    function() { l.lentDate = prev.lentDate; l.dueDate = prev.dueDate; tlRerender_(); });
+}
+function tlCollect_() {
+  var l = _textLends.find(function(x) { return x.id === _tlCurId; }); if (!l) return;
+  var day = isoDate(new Date());   // 回収した日は実際の今日（表示日ではない）
+  l.returnedDate = day;
+  closeModal('modal-tl-detail'); tlRerender_();
+  tlSave_({ id: l.id, returnedDate: day, by: getUserName() }, tlFirstName_(l.studentName) + 'の ' + l.textName + ' を回収済みにしました',
+    function() { l.returnedDate = ''; tlRerender_(); });
+}
+function tlAskDelete_(msg, sub, fn) {
+  document.getElementById('tl-cf-msg').textContent = msg;
+  document.getElementById('tl-cf-sub').textContent = sub || '';
+  document.getElementById('tl-cf-ok').onclick = function() { closeModal('modal-tl-confirm'); fn(); };
+  openModal('modal-tl-confirm');
+}
+function tlDeleteLend_() {
+  var l = _textLends.find(function(x) { return x.id === _tlCurId; }); if (!l) return;
+  tlAskDelete_(tlFirstName_(l.studentName) + 'の「' + l.textName + '」の貸出を削除しますか？',
+    '間違えて登録したときに使います。返ってきたときは「回収済み」を押してください（記録が残ります）。', function() {
+    _textLends = _textLends.filter(function(x) { return x.id !== l.id; });
+    closeModal('modal-tl-detail'); tlRerender_();
+    callGas(tlTaskUrl_(), { action: 'deleteTextLend', id: l.id }, function(res) {
+      if (res && res.success) miniToast('削除しました');
+      else { miniToast('削除できませんでした。画面を最新に戻します'); tlReloadAndRender_(); }
+    }, 'POST', true);
+  });
+}
+
+// ── 設定タブ：テキスト一覧（1冊1行。学年・教科は複数チェック。川上さん指示 2026-10-09） ──
+var _tlmEdit = null, _tlmG = [], _tlmS = [];
+function tlSumGrades_(gs) {
+  var out = [];
+  TL_GRADE_GROUPS.forEach(function(gr) {
+    var hit = gr.items.filter(function(x) { return gs.indexOf(x) !== -1; });
+    if (!hit.length) return;
+    if (hit.length === gr.items.length && gr.items.length > 1) out.push(gr.label + '全学年');
+    else out.push(hit.map(tlGradeLabel_).join('・'));
+  });
+  return out.join('／');
+}
+function tlSumSubjects_(ss) { return ss.length === TL_SUBJECTS.length ? '全教科' : TL_SUBJECTS.filter(function(s) { return ss.indexOf(s) !== -1; }).join('・'); }
+function renderTextMasterSettingCard_() {
+  return '<div class="card" style="margin-top:16px">' +
+    '<div class="card-header"><span>📕 テキスト一覧（貸出用）</span>' +
+    '<span class="gs-help"><span class="gs-help-icon">?</span><span class="gs-help-body">本日タブの「テキスト貸出」で選ぶテキストの一覧です。1冊を1行で登録し、学年と教科は複数選べます。<br>学年は「テキストの学年」です。生徒の学年とは関係ありません。<br>削除しても、すでに貸している記録は消えません。</span></span></div>' +
+    '<div class="card-body" id="tlm-card-body"></div></div>';
+}
+function tlRenderMasterCard_() {
+  var body = document.getElementById('tlm-card-body'); if (!body) return;
+  if (!_tlLoaded) { body.innerHTML = '<div class="tl-fhint">読み込み中…</div>'; return; }
+  if (_tlFailed) { body.innerHTML = '<div class="lend-bar-err" style="margin:0">&#9888; テキスト一覧を読み込めませんでした（データは消えていません）<button class="btn-sm" onclick="tlReloadAndRender_()" style="margin-left:8px">&#128260; 再読み込み</button></div>'; return; }
+  var keepName = document.getElementById('tlm-name') ? document.getElementById('tlm-name').value : '';
+  var editObj = _tlmEdit ? _textMaster.find(function(x) { return x.id === _tlmEdit; }) : null;
+  var rows = _textMaster.slice().sort(function(a, b) { return a.name.localeCompare(b.name, 'ja'); });
+  body.innerHTML = '<table class="tlm-table"><thead><tr><th>テキスト名</th><th>学年</th><th>教科</th><th></th></tr></thead><tbody>' +
+    (rows.length ? rows.map(function(t) {
+      return '<tr><td class="t">' + esc(t.name) + '</td><td class="s">' + esc(tlSumGrades_(t.grades)) + '</td><td class="s">' + esc(tlSumSubjects_(t.subjects)) + '</td>' +
+        '<td style="white-space:nowrap;width:80px;text-align:right"><button class="tlm-edit" onclick="tlmEditStart_(\'' + esc(t.id) + '\')">編集</button> <button class="tlm-del" title="削除" onclick="tlmDel_(\'' + esc(t.id) + '\')">×</button></td></tr>';
+    }).join('') : '<tr><td colspan="4" class="s" style="padding:10px 8px">まだ登録されていません。下から追加してください。</td></tr>') +
+    '</tbody></table>' +
+    '<div class="tlm-form"><div class="tlm-form-title">' + (editObj ? '「' + esc(editObj.name) + '」を編集' : 'テキストを追加') + '</div>' +
+    '<input class="tl-finput" id="tlm-name" placeholder="テキスト名（例：winnpass）" style="margin-bottom:8px">' +
+    '<div id="tlm-grades"></div><div id="tlm-subjects" style="margin-top:4px"></div>' +
+    '<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px">' +
+    (editObj ? '<button class="btn-secondary btn-sm" onclick="tlmReset_()">編集をやめる</button>' : '') +
+    '<button class="btn-teal btn-sm" onclick="tlmSubmit_()">' + (editObj ? '保存' : '追加') + '</button></div></div>';
+  document.getElementById('tlm-name').value = editObj ? editObj.name : keepName;
+  tlmRenderPicks_();
+}
+function tlmRenderPicks_() {
+  var h = '';
+  TL_GRADE_GROUPS.forEach(function(gr, i) {
+    h += '<div class="tlm-line"><span class="gl">' + (i === 0 ? '学年' : '') + '</span>';
+    if (gr.items.length > 1) h += '<button class="tl-pick-grp" onclick="tlmGrp_(' + i + ')">' + gr.label + 'すべて</button>';
+    h += gr.items.map(function(g) { return '<button class="tl-pick' + (_tlmG.indexOf(g) !== -1 ? ' on' : '') + '" onclick="tlmTog_(\'g\',\'' + g + '\')">' + tlGradeLabel_(g) + '</button>'; }).join('') + '</div>';
+  });
+  var gEl = document.getElementById('tlm-grades'); if (gEl) gEl.innerHTML = h;
+  var sEl = document.getElementById('tlm-subjects');
+  if (sEl) sEl.innerHTML = '<div class="tlm-line"><span class="gl">教科</span><button class="tl-pick-grp" onclick="tlmAllS_()">全教科すべて</button>' +
+    TL_SUBJECTS.map(function(s) { return '<button class="tl-pick' + (_tlmS.indexOf(s) !== -1 ? ' on' : '') + '" onclick="tlmTog_(\'s\',\'' + s + '\')">' + s + '</button>'; }).join('') + '</div>';
+}
+function tlmTog_(k, v) { var a = k === 'g' ? _tlmG : _tlmS, i = a.indexOf(v); if (i === -1) a.push(v); else a.splice(i, 1); tlmRenderPicks_(); }
+function tlmGrp_(i) {
+  var items = TL_GRADE_GROUPS[i].items, all = items.every(function(g) { return _tlmG.indexOf(g) !== -1; });
+  items.forEach(function(g) { var k = _tlmG.indexOf(g); if (all) { if (k !== -1) _tlmG.splice(k, 1); } else if (k === -1) _tlmG.push(g); });
+  tlmRenderPicks_();
+}
+function tlmAllS_() { _tlmS = _tlmS.length === TL_SUBJECTS.length ? [] : TL_SUBJECTS.slice(); tlmRenderPicks_(); }
+function tlmReset_() { _tlmEdit = null; _tlmG = []; _tlmS = []; var n = document.getElementById('tlm-name'); if (n) n.value = ''; tlRenderMasterCard_(); }
+function tlmEditStart_(id) {
+  var t = _textMaster.find(function(x) { return x.id === id; }); if (!t) return;
+  _tlmEdit = id; _tlmG = t.grades.slice(); _tlmS = t.subjects.slice(); tlRenderMasterCard_();
+}
+function tlmSubmit_() {
+  var n = (document.getElementById('tlm-name').value || '').trim();
+  if (!n) { miniToast('テキスト名を入れてください'); return; }
+  if (!_tlmG.length) { miniToast('学年を1つ以上選んでください'); return; }
+  if (!_tlmS.length) { miniToast('教科を1つ以上選んでください'); return; }
+  var rec = { id: _tlmEdit || ('tm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)), name: n,
+    grades: TL_GRADES.filter(function(x) { return _tlmG.indexOf(x) !== -1; }),
+    subjects: TL_SUBJECTS.filter(function(x) { return _tlmS.indexOf(x) !== -1; }) };
+  var idx = -1;
+  for (var i = 0; i < _textMaster.length; i++) { if (_textMaster[i].id === rec.id) { idx = i; break; } }
+  var isEdit = idx >= 0;
+  if (isEdit) _textMaster[idx] = rec; else _textMaster.push(rec);
+  _tlmEdit = null; _tlmG = []; _tlmS = [];
+  document.getElementById('tlm-name').value = '';
+  tlRenderMasterCard_();
+  callGas(tlTaskUrl_(), { action: 'saveTextMaster', text: JSON.stringify(rec) }, function(res) {
+    if (res && res.success) miniToast(n + (isEdit ? ' を保存しました' : ' を追加しました'));
+    else { miniToast('保存できませんでした。画面を最新に戻します'); tlReloadAndRender_(); }
+  }, 'POST', true);
+}
+function tlmDel_(id) {
+  var t = _textMaster.find(function(x) { return x.id === id; }); if (!t) return;
+  tlAskDelete_('「' + t.name + '」をテキスト一覧から削除しますか？', '貸出の登録画面の選択肢から消えます。すでに貸している記録は消えません。', function() {
+    _textMaster = _textMaster.filter(function(x) { return x.id !== id; });
+    if (_tlmEdit === id) { _tlmEdit = null; _tlmG = []; _tlmS = []; }
+    tlRenderMasterCard_();
+    callGas(tlTaskUrl_(), { action: 'deleteTextMaster', id: id }, function(res) {
+      if (res && res.success) miniToast(t.name + ' を一覧から削除しました');
+      else { miniToast('削除できませんでした。画面を最新に戻します'); tlReloadAndRender_(); }
+    }, 'POST', true);
+  });
 }
 
 </script>
