@@ -293,6 +293,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .lend-chips { display:flex; flex-wrap:wrap; gap:4px; flex:1; }
 .lend-chip { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 8px; border-radius:5px; white-space:nowrap; line-height:1.5; cursor:pointer; background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; }
 .lend-chip:hover { opacity:.75; }
+.lend-chip .t-popup { display:none !important; }
 .lend-chip .lc-name { font-weight:700; }
 .lend-chip .lc-grade { color:#6b7280; }
 .lend-chip .lc-due { font-size:10px; color:#6b7280; }
@@ -15607,7 +15608,7 @@ function rerenderCurrentTab() {
   document.body.appendChild(hPop);
 
   document.addEventListener('mouseover', function(e) {
-    var chip  = e.target.closest('.task-chip-1line');
+    var chip  = e.target.closest('.task-chip-1line, .lend-chip');   // 2026-10-09：テキスト貸出のチップも同じ小窓
     var sChip = e.target.closest('.student-chip');
     var hChip = e.target.closest('.gs-help');
 
@@ -15645,7 +15646,7 @@ function rerenderCurrentTab() {
 
   document.addEventListener('mousemove', function(e) {
     if (tPop.style.display === 'block') {
-      if (e.target.closest('.task-chip-1line')) placePopup(tPop, e.clientX, e.clientY);
+      if (e.target.closest('.task-chip-1line, .lend-chip')) placePopup(tPop, e.clientX, e.clientY);
       else hidePopup(tPop);
     }
     if (sPop.style.display === 'block') {
@@ -17711,8 +17712,17 @@ function textLendBarHtml_() {
     }
     // 川上さん指示(2026-10-09)：ホバーの説明は出さない。メモはチップを押して開く画面で見る。📝はメモがある印だけ
     var memoMark = l.memo ? '<span class="lc-due">📝</span>' : '';
+    // 2026-10-09 川上さん指示：ホバーで情報（メモ含む）を出す。タスクのチップと同じ小窓（t-popup）を使う。操作の説明文は入れない
+    var tg = [l.textGrade ? tlGradeLabel_(l.textGrade) : '', l.textSubject].filter(Boolean).join('・');
+    var popup = '<span class="t-popup">' +
+      '<div class="t-popup-title">' + esc(l.studentName) + '</div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">テキスト</span><span class="t-popup-val">' + esc(l.textName) + (tg ? '（' + esc(tg) + '）' : '') + '</span></div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">貸した日</span><span class="t-popup-val">' + (l.lentDate ? tlMdw_(l.lentDate) : '—') + '</span></div>' +
+      '<div class="t-popup-row"><span class="t-popup-label">回収日</span><span class="t-popup-val">' + (l.dueDate ? tlMdw_(l.dueDate) : 'なし') + '</span></div>' +
+      (l.memo ? '<div class="t-popup-memo">' + esc(l.memo) + '</div>' : '') +
+      '</span>';
     return '<span class="lend-chip' + cls + '" onclick="tlOpenDetail_(\'' + esc(l.id) + '\')">' +
-      '<span class="lc-name">' + esc(tlFirstName_(l.studentName)) + '</span><span>' + tlTextLabel_(l) + '</span>' + due + memoMark + '</span>';
+      '<span class="lc-name">' + esc(tlFirstName_(l.studentName)) + '</span><span>' + tlTextLabel_(l) + '</span>' + due + memoMark + popup + '</span>';
   }).join('');
   return '<div class="lend-bar"><span class="lend-bar-label"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>貸出中（' + act.length + '）</span>' +
     '<div class="lend-chips">' + chips + '</div></div>';
