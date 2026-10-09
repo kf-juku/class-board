@@ -1794,8 +1794,11 @@ tr.mx-done-row td { background: #f0fdf4; }
         </div>
       </div></div>
       <div class="tl-frow"><span class="tl-flabel">テキスト</span><div class="tl-fbody">
-        <select class="tl-finput" id="tl-text" onchange="tlOnTextSel_()"></select>
-        <input class="tl-finput" id="tl-text-other" placeholder="テキスト名を入力（学年・教科は選ばなくても登録できます）" style="display:none;margin-top:6px">
+        <!-- 川上さん指示(2026-10-09)：手入力をプルダウンの中に隠さない。プルダウンを狭くして右隣に入力欄を常に出す -->
+        <div style="display:flex;gap:6px">
+          <select class="tl-finput" id="tl-text" onchange="tlOnTextSel_()" style="flex:0 0 45%"></select>
+          <input class="tl-finput" id="tl-text-other" placeholder="一覧に無いときはここに入力" oninput="tlOnOtherInput_()" style="flex:1;min-width:0">
+        </div>
         <div class="tl-pick-row" id="tl-grades"></div>
         <div class="tl-pick-row" id="tl-subjects"></div>
         <div class="tl-fhint">テキストを先に選ぶと、そのテキストの学年・教科だけが押せます。学年や教科を先に押すと、テキストの一覧が絞られます。</div>
@@ -17719,7 +17722,11 @@ function textLendBarHtml_() {
 // ── 回収日の候補：その生徒の毎週のコマの曜日から、基準日より後を3回分（欠席・振替は見ない） ──
 function tlYoubiSet_(stu) {
   var ys = {};
-  ((stu && stu.komas) || []).forEach(function(k) { var i = YOUBI_MAP.indexOf(k.youbi); if (i >= 0) ys[i] = true; });
+  ((stu && stu.komas) || []).forEach(function(k) {
+    // 🚨 オンラインのコマは数えない。自宅から受ける授業なのでテキストを回収できない（川上さん指摘 2026-10-09）
+    if (k.online) return;
+    var i = YOUBI_MAP.indexOf(k.youbi); if (i >= 0) ys[i] = true;
+  });
   return ys;
 }
 function tlDueCandidates_(stu, fromIso) {
@@ -17749,8 +17756,8 @@ function tlRenderDue_(p) {
   var cands = tlDueCandidates_(stu, base);
   var names = ['次の授業', 'その次', '3回後'];
   var src = !stu ? (p === 'a' ? '生徒を選ぶと、その子の授業日がここに出ます' : '生徒の授業日が分からないため、候補は出せません（カレンダーで選んでください）')
-          : (cands.length ? (tlFirstName_(stu.name) + 'の授業日（毎週 ' + tlYoubiText_(stu) + '）から、' + (base === today ? '今日' : '貸した日') + 'より後の3回')
-                          : (tlFirstName_(stu.name) + 'は毎週のコマが登録されていません（カレンダーで選んでください）'));
+          : (cands.length ? (tlFirstName_(stu.name) + 'が教室に来る日（毎週 ' + tlYoubiText_(stu) + '・オンラインは除く）から、' + (base === today ? '今日' : '貸した日') + 'より後の3回')
+                          : (tlFirstName_(stu.name) + 'は教室に来る毎週のコマがありません（カレンダーで選んでください）'));
   var h = '<div class="tl-due-src">' + esc(src) + '</div><div class="tl-due-opts">';
   h += '<button class="tl-due-opt' + (st.mode === 'none' ? ' on' : '') + '" onclick="tlDueSet_(\'' + p + '\',\'none\')"><small>回収日は</small><b>決めない</b></button>';
   cands.forEach(function(c, i) {
@@ -17813,12 +17820,11 @@ function tlRenderTextSel_() {
   }).slice().sort(function(a, b) { return a.name.localeCompare(b.name, 'ja'); });
   var f = [_tlSelGrade ? tlGradeLabel_(_tlSelGrade) : '', _tlSelSubj].filter(Boolean).join('・');
   document.getElementById('tl-text').innerHTML = '<option value="">テキストを選ぶ' + (f ? '（' + esc(f) + ' で絞り込み中）' : '') + '</option>' +
-    list.map(function(t) { return '<option value="' + esc(t.id) + '"' + (t.id === _tlSelText ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') +
-    '<option value="__other"' + (_tlSelText === '__other' ? ' selected' : '') + '>その他（手入力）</option>';
+    list.map(function(t) { return '<option value="' + esc(t.id) + '"' + (t.id === _tlSelText ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('');
 }
 function tlOnTextSel_() {
   _tlSelText = document.getElementById('tl-text').value;
-  document.getElementById('tl-text-other').style.display = _tlSelText === '__other' ? '' : 'none';
+  if (_tlSelText) document.getElementById('tl-text-other').value = '';   // 一覧から選んだら手入力は空にする
   var t = tlTextObj_();
   if (t) {
     if (t.grades.indexOf(_tlSelGrade) === -1) _tlSelGrade = '';   // 学年の無いテキストなら学年は空になる
@@ -17826,6 +17832,17 @@ function tlOnTextSel_() {
     if (t.grades.length === 1) _tlSelGrade = t.grades[0];
     if (t.subjects.length === 1) _tlSelSubj = t.subjects[0];
   }
+  tlRenderPicks_();
+}
+// 手入力欄：何か入っていれば「その他（手入力）」扱い。プルダウンの選択は外す。学年・教科は任意
+function tlOnOtherInput_() {
+  var v = (document.getElementById('tl-text-other').value || '').trim();
+  if (v) {
+    // 一覧のテキストから手入力に切り替えたときは、そのテキストで自動で付いた学年・教科を外す
+    if (_tlSelText && _tlSelText !== '__other') { _tlSelGrade = ''; _tlSelSubj = ''; }
+    _tlSelText = '__other'; document.getElementById('tl-text').value = '';
+  }
+  else if (_tlSelText === '__other') { _tlSelText = ''; }
   tlRenderPicks_();
 }
 function tlRenderPicks_() {
@@ -17859,7 +17876,6 @@ function openTextLendAdd() {
   document.getElementById('tl-tp-search').value = '';
   document.getElementById('tl-lent').value = cbEntryIso_();   // 表示している日（手で直せる）
   document.getElementById('tl-text-other').value = '';
-  document.getElementById('tl-text-other').style.display = 'none';
   document.getElementById('tl-memo').value = '';
   tlSetupFilters_(); tlStuRender_(); tlRenderPicks_(); tlRenderDue_('a');
   openModal('modal-tl-add');
@@ -17879,7 +17895,7 @@ function tlSubmit_() {
   var other = _tlSelText === '__other';
   var t = tlTextObj_();
   var name = other ? document.getElementById('tl-text-other').value.trim() : (t ? t.name : '');
-  if (!name) { miniToast('テキストを選んでください'); return; }
+  if (!name) { miniToast('テキストを選ぶか、右の欄に入力してください'); return; }
   // 一覧から選んだテキストは学年・教科が必須。「その他（手入力）」は選ばなくてもよい（川上さん指示 2026-10-09）
   if (!other && t && t.grades.length && !_tlSelGrade) { miniToast('学年を選んでください'); return; }   // 学年の無いテキストは聞かない
   if (!other && !_tlSelSubj) { miniToast('教科を選んでください'); return; }
