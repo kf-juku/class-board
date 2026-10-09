@@ -10997,7 +10997,7 @@ function jpSave() {
   /* 🚨 足すのが先、消すのが後。追加に失敗したら削除しない（機能仕様書 §9-4） */
   function doDel_() {
     if (!toDel.length) { jpFinish_(); return; }
-    callGas(url, { action: 'deleteJishuAssignments', ids: toDel }, function(res) {
+    callGas(url, { action: 'deleteJishuAssignments', ids: toDel, by: getUserName(), from: '＋自習の画面' }, function(res) {   // 2026-10-09 削除ログ用
       if (res && res.success) {
         var d = {}; toDel.forEach(function(id) { d[id] = true; });
         _jishu = (_jishu || []).filter(function(x) { return !d[x.id]; });
@@ -11671,7 +11671,7 @@ function kseSave(studentId, studentName, periodId) {
     if (!jToSave.length && !jToDel.length) { next(); return; }
     function doJishuDel() {
       if (!jToDel.length) { _jishuCache = {}; next(); return; }
-      callGas(url, { action: 'deleteJishuAssignments', ids: jToDel }, function(res) {
+      callGas(url, { action: 'deleteJishuAssignments', ids: jToDel, by: getUserName(), from: '受講状況の画面（' + ((period && period.name) || '通常期') + '）' }, function(res) {   // 2026-10-09 削除ログ用
         if (res && res.success) {
           var dset = {};
           jToDel.forEach(function(id) { dset[id] = true; });
@@ -11787,7 +11787,7 @@ function kseSave(studentId, studentName, periodId) {
   function stepJishuLate(next) {
     if (!jToDelLate.length) { next(); return; }
     if (errors.length) { next(); return; }   // 🚨 追加に失敗していたら消さない
-    callGas(url, { action: 'deleteJishuAssignments', ids: jToDelLate }, function(res) {
+    callGas(url, { action: 'deleteJishuAssignments', ids: jToDelLate, by: getUserName(), from: '受講状況の画面・自習→対策（' + ((period && period.name) || '通常期') + '）' }, function(res) {   // 2026-10-09 削除ログ用
       if (res && res.success) {
         var d = {}; jToDelLate.forEach(function(id) { d[id] = true; });
         _jishu = (_jishu || []).filter(function(x) { return !d[x.id]; });
