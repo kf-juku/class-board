@@ -17798,7 +17798,8 @@ function tlStuRender_() {
 function tlTextObj_() { var id = _tlSelText; return _textMaster.find(function(t) { return t.id === id; }); }
 function tlRenderTextSel_() {
   var list = _textMaster.filter(function(t) {
-    return (!_tlSelGrade || t.grades.indexOf(_tlSelGrade) !== -1) && (!_tlSelSubj || t.subjects.indexOf(_tlSelSubj) !== -1);
+    // 学年の無いテキスト（入試向けなど）は、学年を押していても一覧に残す
+    return (!_tlSelGrade || !t.grades.length || t.grades.indexOf(_tlSelGrade) !== -1) && (!_tlSelSubj || t.subjects.indexOf(_tlSelSubj) !== -1);
   }).slice().sort(function(a, b) { return a.name.localeCompare(b.name, 'ja'); });
   var f = [_tlSelGrade ? tlGradeLabel_(_tlSelGrade) : '', _tlSelSubj].filter(Boolean).join('・');
   document.getElementById('tl-text').innerHTML = '<option value="">テキストを選ぶ' + (f ? '（' + esc(f) + ' で絞り込み中）' : '') + '</option>' +
@@ -17810,7 +17811,7 @@ function tlOnTextSel_() {
   document.getElementById('tl-text-other').style.display = _tlSelText === '__other' ? '' : 'none';
   var t = tlTextObj_();
   if (t) {
-    if (t.grades.indexOf(_tlSelGrade) === -1) _tlSelGrade = '';
+    if (t.grades.indexOf(_tlSelGrade) === -1) _tlSelGrade = '';   // 学年の無いテキストなら学年は空になる
     if (t.subjects.indexOf(_tlSelSubj) === -1) _tlSelSubj = '';
     if (t.grades.length === 1) _tlSelGrade = t.grades[0];
     if (t.subjects.length === 1) _tlSelSubj = t.subjects[0];
@@ -17869,7 +17870,7 @@ function tlSubmit_() {
   var name = other ? document.getElementById('tl-text-other').value.trim() : (t ? t.name : '');
   if (!name) { miniToast('テキストを選んでください'); return; }
   // 一覧から選んだテキストは学年・教科が必須。「その他（手入力）」は選ばなくてもよい（川上さん指示 2026-10-09）
-  if (!other && !_tlSelGrade) { miniToast('学年を選んでください'); return; }
+  if (!other && t && t.grades.length && !_tlSelGrade) { miniToast('学年を選んでください'); return; }   // 学年の無いテキストは聞かない
   if (!other && !_tlSelSubj) { miniToast('教科を選んでください'); return; }
   var lend = {
     id: 'tl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),   // 採番はこちら（POST再送で2行にしない）
@@ -17942,7 +17943,7 @@ function tlSumGrades_(gs) {
     if (hit.length === gr.items.length && gr.items.length > 1) out.push(gr.label + '全学年');
     else out.push(hit.map(tlGradeLabel_).join('・'));
   });
-  return out.join('／');
+  return out.length ? out.join('／') : '学年なし';
 }
 function tlSumSubjects_(ss) { return ss.length === TL_SUBJECTS.length ? '全教科' : TL_SUBJECTS.filter(function(s) { return ss.indexOf(s) !== -1; }).join('・'); }
 function renderTextMasterSettingCard_() {
@@ -17967,6 +17968,7 @@ function tlRenderMasterCard_() {
     '<div class="tlm-form"><div class="tlm-form-title">' + (editObj ? '「' + esc(editObj.name) + '」を編集' : 'テキストを追加') + '</div>' +
     '<input class="tl-finput" id="tlm-name" placeholder="テキスト名（例：winnpass）" style="margin-bottom:8px">' +
     '<div id="tlm-grades"></div><div id="tlm-subjects" style="margin-top:4px"></div>' +
+    '<div class="tl-fhint">入試向けなど学年の無いテキストは、学年を選ばずに追加できます。教科は1つ以上選んでください。</div>' +
     '<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px">' +
     (editObj ? '<button class="btn-secondary btn-sm" onclick="tlmReset_()">編集をやめる</button>' : '') +
     '<button class="btn-teal btn-sm" onclick="tlmSubmit_()">' + (editObj ? '保存' : '追加') + '</button></div></div>';
@@ -18000,7 +18002,7 @@ function tlmEditStart_(id) {
 function tlmSubmit_() {
   var n = (document.getElementById('tlm-name').value || '').trim();
   if (!n) { miniToast('テキスト名を入れてください'); return; }
-  if (!_tlmG.length) { miniToast('学年を1つ以上選んでください'); return; }
+  // 学年は空でもよい（入試向けなど学年の無いテキスト。川上さん指示 2026-10-09）
   if (!_tlmS.length) { miniToast('教科を1つ以上選んでください'); return; }
   var rec = { id: _tlmEdit || ('tm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)), name: n,
     grades: TL_GRADES.filter(function(x) { return _tlmG.indexOf(x) !== -1; }),
