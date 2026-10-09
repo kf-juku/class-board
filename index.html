@@ -1801,9 +1801,8 @@ tr.mx-done-row td { background: #f0fdf4; }
         </div>
         <div class="tl-pick-row" id="tl-grades"></div>
         <div class="tl-pick-row" id="tl-subjects"></div>
-        <div class="tl-fhint">テキストを先に選ぶと、そのテキストの学年・教科だけが押せます。学年や教科を先に押すと、テキストの一覧が絞られます。</div>
       </div></div>
-      <div class="tl-frow"><span class="tl-flabel">貸した日</span><div class="tl-fbody"><input type="date" class="tl-finput auto" id="tl-lent" oninput="tlRenderDue_('a')"><div class="tl-fhint">表示している日が自動で入ります。違うときは直してください</div></div></div>
+      <div class="tl-frow"><span class="tl-flabel">貸した日</span><div class="tl-fbody"><input type="date" class="tl-finput auto" id="tl-lent" oninput="tlRenderDue_('a')"></div></div>
       <div class="tl-frow"><span class="tl-flabel">回収日</span><div class="tl-fbody" id="tl-a-due-box"></div></div>
       <div class="tl-frow"><span class="tl-flabel">メモ</span><div class="tl-fbody"><textarea class="tl-finput" id="tl-memo" rows="2" placeholder="任意（例：表紙に名前あり・付録CDも一緒）" style="resize:vertical"></textarea></div></div>
     </div>
@@ -17773,7 +17772,7 @@ function tlDueSet_(p, mode, val) { _tlDue[p] = { mode: mode, val: val || (mode =
 function tlDueResult_(p) {
   var st = _tlDue[p], el = document.getElementById('tl-' + p + '-due-result'); if (!el) return;
   var v = st.mode === 'none' ? '' : st.val;
-  if (!v) { el.className = 'tl-due-result none'; el.textContent = '→ 回収日なし（帯のチップに色は付きません）'; return; }
+  if (!v) { el.className = 'tl-due-result none'; el.textContent = '→ 回収日なし'; return; }
   var n = Math.round((new Date(v + 'T00:00:00') - new Date(isoDate(new Date()) + 'T00:00:00')) / 86400000);
   el.className = 'tl-due-result'; el.textContent = '→ 回収日：' + tlMdw_(v) + '（' + (n === 0 ? '今日' : n > 0 ? n + '日後' : (-n) + '日前') + '）';
 }
@@ -17998,7 +17997,6 @@ function tlRenderMasterCard_() {
     '<div class="tlm-form"><div class="tlm-form-title">' + (editObj ? '「' + esc(editObj.name) + '」を編集' : 'テキストを追加') + '</div>' +
     '<input class="tl-finput" id="tlm-name" placeholder="テキスト名（例：winnpass）" style="margin-bottom:8px">' +
     '<div id="tlm-grades"></div><div id="tlm-subjects" style="margin-top:4px"></div>' +
-    '<div class="tl-fhint">入試向けなど学年の無いテキストは、学年を選ばずに追加できます。教科は1つ以上選んでください。</div>' +
     '<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px">' +
     (editObj ? '<button class="btn-secondary btn-sm" onclick="tlmReset_()">編集をやめる</button>' : '') +
     '<button class="btn-teal btn-sm" onclick="tlmSubmit_()">' + (editObj ? '保存' : '追加') + '</button></div></div>';
