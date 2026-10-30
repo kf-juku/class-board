@@ -407,6 +407,26 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .jp-fsearch { border:1px solid var(--border); border-radius:999px; padding:4px 12px; font-size:12px; font-family:inherit; width:180px; }
 .koushu-drop-target { outline: 2px dashed var(--crimson); outline-offset: -2px; background: rgba(220,38,38,0.05); }
 
+
+/* ===== 体験生チップ（2026-10-30 川上さん確定：緑・名前と一緒に 体験①／よみ／学年・学校）=====
+ *  時間割の緑は「演習回」「自習」の薄い小バッジ。体験生はチップ全体を緑の枠＋薄い緑の地にし、
+ *  バッジは濃い緑の塗り＋白文字にして見分ける。本日タブはコマの先頭に横いっぱい（grid-column）。 */
+.student-chip.cb-trial { background:#f0fdf4; border:1.5px solid #16a34a; display:block; white-space:normal; position:relative; overflow:hidden; }
+.koma-students > .student-chip.cb-trial { grid-column:1 / -1; }
+.cb-trial-line { display:flex; flex-wrap:wrap; align-items:center; gap:2px 5px; }
+.cb-trial-line > span { white-space:nowrap; }
+.badge.cb-b-trial { background:#15803d; color:#fff; font-size:10px; padding:1px 6px; }
+.cb-trial-name { font-weight:700; color:var(--text); }
+.cb-trial-kana { font-size:10px; color:#166534; }
+.cb-trial-sub { font-size:10px; color:#14532d; }
+.cb-trial-cmt { font-size:10px; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+.wg-cell .cb-trial-cmt { display:none; }
+.cb-trial-kb { display:inline-block; font-size:10px; background:#f3f4f6; color:#374151; border-radius:4px; padding:2px 6px; margin:2px 2px 0 0; border:0.5px solid #e5e7eb; }
+.cb-trial-kb.on { background:#dcfce7; border-color:#86efac; color:#14532d; font-weight:700; }
+@media print {
+  .student-chip.cb-trial, .badge.cb-b-trial { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .student-chip.cb-trial { border:2px solid #15803d !important; }
+}
 /* ホバーポップアップ */
 /* .student-chip .s-popup はデータ保持用。表示はglobal-s-popupが担当 */
 .student-chip .s-popup { display: none !important; }
@@ -984,7 +1004,8 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .kp-b-enshuu { background: #d1fae5; color: #047857; }
 .kp-g-elem { color: #be185d !important; font-weight: 700; }
 .kp-g-high { color: #6d28d9 !important; font-weight: 700; }
-.kp-b-kesseki { background: #111; color: #fff; } /* 2026-09-19 案A：黒ベタ白抜き */
+.kp-b-kesseki { background: #111; color: #fff; }
+.kp-b-trial { background: #15803d; color: #fff; } /* 2026-09-19 案A：黒ベタ白抜き */
 .kp-stu-abs { background: #e5e7eb; border-radius: 4px; padding: 0 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .kp-abs-name { text-decoration: line-through; text-decoration-thickness: 1.5px; color: #111; } /* 2026-09-19 案A：薄すぎたので濃くする */
 .kp-stu-abs .kp-grade { color: #9ca3af; }
@@ -2392,8 +2413,11 @@ var _koushuModeUserOverride = null; // null=自動, true=手動ON, false=手動O
 // 川上さん指示(2026-08-25)：読み込めていないのを「データが無い」と誤認させない。
 //  各データが「まだ来ていない(false)」「来た(true)」を持ち、失敗は _cbFail に立てる。
 //  空表示の分岐は必ず cbEmptyHtml_ を通す（直接「ありません」を返さない）。
-var _cbLoaded = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false, cal: false, staff: false, jishu: false };
-var _cbFail   = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false, cal: false, staff: false, jishu: false };
+var _cbLoaded = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false, cal: false, staff: false, jishu: false, trial: false };
+var _cbFail   = { students: false, absence: false, periods: false, assigns: false, works: false, examCards: false, cal: false, staff: false, jishu: false, trial: false };
+/* 体験生の予定（2026-10-30）。会員管理の問い合わせカードで「体験アポ済」にした体験。起動まとめ取得に相乗りして届く。
+ * ★取得失敗（null）を空配列で上書きしない。失敗したら _cbFail.trial を立てて画面に一言出す。 */
+var _cbTrials = [];
 /* スタッフ勤務割（2026-09-02）。★取得失敗を空配列で上書きしないこと（2026-08-25の教訓） */
 var _staffs = [];        // スタッフマスタ（passHash/salt は返ってこない）
 var _staffShifts = [];   // 勤務割の生データ（weekly/single/change/off）
@@ -3231,6 +3255,10 @@ function cbBootPid_() {
 }
 
 function cbApplyStudentBootstrap_(res) {
+  // 体験生の予定（2026-10-30）。GAS貼り替え前は undefined＝何もしない（体験生は出ない）。
+  //  null は「取りに行ったが失敗」。空で塗らずに失敗の印だけ立てる。
+  if (Array.isArray(res.trials)) { _cbTrials = res.trials; _cbLoaded.trial = true; _cbFail.trial = false; }
+  else if (res.trials === null) { _cbLoaded.trial = true; _cbFail.trial = true; }
   if (Array.isArray(res.students)) {
     res.students.forEach(function(s) {
       (s.komas || []).forEach(function(k) {
@@ -4017,7 +4045,7 @@ function cbDateNavHtml_() {
 var _twoKomaCache = {};
 // 🚨 renderToday / buildWeekGrid の先頭で呼ばれる。自習の展開キャッシュもここで戻す
 //    （日付・生徒・割付が変わったのに前の展開結果を使うと、消したはずの子が残る）。
-function _resetTwoKomaCache() { _twoKomaCache = {}; _jishuCache = {}; _ksJcntCache = null; _ksJcntPid = ''; }
+function _resetTwoKomaCache() { _twoKomaCache = {}; _jishuCache = {}; _cbTrialKtCache = {}; _ksJcntCache = null; _ksJcntPid = ''; }
 function _youbiFromIso_(iso) { try { return YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()]; } catch (e) { return ''; } }
 function _tkTimeKey_(t) { return parseInt((t || '').replace(/[：:]/, '').substring(0, 4)) || 0; }
 function _tkCountable_(t) { return t !== 'オンライン'; }   // 川上さん確定(2026-10-02)：オンライン以外はすべて数える
@@ -4172,10 +4200,120 @@ function attendCmp_(a, b){ return (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]
  * 食い違っていた（例：中6（計13人））。各ビューは必ずこの関数を通すこと。
  */
 var CB_CAT_ORDER = ['小','中','高','他','ca','eiken','enshuu','koushu','taisaku','jishu',
-                    'fu_juku','fu_ca','fu_eiken','fu_enshuu','fu_online','fu_x','juken'];
+                    'fu_juku','fu_ca','fu_eiken','fu_enshuu','fu_online','fu_x','juken','trial'];
 var CB_CAT_LABEL = { ca:'CA', eiken:'英検', enshuu:'演習', koushu:'講習', taisaku:'テ対', jishu:'自習',
                      fu_juku:'振塾', fu_ca:'振CA', fu_eiken:'振英検', fu_enshuu:'振演習',
-                     fu_online:'振オン', fu_x:'振替', juken:'受験' };
+                     fu_online:'振オン', fu_x:'振替', juken:'受験', trial:'体験' };
+
+/* ===== 体験生（2026-10-30 川上さん確定）=====
+ * 会員管理の問い合わせカードで「体験アポ済」にチェックし、日付とコマを入れた体験を時間割に出す。
+ *  ・通常／テスト対策／講習のどのモードでも出す。席を使うので人数にも定員にも数える（内訳は「体験N」）
+ *  ・チップは緑。名前と一緒に 体験①②・よみ・学年・学校 を出す（体験生は特別扱い）。コマのいちばん上に横いっぱい
+ *  ・小窓：体験の日程（①②）・内容コメント（教科もここに入る）・指導方針
+ *  ・印刷A4は画面のクローン（指導方針は出ない）。B4期間印刷は名前・バッジ・学年
+ *  ・講習の枠に無い時刻（CAの16:30など）は、体験がある日だけその時刻の行を足す
+ *  🚨 顔ぶれは cbTrialsOn_ の1本だけで決める。cbNormalRoster_／cbKoushuObjs_／printKoushuPeriod と
+ *     コマ行の和集合（renderToday・buildWeekGrid・printKoushuPeriod）が全部これを呼ぶ。ビューごとに書き直さない。
+ *  🚨 データは会員管理GAS getClassBoardBootstrap_ の trials。形は
+ *     [{ iqId, name, reading, grade, school, classroom, policy, trials:[{ n, date, koma, komaTime, time, note, subject }] }]
+ *     n は問い合わせカード上の回（0=①）。 */
+var CB_TRIAL_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+function cbTrialMark_(n) { return CB_TRIAL_NUMS[n] || ('(' + (n + 1) + ')'); }
+var _cbTrialKtCache = {};
+// 体験のコマ時刻を Class Board のコマ表記（'17:15〜18:35'）にそろえる
+function cbTrialKomaTime_(t) {
+  if (!t) return '';
+  if (t.komaTime) return normKomaTime_(t.komaTime);
+  var st = String(t.time || '');
+  if (!/^\d{1,2}:\d{2}$/.test(st)) {
+    var m = String(t.koma || '').match(/(\d{2})(\d{2})$/);
+    st = m ? (m[1] + ':' + m[2]) : '';
+  }
+  if (!st) return '';
+  st = padHM_(st);
+  if (_cbTrialKtCache[st] !== undefined) return _cbTrialKtCache[st];
+  var cands = [];
+  ['北久里浜', '久里浜'].forEach(function(c) { cands = cands.concat(getKomasForClassroom(c)); });
+  (_koushuPeriods || []).forEach(function(p) { cands = cands.concat(p.komaFrames || []); });
+  cands = cands.concat(KOUSHU_DEFAULT_KOMA_FRAMES);
+  var hit = cands.filter(function(k) { return padHM_(normKomaTime_(k).split('〜')[0]) === st; })[0];
+  _cbTrialKtCache[st] = hit ? normKomaTime_(hit) : (st + '〜');
+  return _cbTrialKtCache[st];
+}
+// その教室・その日・そのコマに来る体験生 → [{ iq, t, n, kt }]
+function cbTrialsOn_(cr, kt, iso) {
+  var out = [], nk = normKomaTime_(kt);
+  (_cbTrials || []).forEach(function(iq) {
+    if (!iq || iq.classroom !== cr) return;
+    (iq.trials || []).forEach(function(t) {
+      if (t.date !== iso) return;
+      var tk = cbTrialKomaTime_(t);
+      if (tk && tk === nk) out.push({ iq: iq, t: t, n: +t.n || 0, kt: tk });
+    });
+  });
+  return out;
+}
+// その教室・その日に体験があるコマ時刻（コマ行を足すため）
+function cbTrialKomasOn_(cr, iso) {
+  var out = [];
+  (_cbTrials || []).forEach(function(iq) {
+    if (!iq || iq.classroom !== cr) return;
+    (iq.trials || []).forEach(function(t) {
+      if (t.date !== iso) return;
+      var tk = cbTrialKomaTime_(t);
+      if (tk && out.indexOf(tk) === -1) out.push(tk);
+    });
+  });
+  return out;
+}
+// 既にあるコマ一覧（list）に、同じ時刻表記が無いときだけ体験のコマを足す
+function cbAddTrialKomas_(list, cr, isos) {
+  var seen = {};
+  list.forEach(function(k) { seen[normKomaTime_(k)] = 1; });
+  isos.forEach(function(iso) {
+    cbTrialKomasOn_(cr, iso).forEach(function(tk) { if (!seen[tk]) { seen[tk] = 1; list.push(tk); } });
+  });
+  return list;
+}
+function cbTrialMd_(iso) {
+  var p = String(iso || '').split('-');
+  if (p.length !== 3) return String(iso || '');
+  var d = new Date(+p[0], +p[1] - 1, +p[2]);
+  return isNaN(d) ? String(iso) : (d.getMonth() + 1) + '/' + d.getDate() + '(' + YOUBI_MAP[d.getDay()] + ')';
+}
+function cbTrialNote_(t) {
+  return [String(t.subject || '').trim(), String(t.note || '').trim()].filter(Boolean).join('　');
+}
+function cbTrialItem_(x, countOnly) {
+  return { name: x.iq.name || '', grade: x.iq.grade || '', cat: 'trial', absent: false, trial: x,
+           html: countOnly ? '' : cbTrialChipHtml_(x), key: [-1, 0, x.n] };
+}
+function cbTrialChipHtml_(x) {
+  var iq = x.iq, t = x.t;
+  var sub = [iq.grade, iq.school].filter(Boolean).join('・');
+  var note = cbTrialNote_(t);
+  var all = (iq.trials || []).slice().sort(function(a, b) { return (+a.n || 0) - (+b.n || 0); });
+  var sched = all.map(function(a) {
+    var on = (a.date === t.date && (+a.n || 0) === x.n);
+    return '<span class="cb-trial-kb' + (on ? ' on' : '') + '">' + cbTrialMark_(+a.n || 0) + ' ' + esc(cbTrialMd_(a.date)) + ' ' + esc(cbTrialKomaTime_(a)) + ' ' + esc(iq.classroom || '') + '</span>';
+  }).join('');
+  var popup = '<div class="s-popup" style="min-width:200px;max-width:280px">' +
+    '<div style="font-weight:700;font-size:13px;margin-bottom:4px">' + esc(iq.name || '') + (iq.reading ? ' <span style="font-weight:400;font-size:11px;color:#888">' + esc(iq.reading) + '</span>' : '') + '</div>' +
+    '<div style="margin-bottom:4px"><span class="badge cb-b-trial">体験' + cbTrialMark_(x.n) + '</span>' + (sub ? ' <span style="font-size:11px;color:#374151">' + esc(sub) + '</span>' : '') + '</div>' +
+    '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">体験の日程</div><div style="display:flex;flex-wrap:wrap">' + sched + '</div></div>' +
+    (note ? '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">内容・コメント</div><div style="font-size:11px;color:#111;line-height:1.6">' + esc(note) + '</div></div>' : '') +
+    (iq.policy ? '<div style="border-top:0.5px solid #e5e7eb;padding-top:5px;margin-top:4px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">指導方針</div><div style="font-size:11px;color:#111;line-height:1.6">' + esc(iq.policy) + '</div></div>' : '') +
+    '</div>';
+  return '<div class="student-chip cb-trial">' +
+    '<div class="cb-trial-line">' +
+      '<span class="badge cb-b-trial">体験' + cbTrialMark_(x.n) + '</span>' +
+      '<span class="cb-trial-name">' + esc(iq.name || '') + '</span>' +
+      (iq.reading ? '<span class="cb-trial-kana">' + esc(iq.reading) + '</span>' : '') +
+      (sub ? '<span class="cb-trial-sub">' + esc(sub) + '</span>' : '') +
+    '</div>' +
+    (note ? '<div class="cb-trial-cmt">' + esc(note) + '</div>' : '') +
+    popup + '</div>';
+}
 
 /* 振替来塾の「元コマ」の種別を返す（fu_juku / fu_ca / fu_eiken / fu_enshuu / fu_online / fu_x）。
  * 欠席・振替の記録には種別の項目が無いので、欠席日の曜日＋コマ時刻＋教室で生徒マスタを引いて判定する。
@@ -4659,6 +4797,11 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
       });
     });
   }
+  // 4) 体験生（2026-10-30）。コマのいちばん上に置く（key の先頭 -1）。同じ名前の子が既に出ていれば足さない
+  cbTrialsOn_(cr, kt, iso).forEach(function(x) {
+    if (out.some(function(o) { return o.name === (x.iq.name || ''); })) return;
+    out.push(cbTrialItem_(x, countOnly));
+  });
   out.sort(function(a, b){ return attendCmp_(a.key, b.key); });
   return out;
 }
@@ -4759,12 +4902,20 @@ function cbKoushuObjs_(cr, kt, iso, youbi) {
     var _rok = (stu.komas || []).find(function(k){ return k.time === r.komaTime; });
     return { s: stu, assignType: undefined, isSub: true, subOrigType: _komaTypeOf_(_rok), r: r };
   });
-  return normals.concat(assignObjs).concat(subs);
+  // 体験生（2026-10-30）。s は名前・学年だけの仮の生徒。o.trial があるものは各ビューで体験チップにする
+  var all = normals.concat(assignObjs).concat(subs);
+  var trials = cbTrialsOn_(cr, kt, iso).filter(function(x) {
+    return !all.some(function(o) { return o.s && o.s.name === (x.iq.name || ''); });
+  }).map(function(x) {
+    return { s: { name: x.iq.name || '', grade: x.iq.grade || '' }, trial: x, _sk: [-1, 0, x.n] };
+  });
+  return trials.concat(all);
 }
 
 /* 講習モードの objs → 人数カウント用 item */
 function cbKoushuItems_(objs, cr, kt, iso, youbi) {
   return (objs || []).map(function(o) {
+    if (o.trial) return { name: o.s.name, grade: o.s.grade, cat: 'trial', absent: false };   // 体験生（2026-10-30）
     var cat;
     if (o.isSub) cat = o.r ? cbFurikaeCat_(o.r) : ('fu_' + (o.subOrigType || 'juku'));
     else if (o.assignId !== undefined) cat = (o.assignType === 'taisaku') ? 'taisaku' : (o.assignType === 'jishu') ? 'jishu' : 'koushu';
@@ -5212,11 +5363,14 @@ function renderToday() {
       (_absenceRecords || []).forEach(function(r) {
         if (r.substituteDate === todayIso && r.substituteClassroom === cr && r.status === 'scheduled') komaSet[r.substituteKomaTime] = 1;
       });
+      // 体験生（2026-10-30）：講習の枠と時刻が合わない体験も、その日だけ行を足す
+      cbAddTrialKomas_(Object.keys(komaSet), cr, [todayIso]).forEach(function(k) { komaSet[k] = 1; });
       var _tblocks = [];
       Object.keys(komaSet).forEach(function(kt) {
         var objs = cbKoushuObjs_(cr, kt, todayIso, todayYoubi);
         if (!objs.length) return;
         objs.forEach(function(o) {
+          if (o.trial) return;   // 体験生は _sk 設定済み（いちばん上）
           if (o.isSub) o._sk = attendSortKey_(o.s, { isSub: true, subOrigType: o.subOrigType });
           else if (o.assignId !== undefined) o._sk = attendSortKey_(o.s, { assignType: o.assignType || 'normal' });
           else o._sk = attendSortKey_(o.s, { komaType: _komaTypeOf_(_matchedKoma_(o.s, cr, todayYoubi, kt)) });
@@ -5229,6 +5383,7 @@ function renderToday() {
         var countHtml = _cnt.total > 0 ? ' <span class="koma-count' + _cls + '"' + _title + '>' + _cnt.label + '</span>' : '';
         var chips = objs.map(function(o, n) {
           if (items[n] && items[n].cat === 'online') return '';   // オンラインはまとめ行へ
+          if (o.trial) return cbTrialChipHtml_(o.trial);
           if (o.isSub) return studentChipHtml(o.s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso });
           // 川上さん指示(2026-06-14)：講習コマに登録された子は全員「講習」扱い
           if (o.assignId !== undefined) return koushuChipHtml(o.s, { classroom: cr, komaTime: kt, youbi: todayYoubi, dateStr: todayIso, assignId: o.assignId, assignType: o.assignType });
@@ -5268,6 +5423,8 @@ function renderToday() {
           if (komas.indexOf(r.substituteKomaTime) === -1) komas.push(r.substituteKomaTime);
         }
       });
+      // 体験生しかいないコマ枠も行に追加（2026-10-30）
+      cbAddTrialKomas_(komas, cr, [todayIso]);
       komas.sort(function(k1, k2) {
         return (parseInt((k1||'').replace(':','').substring(0,4))||0) - (parseInt((k2||'').replace(':','').substring(0,4))||0);
       });
@@ -5305,6 +5462,8 @@ function renderToday() {
   // 川上さん指示(2026-08-25)：両方の教室とも1人も出ないときだけ、期間の説明を1回出す
   //  （片方の教室が空なだけで毎日出すとうるさいため）
   if (crHtml.indexOf('student-chip') < 0) crHtml = cbPeriodHintHtml_() + crHtml;
+  // 体験生の予定が取れなかったとき（2026-10-30）。数え漏れに気づけるように一言出す
+  if (_cbFail.trial) crHtml = '<div class="cb-period-hint" style="color:#b91c1c">体験生の予定を読み込めませんでした。時間割と人数に体験生が入っていません。</div>' + crHtml;
 
   // 授業内・授業外・期限切れでフィルタ（taskType設定済みのみ）
   // classroom が一致するもの／空欄は両教室に表示
@@ -5974,9 +6133,22 @@ function buildWeekGrid(days, todayIso) {
     });
   }
 
+  // 体験生（2026-10-30）：体験があるコマ時刻を行に足す（講習の枠に無い時刻も、体験がある週だけ）
+  var _wTrialIsos = days.map(function(d) { return isoDate(d); });
+  var _wTrialN = komas.length;
+  cbAddTrialKomas_(komas, cr, _wTrialIsos);
+  if (komas.length !== _wTrialN) {
+    komas.sort(function(a, b) {
+      var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
+      var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
+      return ta - tb;
+    });
+  }
+
   // 各日に生徒がいるか判定
   var dayHasStudent = days.map(function(d, i) {
     var iso = isoDate(d);
+    if (cbTrialKomasOn_(cr, iso).length) return true;   // 体験生（2026-10-30）
     if (getActiveTestPeriod_()) {
       // テスト対策：通常授業 OR 割付があればtrue
       var hasAssignT = _koushuAssignments.some(function(a) { return a.date === iso && a.classroom === cr; });
@@ -6089,6 +6261,7 @@ function buildWeekGrid(days, todayIso) {
           crHasKoma = true;
         }
       }
+      if (!crHasKoma && cbTrialsOn_(cr, kt, iso).length) crHasKoma = true;   // 体験生（2026-10-30）
       if (!crHasKoma) {
         // この教室にこのコマ設定がない → グレーアウトセル
         return '<div class="wg-cell wg-cell-no-koma' + todayCls + emptyCls + '"></div>';
@@ -6138,6 +6311,7 @@ function buildWeekGrid(days, todayIso) {
         // 川上さん確定(2026-08-26)：顔ぶれの組み立ては cbKoushuObjs_ に集約（定員チェックと同じ関数を使う）
         var allKObjs = cbKoushuObjs_(cr, kt, iso, YOUBIS[i]);
         allKObjs.forEach(function(o){
+          if (o.trial) return;   // 体験生は _sk 設定済み（いちばん上）
           if (o.isSub) o._sk = attendSortKey_(o.s, { isSub: true, subOrigType: o.subOrigType });
           else if (o.assignId !== undefined) o._sk = attendSortKey_(o.s, { assignType: o.assignType || 'normal' });
           else o._sk = attendSortKey_(o.s, { komaType: _komaTypeOf_(_matchedKoma_(o.s, cr, YOUBIS[i], kt)) });
@@ -6146,6 +6320,7 @@ function buildWeekGrid(days, todayIso) {
         var normalChipsK = []; // 使用しない（allKObjs に統合）
         var kChips = [];       // 使用しない（allKObjs に統合）
         var allKChips = allKObjs.map(function(obj) {
+          if (obj.trial) return cbTrialChipHtml_(obj.trial);   // 体験生（2026-10-30）
           if (obj.isSub) {
             // 振替来塾生徒
             return studentChipHtml(obj.s, { classroom: cr, komaTime: kt, youbi: YOUBIS[i], dateStr: iso });
@@ -6534,12 +6709,14 @@ function printKoushuPeriod() {
         });
         if (showNormal || showSub) weekKomas.push(kt);
       });
-      weekKomas.sort(function(a, b) {
-        var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
-        var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
-        return ta - tb;
-      });
     }
+    // 体験生（2026-10-30）：体験があるコマ時刻を足す（画面の buildWeekGrid と同じ。期間外・閉校の日は見ない）
+    cbAddTrialKomas_(weekKomas, cr, dayInfo.filter(function(ci) { return !ci.out && !ci.closed; }).map(function(ci) { return ci.iso; }));
+    weekKomas.sort(function(a, b) {
+      var ta = parseInt((a || '').replace(':','').substring(0,4)) || 0;
+      var tb = parseInt((b || '').replace(':','').substring(0,4)) || 0;
+      return ta - tb;
+    });
     var bodyRows = weekKomas.map(function(kt) {
       var cells = dayInfo.map(function(ci) {
         if (ci.out) return '<td class="kp-closed">—</td>';
@@ -6637,6 +6814,11 @@ function printKoushuPeriod() {
             absent: _tkAbsent_(_jst, iso, kt, cr),
             sortKey: attendSortKey_(_jst, { assignType: 'jishu' }) });
         });
+        // 体験生（2026-10-30）：画面と同じ cbTrialsOn_。同じ名前の子が既に出ていれば足さない
+        cbTrialsOn_(cr, kt, iso).forEach(function(x) {
+          if (items.some(function(it) { return it.name === (x.iq.name || ''); })) return;
+          items.push({ name: x.iq.name || '', grade: x.iq.grade || '', badge: 'trial', type: 'trial', trialN: x.n, absent: false, sortKey: [-1, 0, x.n] });
+        });
         // 川上さん確定(2026-08-26)：オンラインだけの子はチップから外し、名前を1行でまとめる（席数にも入れない）
         //  2026-09-30：別の教室・別のコマ枠で対策・自習に来る日も、オンラインは横線にする（cbFaceExtraAt_）
         items.forEach(function(it){ if (it.type === 'online' && it.stu && cbFaceExtraAt_(it.stu, iso, kt)) it.struckOnl = true; });
@@ -6650,6 +6832,9 @@ function printKoushuPeriod() {
           var _ty = it.type || '';
           var _bmap = { ca: ['CA', 'kp-b-ca'], eiken: ['英検', 'kp-b-eiken'], enshuu: ['演習回', 'kp-b-enshuu'], furikae: ['振替', 'kp-b-furikae'], taisaku: ['対策', 'kp-b-taisaku'], jishu: ['自習', 'kp-b-jishu'] };
           var bdg = _bmap[_ty] ? '<span class="kp-badge ' + _bmap[_ty][1] + '">' + _bmap[_ty][0] + '</span>' : '';
+          if (_ty === 'trial') {   // 体験生（2026-10-30）：名前・学年・体験①だけ。2コマ・教室またぎは見ない（生徒マスタに居ない）
+            return '<span class="kp-stu kp-stu-trial">' + esc(it.name) + (it.grade ? '<span class="kp-grade">(' + esc(it.grade) + ')</span>' : '') + '<span class="kp-badge kp-b-trial">体験' + cbTrialMark_(it.trialN || 0) + '</span></span>';
+          }
           // 2026-09-30：重なって負けた対策・自習もバッジで添える（画面のチップと同じ）
           ['taisaku', 'jishu'].forEach(function(m) { if (it.marks && it.marks[m] && _ty !== m) bdg += '<span class="kp-badge ' + _bmap[m][1] + '">' + _bmap[m][0] + '</span>'; });
           var _s2 = _students.find(function(st){ return st.name === it.name; }) || { name: it.name };
@@ -7270,9 +7455,12 @@ function removeTestRow(btn) {
   if (!box.querySelector('.test-row')) addTestRow(); // 最低1行は残す
 }
 
+// 川上さん確定(2026-10-30)：曜日を付ける（10/23(金)）。小テスト・定期テスト・学校行事のカードとA4印刷のアラート欄が共用。
+//  'YYYY-MM-DD' は new Date() に渡すとUTC扱いになるので、日付の文字列は年・月・日に分けて作る（JST/UTCで1日ずれる地雷）
 function testMd_(d) {
-  var dt = new Date(d);
-  return isNaN(dt) ? String(d || '') : (dt.getMonth() + 1) + '/' + dt.getDate();
+  var m = String(d || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  var dt = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(d);
+  return isNaN(dt) ? String(d || '') : (dt.getMonth() + 1) + '/' + dt.getDate() + '(' + ['日','月','火','水','木','金','土'][dt.getDay()] + ')';
 }
 
 function openEditTestModal(task) {
