@@ -733,6 +733,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .ac-name { font-weight:700; font-size:14px; }
 .ac-badge { font-size:10px; padding:2px 7px; border-radius:20px; font-weight:600; }
 .ac-badge-red { background:#fee2e2; color:#dc2626; }
+.badge.cb-b-nosub { background:#e5e7eb; color:#374151; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 .ac-badge-green { background:#dcfce7; color:#166534; }
 .ac-badge-blue { background:#dbeafe; color:#1d4ed8; }
 .ac-badge-yellow { background:#fef9c3; color:#92400e; }
@@ -2090,6 +2091,7 @@ tr.mx-done-row td { background: #f0fdf4; }
         <div style="display:flex;gap:8px">
           <button class="btn-primary" style="flex:1" onclick="showAbsStep('A')">✅ 決まった</button>
           <button class="btn-secondary" style="flex:1" onclick="showAbsStep('B')">📞 まだ未定</button>
+          <button class="btn-secondary" style="flex:1" onclick="showAbsStep('C')">🚫 振替なし</button>
         </div>
       </div>
       <!-- Step2A: 振替日確定 -->
@@ -2152,6 +2154,18 @@ tr.mx-done-row td { background: #f0fdf4; }
         <div style="display:flex;gap:8px;margin-top:12px">
           <button class="btn-secondary" style="flex:1" onclick="showAbsStep('1')">← 戻る</button>
           <button class="btn-primary" style="flex:1" onclick="submitAbsence('B')">欠席登録</button>
+        </div>
+      </div>
+      <!-- Step2C: 振替なし（2026-10-31 川上さん確定） -->
+      <div id="abs-step2c" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">▶ 振替なしの欠席として登録します</div>
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">メモ（任意）</label>
+          <input type="text" id="abs-modal-memo-c" placeholder="理由・連絡事項など" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-secondary" style="flex:1" onclick="showAbsStep('1')">← 戻る</button>
+          <button class="btn-primary" style="flex:1" onclick="submitAbsence('C')">欠席登録（振替なし）</button>
         </div>
       </div>
       <!-- 後方互換用（非表示） -->
@@ -5244,11 +5258,15 @@ function studentChipHtml(s, opts) {
         else { popup = '<div class="s-popup" style="min-width:200px;max-width:280px">' + _subRow + '</div>'; }
       } else if (aRec.status === 'substituted') {
         absenceBadge = '<span class="badge cb-b-subdone" style="font-size:10px;background:#6366f1;color:#fff;margin-left:2px">振替済</span>';
+      } else if (aRec.status === 'nosub') {
+        // 2026-10-31 川上さん確定：振替なしの欠席。「欠席」に灰色の「振替なし」を並べる。押すと振替タブのそのカードへ
+        absenceBadge = '<span class="badge badge-red cb-b-abs" style="font-size:10px;margin-left:2px">欠席</span>' +
+          '<span class="badge cb-b-nosub" style="font-size:10px;margin-left:2px;cursor:pointer" onclick="event.stopPropagation();gotoSubstituteEdit_(\'' + (aRec.id||'') + '\')">振替なし</span>';
       } else {
         absenceBadge = '<span class="badge badge-red cb-b-abs" style="font-size:10px;margin-left:2px">欠席</span>';
       }
-      // 欠席済→さらに欠席（振替の連鎖）
-      absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\',\'' + esc(s.sid || '') + '\')" title="この振替をさらに欠席処理">↩</button>';
+      // 欠席済→さらに欠席（振替の連鎖）。振替なしは振替の予定が無いので出さない（2026-10-31）
+      if (aRec.status !== 'nosub') absBtn = '<button class="absence-btn absence-btn-chain" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'' + (aRec.id||'') + '\',\'' + esc(_courseName) + '\',\'' + esc(s.sid || '') + '\')" title="この振替をさらに欠席処理">↩</button>';
     } else if (subRec) {
       // ① 川上さん指示(2026-06-14)：振替の子のカードは「欠」ボタンを出さず、
       //   ⚡振替バッジをクリックで振替タブの該当カード（振替日編集）へ飛ばす。
@@ -8357,6 +8375,7 @@ function gotoSubstituteEdit_(recordId) {
     var uid = 'sub_' + (recordId || '').replace(/[^a-z0-9]/gi, '_');
     var card = document.getElementById('abs-card-' + uid);
     if (!card) return;
+    var _det = card.closest('details'); if (_det) _det.open = true;   // 振替なし等の折りたたみの中（2026-10-31）
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     card.classList.add('abs-card-highlight');
     setTimeout(function(){ card.classList.remove('abs-card-highlight'); }, 2200);
@@ -8388,6 +8407,9 @@ function renderAbsence() {
   var scheduled = (_absenceRecords || []).filter(function(r) {
     return r.status === 'scheduled'; // 振替日確定済み
   });
+  // 振替なし（2026-10-31 川上さん確定）。対応は要らないので、対応中の下の折りたたみに置く。新しい欠席日が上
+  var noSubs = (_absenceRecords || []).filter(function(r) { return r.status === 'nosub'; })
+    .sort(function(a, b) { return String(b.absenceDate || '') < String(a.absenceDate || '') ? -1 : 1; });
   function cardHtml(r) {
     var uid = 'sub_' + (r.id || '').replace(/[^a-z0-9]/gi,'_'); // ② 該当カード強調・①からのジャンプ用
     var statusBadge = '';
@@ -8406,6 +8428,8 @@ function renderAbsence() {
     } else if (r.status === 'substituted' || r.status === 'done') {
       statusBadge = '<span class="ac-badge ac-badge-green">振替済</span>';
       cardCls += ' ac-substituted';
+    } else if (r.status === 'nosub') {
+      statusBadge = '<span class="ac-badge" style="background:#e5e7eb;color:#374151">振替なし</span>';
     }
     // 振替先情報
     var subInfo = '';
@@ -8414,7 +8438,8 @@ function renderAbsence() {
     }
     // 振替設定UI（振替待ちのみ）
     var setSubHtml = '';
-    if (r.status === 'absent' || r.status === 'scheduled') { // 両方とも変更可
+    // 2026-10-31：振替なし（nosub）も、日付とコマを入れて振替確定にできる
+    if (r.status === 'absent' || r.status === 'scheduled' || r.status === 'nosub') { // どれも変更可
       setSubHtml = '<div class="ac-set-sub" id="set-sub-' + uid + '">' +
         '<input type="date" id="sub-date-' + uid + '" value="' + esc(r.substituteDate||'') + '" style="width:130px" />' +
         '<select id="sub-koma-' + uid + '">' +
@@ -8425,6 +8450,10 @@ function renderAbsence() {
           '<option value="久里浜"'   + (r.substituteClassroom==='久里浜'  ?' selected':'') + '>久里浜</option>' +
         '</select>' +
         '<button class="btn-primary btn-sm" onclick="saveSubstitute(\'' + (r.id||'') + '\',\'' + uid + '\')">振替確定</button>' +
+        // 2026-10-31 川上さん確定：振替なし ⇔ 振替日未定・振替確定 を行き来できる
+        (r.status === 'nosub'
+          ? '<button class="btn-secondary btn-sm" onclick="cbBackToUndecided_(\'' + (r.id||'') + '\')">振替日未定に戻す</button>'
+          : '<button class="btn-secondary btn-sm" onclick="cbSetNoSub_(\'' + (r.id||'') + '\')">振替なし</button>') +
         '<button class="btn-secondary btn-sm" onclick="cancelAbsence(\'' + (r.id||'') + '\')">キャンセル</button>' +
       '</div>';
     }
@@ -8465,6 +8494,10 @@ function renderAbsence() {
     : '';
 
   // 振替日未定のまま欠席日から1か月経過（放置案件）の折りたたみ
+  var noSubHtml = noSubs.length
+    ? '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none">🚫 振替なし（' + noSubs.length + '件）</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">' + noSubs.map(cardHtml).join('') + '</div></details>'
+    : '';
+
   var staleHtml = waitingStale.length
     ? '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none">⚠️ 振替日未定のまま1か月経過（' + waitingStale.length + '件）</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">' + waitingStale.map(cardHtml).join('') + '</div></details>'
     : '';
@@ -8483,7 +8516,8 @@ function renderAbsence() {
     '<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--crimson)">対応中（振替日未定 ' + waitingActive.length + '件 / 振替確定 ' + scheduledCurrent.length + '件）</div>' +
     '<div class="absence-list">' + waitingHtml + '</div>' +
     pastHtml +
-    staleHtml;
+    staleHtml +
+    noSubHtml;
 }
 
 function getAllKomaOptions(selected) {
@@ -8545,6 +8579,7 @@ function openAbsenceModal(studentName, dateStr, komaTime, classroom, chainFromId
   // メモリセット
   document.getElementById('abs-modal-memo-a') && (document.getElementById('abs-modal-memo-a').value = '');
   document.getElementById('abs-modal-memo-b') && (document.getElementById('abs-modal-memo-b').value = '');
+  document.getElementById('abs-modal-memo-c') && (document.getElementById('abs-modal-memo-c').value = '');
 
   // Step2B の初期値セット（本日・時刻なし・欠席した教室）
   // 2026-09-12 川上さん確定：時刻の既定値 13:00 を撤去。
@@ -8576,6 +8611,7 @@ function showAbsStep(step) {
   document.getElementById('abs-step1').style.display  = (step === '1') ? '' : 'none';
   document.getElementById('abs-step2a').style.display = (step === 'A') ? '' : 'none';
   document.getElementById('abs-step2b').style.display = (step === 'B') ? '' : 'none';
+  var _c = document.getElementById('abs-step2c'); if (_c) _c.style.display = (step === 'C') ? '' : 'none';
 }
 
 // コマ選択したら開始時刻を自動抽出（例：「15:00〜16:30」→「15:00」）
@@ -8601,6 +8637,42 @@ function submitAbsence(mode) {
 
   var courseName = d.courseName || '';
   var courseLabel = courseName ? '（' + courseName + '）' : '';
+
+  if (mode === 'C') {
+    // ===== 振替なしルート（2026-10-31 川上さん確定）=====
+    //  status 'nosub'。振替の予定を作らないので「振替日決める」タスクも作らない。
+    //  あとから振替タブで 振替確定／振替日未定 に変えられる（cbSetNoSub_ / cbBackToUndecided_）。
+    var memoC = ((document.getElementById('abs-modal-memo-c') || {}).value || '').trim();
+    var recC = {
+      studentName: d.studentName,
+      studentId:   cbAbsWriteId_(d.sid, d.studentName),
+      absenceDate: d.dateStr,
+      komaTime:    d.komaTime,
+      classroom:   d.classroom,
+      status:      'nosub',
+      memo:        memoC,
+      chainFromId: d.chainFromId || '',
+      absenceCourse: d.courseName || ''
+    };
+    var tempIdC = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    recC.id = tempIdC;
+    _absenceRecords.push(recC);
+    closeModal('modal-absence');
+    miniToast('欠席（振替なし）を登録しました ✓');
+    if (_currentTab === 'absence') renderAbsence();
+    else renderCurrent();
+    callGas(studentUrl, { action: 'saveAbsenceRecord', record: recC }, function(res) {
+      if (res && res.success && res.id) {
+        var idxC = _absenceRecords.findIndex(function(r){ return r.id === tempIdC; });
+        if (idxC >= 0) _absenceRecords[idxC].id = res.id;
+      } else {
+        _absenceRecords = _absenceRecords.filter(function(r){ return r.id !== tempIdC; });
+        miniToast('⚠️ 欠席登録に失敗しました');
+        renderCurrent();
+      }
+    }, 'POST');
+    return;
+  }
 
   if (mode === 'A') {
     // ===== 振替日確定ルート =====
@@ -8951,6 +9023,67 @@ function cancelAbsence(recordId) {
         _tasks = (_tasks || []).filter(function(x){ return x.id !== fixTaskId; });
       }, 'POST');
     }
+  }, 'POST');
+}
+
+// =====================================================
+// 振替なし ⇔ 振替日未定（2026-10-31 川上さん確定）
+// -----------------------------------------------------
+// ・振替日未定 → 振替なし：「振替日決める」を完了にする（cbDoneFixDateTask_）
+// ・振替確定   → 振替なし：振替の予定を消し、振替タスク sub_<id> を消す（Gカレも消える。キャンセルと同じ）
+// ・振替なし   → 振替日未定：「振替日決める」を作る（期日は今日・時刻なし・欠席した教室。欠席登録の「まだ未定」と同じ）
+// ・振替なし   → 振替確定：カードの日付・コマ欄から saveSubstitute（今までと同じ経路）
+// 🚨 失敗したら画面を元に戻す（楽観的UIの巻き戻し）。タスクの操作は保存が成功してからにする。
+// =====================================================
+function cbSetNoSub_(recordId) {
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
+  var rec = (_absenceRecords || []).find(function(r){ return r.id === recordId; });
+  if (!rec) return;
+  var prev = { status: rec.status, substituteDate: rec.substituteDate, substituteKomaTime: rec.substituteKomaTime, substituteClassroom: rec.substituteClassroom };
+  rec.status = 'nosub'; rec.substituteDate = ''; rec.substituteKomaTime = ''; rec.substituteClassroom = '';
+  miniToast('振替なしにしました');
+  renderAbsence();
+  callGas(studentUrl, { action: 'updateAbsenceRecord', record: { id: recordId, status: 'nosub', substituteDate: '', substituteKomaTime: '', substituteClassroom: '' } }, function(res) {
+    if (!res || !res.success) {
+      Object.assign(rec, prev);
+      miniToast('⚠️ 振替なしにできませんでした');
+      renderAbsence();
+      return;
+    }
+    cbDoneFixDateTask_(rec.id);
+    var taskUrl = localStorage.getItem(GAS_TASK_URL_KEY) || '';
+    if (taskUrl && prev.status === 'scheduled') {
+      var subTaskId = 'sub_' + (rec.id || '');
+      callGas(taskUrl, { action: 'deleteTask', id: subTaskId }, function(){
+        _tasks = (_tasks || []).filter(function(x){ return x.id !== subTaskId; });
+      }, 'POST');
+    }
+  }, 'POST');
+}
+
+function cbBackToUndecided_(recordId) {
+  var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (!studentUrl) { miniToast('⚠️ GAS URLが未設定です'); return; }
+  var rec = (_absenceRecords || []).find(function(r){ return r.id === recordId; });
+  if (!rec) return;
+  var prevStatus = rec.status;
+  rec.status = 'absent';
+  miniToast('振替日未定に戻しました');
+  renderAbsence();
+  callGas(studentUrl, { action: 'updateAbsenceRecord', record: { id: recordId, status: 'absent' } }, function(res) {
+    if (!res || !res.success) {
+      rec.status = prevStatus;
+      miniToast('⚠️ 振替日未定に戻せませんでした');
+      renderAbsence();
+      return;
+    }
+    // 「振替日決める」を作る。画面に同じタスクがあれば作らない（同じIDの二重作成を防ぐ）
+    if ((_tasks || []).some(function(x){ return x.id === 'subfix_' + rec.id; })) return;
+    var course = rec.absenceCourse || '';
+    cbAddFixDateTask_(rec.id,
+      { studentName: rec.studentName, dateStr: rec.absenceDate, komaTime: rec.komaTime, classroom: rec.classroom, courseName: course },
+      rec.memo || '', getTodayStr(), '', rec.classroom || '', course ? '（' + course + '）' : '');
   }, 'POST');
 }
 
