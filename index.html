@@ -8384,6 +8384,15 @@ function gotoSubstituteEdit_(recordId) {
   }, 60);
 }
 
+// 欠席・振替タブの日付に曜日を付ける（2026-10-31 川上さん指示：2026-10-31(土)）
+// 'YYYY-MM-DD' は年・月・日に分けて Date を作る（new Date('2026-10-31') はUTC扱いで1日ずれる地雷）
+function absYmdW_(iso) {
+  var m = String(iso || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return String(iso || '');
+  var d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return isNaN(d) ? String(iso) : iso + '(' + ['日','月','火','水','木','金','土'][d.getDay()] + ')';
+}
+
 function renderAbsence() {
   var studentUrl = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   var todayIso = getTodayStr();
@@ -8434,7 +8443,7 @@ function renderAbsence() {
     // 振替先情報
     var subInfo = '';
     if (r.substituteDate) {
-      subInfo = '振替：' + esc(r.substituteDate) + ' ' + esc(r.substituteKomaTime||'') + ' ' + esc(r.substituteClassroom||'');
+      subInfo = '振替：' + esc(absYmdW_(r.substituteDate)) + ' ' + esc(r.substituteKomaTime||'') + ' ' + esc(r.substituteClassroom||'');
     }
     // 振替設定UI（振替待ちのみ）
     var setSubHtml = '';
@@ -8462,7 +8471,7 @@ function renderAbsence() {
         '<span class="ac-name">' + esc(r.studentName) + '</span>' +
         typeBadge +
         statusBadge +
-        (r.absenceDate ? '<span class="ac-detail">欠席日：' + esc(r.absenceDate) + ' ' + esc(r.komaTime||'') + ' ' + esc(r.classroom||'') + '</span>' : '') +
+        (r.absenceDate ? '<span class="ac-detail">欠席日：' + esc(absYmdW_(r.absenceDate)) + ' ' + esc(r.komaTime||'') + ' ' + esc(r.classroom||'') + '</span>' : '') +
       '</div>' +
       (subInfo ? '<div class="ac-detail">' + subInfo + '</div>' : '') +
       (r.memo ? '<div class="ac-detail" style="color:var(--text-main)">メモ：' + esc(r.memo) + '</div>' : '') +
