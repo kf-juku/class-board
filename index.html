@@ -265,6 +265,12 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .cl-loaderr { display:flex; align-items:center; flex-wrap:wrap; font-size:12px; color:#991b1b; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:8px 12px; margin-top:10px; }
 @media print { .cl-loading, .cl-loaderr { display:none !important; } }
 .kse-cell-btn.kse-cell-forced.kse-cell-on { background:#7c3aed !important; border-color:#7c3aed !important; color:#fff !important; }
+/* 生徒カード・コマ割り登録（一括）の表で今日の列【川上さん確定 2026-11-01】
+ *  今週画面（.wg-head.today-col / .wg-cell.today-col / .wg-cell.day-empty.today-col）と同じ色にする。 */
+.kse-today-th { background:var(--crimson) !important; }
+.kse-today-th span { color:#fff !important; }
+.kse-today-td { background:#fffce8 !important; border-left:2px solid var(--crimson); }
+.kse-today-td.kse-today-closed { background:#f3f4f6 !important; }
 
 /* ===== 通常期の自習：コマからの [＋自習]（2026-09-18・案1で確定）=====
    本日タブ＝コマ見出しの右端／今週タブ＝セルの右上に小さな ＋。
@@ -10588,6 +10594,7 @@ function openKoushuBulkAssign(periodId) {
   document.getElementById('main-content').dataset.bulkPeriodId = periodId;
 
   renderBulkStudentList();
+  kseScrollToToday_(document.getElementById('bulk-cal-wrap'));   // 開いたら今日の週まで送る（2026-11-01）
 }
 
 /**
@@ -10713,6 +10720,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
 
   // グリッドHTML
   var _njCount = 0;   // 通常期：この先8週で自習に来る日数（見出しバッジ用 2026-09-19）
+  var _kseToday = getTodayStr();   // 今日の列の目印（2026-11-01）
   var gridHtml = '<div style="overflow-x:auto;margin-bottom:12px"><table style="border-collapse:collapse;font-size:12px;min-width:100%">';
   weeks.forEach(function(wDays, wi) {
     var mNum = new Date(wDays[0]+'T00:00:00').getMonth()+1;
@@ -10742,9 +10750,10 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
       var isSun = dobj.getDay()===0, isSat = dobj.getDay()===6;
       var isOpen = openDays.indexOf(ds) >= 0;
       var col = isSun ? '#dc2626' : isSat ? '#2563eb' : 'var(--text)';
-      gridHtml += '<th style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);' + (isOpen ? '' : 'background:#f3f4f6;') + '">' +
+      // 川上さん確定(2026-11-01)：日付は「10/5」の形で月も出す。今日の列は今週画面と同じ色
+      gridHtml += '<th' + (ds === _kseToday ? ' class="kse-today-th"' : '') + ' style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);' + (isOpen ? '' : 'background:#f3f4f6;') + '">' +
         '<div style="display:flex;flex-direction:column;align-items:center;gap:1px">' +
-        '<span style="font-size:13px;font-weight:500;color:' + col + '">' + dobj.getDate() + '</span>' +
+        '<span style="font-size:13px;font-weight:500;color:' + col + '">' + (dobj.getMonth()+1) + '/' + dobj.getDate() + '</span>' +
         '<span style="font-size:10px;color:' + col + '">(' + yn + ')</span></div></th>';
     });
     gridHtml += '</tr>';
@@ -10768,7 +10777,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
         var isOn   = !!aid || jOn;
         if (jOn) _njCount++;
         if (!isOpen) {
-          gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
+          gridHtml += '<td' + (ds === _kseToday ? ' class="kse-today-td kse-today-closed"' : '') + ' style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
             '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
         } else {
           // 既に登録済み(isOn)のコマは触らない。未登録のコマだけ重複チェックする
@@ -10789,7 +10798,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
                    : _cf.length ? (ds + '（' + _ybS + '）はすでに対面授業があります\n' + tkConflictText_(_cf) + '\nクリックすると、承知のうえで登録するか確認が出ます')
                    : _onl.length ? ('この時間はオンライン授業です（' + tkConflictText_(_onl) + '）\nクリックすると、承知のうえで登録するか確認が出ます')
                    : '';
-          gridHtml += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
+          gridHtml += '<td' + (ds === _kseToday ? ' class="kse-today-td"' : '') + ' style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
             '<button class="kse-cell-btn' + (isOn ? ' kse-cell-on' : '') + (((aRec2 && aRec2.type === 'jishu') || jOn) ? ' kse-cell-jishu' : '') + (_cf.length && !_noK ? ' kse-cell-lock' : '') + (_noK ? ' kse-cell-nokoma' : '') + (_onl.length ? ' kse-cell-onl' : '') + '"' +
             (jRes && jRes.row ? ' data-jid="' + esc(jRes.row.id) + '" data-jkind="' + esc(jRes.row.kind || '') + '" data-jcr="' + esc(jRes.row.classroom || '') + '" data-jvf="' + esc(jRes.row.validFrom || '') + '" data-jvt="' + esc(jRes.row.validTo || '') + '" data-jmemo="' + esc(jRes.row.memo || '') + '"' : '') +
             (_normalMode ? ' data-jm="1"' : '') +
@@ -10879,6 +10888,22 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
   document.body.appendChild(modal);
   openModal('modal-kse');
   kseRenderList();
+  kseScrollToToday_(modal.querySelector('.modal-body'));   // 開いたら今日の週まで送る（2026-11-01）
+}
+
+/* 表を開いたとき、今日の週の帯が上端に来るまでスクロールする【川上さん指示 2026-11-01】
+ *  今日が期間の外（表に今日の列が無い）ときは動かさない。 */
+function kseScrollToToday_(box) {
+  if (!box) return;
+  requestAnimationFrame(function() {
+    var th = box.querySelector('th.kse-today-th');
+    if (!th) return;
+    var tr = th.parentNode;
+    var band = tr && tr.previousElementSibling;   // 「10月 第1週」の帯の行
+    var target = band || tr;
+    if (box.scrollHeight > box.clientHeight + 1) box.scrollTop += target.getBoundingClientRect().top - box.getBoundingClientRect().top;
+    else target.scrollIntoView({ block: 'start' });   // 枠が伸びてページ側がスクロールする場合
+  });
 }
 
 /* どのモードの入力画面かを見出しに出す【川上さん指示 2026-09-19】
@@ -12498,6 +12523,7 @@ function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
   });
   if (week.length) weeks.push(week);
 
+  var _kseToday = getTodayStr();   // 今日の列の目印（2026-11-01）
   var html = '<table style="border-collapse:collapse;font-size:12px;min-width:100%">';
   weeks.forEach(function(wDays, wi) {
     var mNum = new Date(wDays[0]+'T00:00:00').getMonth()+1;
@@ -12512,9 +12538,10 @@ function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
       var isSun = dobj.getDay()===0, isSat = dobj.getDay()===6;
       var isOpen = openDays.indexOf(ds) >= 0;
       var col = isSun ? '#dc2626' : isSat ? '#2563eb' : 'var(--text)';
-      html += '<th style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);' + (isOpen ? '' : 'background:#f3f4f6;') + '">' +
+      // 川上さん確定(2026-11-01)：日付は「10/5」の形で月も出す。今日の列は今週画面と同じ色
+      html += '<th' + (ds === _kseToday ? ' class="kse-today-th"' : '') + ' style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);' + (isOpen ? '' : 'background:#f3f4f6;') + '">' +
         '<div style="display:flex;flex-direction:column;align-items:center;gap:1px">' +
-        '<span style="font-size:13px;font-weight:500;color:' + col + '">' + dobj.getDate() + '</span>' +
+        '<span style="font-size:13px;font-weight:500;color:' + col + '">' + (dobj.getMonth()+1) + '/' + dobj.getDate() + '</span>' +
         '<span style="font-size:10px;color:' + col + '">(' + yn + ')</span></div></th>';
     });
     html += '</tr>';
@@ -12526,14 +12553,14 @@ function buildBulkCalGrid_(openDays, komaFrames, periodId, youbiNames) {
       wDays.forEach(function(ds) {
         var isOpen = openDays.indexOf(ds) >= 0;
         if (!isOpen) {
-          html += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
+          html += '<td' + (ds === _kseToday ? ' class="kse-today-td kse-today-closed"' : '') + ' style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border);background:#f3f4f6">' +
             '<div style="width:28px;height:24px;margin:0 auto;border-radius:4px;background:#e5e7eb;opacity:0.4"></div></td>';
         } else {
           // 川上さん確定(2026-08-28)：テスト対策期間だけ、その曜日に実在しないコマ枠を薄いグレーにする。
           // 講習は専用のコマ枠（12:35など通常授業に無い時間）を使うので判定しない。
           var _bNoK = (period.type === 'test') ? (!tkKomaOnDayAny_(ds, kf) && !tkAnySubstituteHere_(ds, kf)) : false;
           var _bYb  = YOUBI_MAP[new Date(ds + 'T00:00:00').getDay()];
-          html += '<td style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
+          html += '<td' + (ds === _kseToday ? ' class="kse-today-td"' : '') + ' style="padding:3px 5px;text-align:center;border-bottom:1px solid var(--border)">' +
             '<button class="kse-cell-btn bulk-cal-cell' + (_bNoK ? ' kse-cell-nokoma' : '') + '"' +
             (_bNoK ? ' data-tooltip="' + esc(_bYb + '曜に ' + kf + ' のコマはありません\nクリックすると、承知のうえで選ぶか確認が出ます') + '"' : '') +
             ' data-ds="' + esc(ds) + '" data-kf="' + esc(kf) + '"' +
