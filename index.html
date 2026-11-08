@@ -112,7 +112,18 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .badge-orange { background: #fff7ed; color: #ea580c; }
 .badge-gray { background: #f1f5f9; color: #64748b; }
 .badge-purple { background: #faf5ff; color: #7c3aed; }
-.badge-2koma { display:inline-block; font-size:10px; font-weight:700; border-radius:3px; padding:0 4px; background:#fef3c7; color:#b45309; border:1px solid #fcd34d; flex-shrink:0; }
+.badge-2koma { display:inline-block; font-size:10px; font-weight:700; border-radius:3px; padding:0 4px; background:#fff; color:#475569; border:1px dashed #94a3b8; flex-shrink:0; }   /* 2026-11-08：対策と同じ黄色で紛らわしかったので点線の枠だけ。文字は「1/2コマ」 */
+/* ===== チップの授業の札【2026-11-08 川上さん確定】目立つ順：塾・CA／振替・欠席 → 演習回・テ対・自習 → 英検・受験特訓 =====
+ *  見本：Class Board\20261108_見本_演習回の色.html。授業の振替は「元の授業の札＋水色の⚡振替（今までどおりの色）」。
+ *  🚨 印刷で色が抜けないよう print-color-adjust:exact。白黒で「塾」と「欠席（黒ベタ）」が似るので、印刷のときだけ塾は白地に黒い枠 */
+.cbb { display:inline-block; padding:1px 7px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; flex-shrink:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.cbb-juku { background:#374151; color:#fff; }
+.cbb-ca { background:#dbeafe; color:#1d4ed8; border:1px solid #93c5fd; }
+.cbb-en { background:#ede9fe; color:#5b21b6; border:1px solid #a78bfa; }
+.cbb-q { background:#fff; color:#6b7280; border:1px solid #d1d5db; font-weight:600; }
+.cbb-onl { background:#f3f4f6; color:#6b7280; font-weight:600; }
+.badge.cb-b-abs { background:#C6000B; color:#fff; font-weight:700; }   /* 2026-11-08：欠席は赤の塗り（印刷は黒ベタのまま） */
+@media print { .cbb, .student-chip .chip-jishu, .student-chip .chip-taisaku, .student-chip .badge-2koma { font-size:7px !important; padding:0 3px !important; } .cbb-juku { background:#fff !important; color:#111 !important; border:1px solid #374151 !important; } }
 .badge-cross { display:inline-block; font-size:10px; font-weight:700; border-radius:3px; padding:0 4px; background:#dc2626; color:#fff; flex-shrink:0; }
 
 /* GAS設定ヘルプチップ */
@@ -230,8 +241,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .koushu-chip .chip-grade { font-size: 10px; color: var(--text-muted); }
 .koushu-chip .chip-abs { font-size: 10px; background: #fee2e2; color: #991b1b; border-radius: 3px; padding: 0 3px; font-weight: 700; }
 .koushu-chip .chip-remain { font-size: 10px; border-radius: 3px; padding: 0 4px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
-.chip-taisaku { font-size: 10px; background: #fef3c7; color: #92400e; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
-.chip-jishu { font-size: 10px; background: #dcfce7; color: #166534; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
+.chip-taisaku { font-size: 10px; background: #fef3c7; color: #92400e; border:1px solid #f59e0b; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.chip-jishu { font-size: 10px; background: #dcfce7; color: #166534; border:1px solid #4ade80; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.chip-jishu .cb-jsub { color:#0ea5e9; font-weight:900; margin-right:2px; }   /* 自習の振替は ⚡ だけ（2026-11-08） */
 .chip-koushu { font-size: 10px; background: #ffedd5; color: #9a3412; border-radius: 3px; padding: 0 3px; font-weight: 700; flex-shrink: 0; }
 .koushu-chip-del { position:absolute; top:1px; right:2px; font-size:11px; font-weight:700; color:#9ca3af; line-height:1; padding:1px 2px; cursor:pointer; border-radius:3px; }
 .koushu-chip-del:hover { background:#fee2e2; color:#dc2626; }
@@ -2731,7 +2743,7 @@ function testAssignCount_(cr, kt, dateIso) {
 
 /* ===== テスト対策の重複チェック（川上さん確定 2026-08-25） =====
  * テスト対策・自習は「追加コマ」。対面授業と時間帯が重なるコマには入れない。
- * ・対象＝オンライン以外の通塾コマ（通常・演習回・英検・受験特訓・CA・土曜演習）＋振替来塾
+ * ・対象＝オンライン以外の通塾コマ（通常・演習回・英検・受験特訓・CA）＋振替来塾
  * ・オンライン(koma.online)は数えない（川上さん指示：重複を避けるのは対面学習だけ）
  * ・テスト対策期間(period.type==='test')のときだけ動く。講習は中高生の通常授業が講習に
  *   置き換わるため判定しない（川上さん指示 2026-08-25）
@@ -2755,20 +2767,12 @@ function tkFaceConflicts_(s, dateIso, komaTime) {
   var out = [];
   (s.komas || []).forEach(function(k) {
     if (k.online) return;
-    var matches;
-    if (k.satType === 'hira' && k.hiraKoma) {
-      var hv = k.hiraKoma; if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
-      matches = (hv === (youbi + k.time));
-    } else {
-      matches = (k.youbi === youbi);
-    }
-    if (!matches) return;
+    if (k.youbi !== youbi) return;   // 【廃止済み 2026-06-13】平日振替（satType:'hira'）・土曜演習（satType:'sat'）は演習回（enshuu）に1本化。2026-11-08 本番0件を確かめて古い分岐を消した（_作り方標準 決まりの核10）
     if (!tkTimeOverlap_(k.time, komaTime)) return;
     var label = (k.id || '').indexOf('ca_') === 0 ? 'CA'
       : k.satType === 'eiken' ? '英検'
       : k.satType === 'juken' ? '受験特訓'
-      : (k.satType === 'enshuu' || k.satType === 'hira') ? '演習回'
-      : k.satType === 'sat' ? '土曜演習' : '塾';
+      : k.satType === 'enshuu' ? '演習回' : '塾';
     out.push({ label: label, time: k.time, classroom: k.classroom || '' });
   });
   (_absenceRecords || []).forEach(function(r) {
@@ -2799,11 +2803,6 @@ function tkKomaDayBuild_() {
     if (s.status === '退会' || s.status === '休会') return;
     (s.komas || []).forEach(function(k) {
       var yb = k.youbi;
-      if (k.satType === 'hira' && k.hiraKoma) {
-        var hv = k.hiraKoma;
-        if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
-        yb = hv.charAt(0);
-      }
       if (!yb || !k.time) return;
       var cr = k.classroom || (typeof getMainClassroom === 'function' ? getMainClassroom(s) : (s.classroom || ''));
       var t = normKomaTime_(k.time);
@@ -2888,18 +2887,12 @@ function subConflicts_(studentName, dateIso, komaTime, excludeRecordId) {
     (s.komas || []).forEach(function(k) {
       if (k.online) return;
       var yb = k.youbi;
-      if (k.satType === 'hira' && k.hiraKoma) {
-        var hv = k.hiraKoma;
-        if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
-        yb = hv.charAt(0);
-      }
       if (yb !== youbi) return;
       if (!tkTimeOverlap_(k.time, komaTime)) return;
       var label = (k.id || '').indexOf('ca_') === 0 ? 'CA'
         : k.satType === 'eiken' ? '英検'
         : k.satType === 'juken' ? '受験特訓'
-        : (k.satType === 'enshuu' || k.satType === 'hira') ? '演習回'
-        : k.satType === 'sat' ? '土曜演習' : '塾';
+        : k.satType === 'enshuu' ? '演習回' : '塾';
       out.push({ label: label, time: k.time, classroom: k.classroom || '' });
     });
   }
@@ -3583,7 +3576,7 @@ function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn)
     var origKoma = (s.komas||[]).find(function(k) {
       return k.time===subRec.komaTime && (!k.classroom||k.classroom===classroom);
     });
-    var isEnshuuSub = origKoma && (origKoma.satType==='enshuu'||origKoma.satType==='hira');
+    var isEnshuuSub = origKoma && origKoma.satType==='enshuu';
     if (isEnshuuSub)   return 5; // 演習回振替
     return 3;                     // 振替
   }
@@ -3597,7 +3590,7 @@ function lessonRankCommon_(s, assignType, dateIso, komaTime, classroom, matchFn)
   if (!koma) return 2;  // コマ不明時は塾扱い
   if ((koma.id||'').indexOf('ca_') === 0)             return 0; // CAコマ
   if (koma.online)                                    return 8; // オンライン
-  if (koma.satType==='enshuu'||koma.satType==='hira') return 4; // 演習回
+  if (koma.satType==='enshuu') return 4; // 演習回
   return 2;                                                       // 通常塾
 }
 
@@ -3612,23 +3605,14 @@ function komaCourseActive_(s, k) {
 }
 function getStudentsForKoma(classroom, youbi, komaTime) {
   var GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
-  // hiraKoma（平日演習回）が指定された曜日・時間に一致するか判定
-  // hiraKoma の値は "月17:30〜18:20" のような形式（youbi + time を結合した文字列）
   function matchesKoma(k) {
     // 受験特訓コマは相乗り専用ブロックで表示するためここでは除外
     if (k.satType === 'juken') return false;
     // classroomが未設定（土曜コマ等）または一致する場合のみ通す
     if (k.classroom && k.classroom !== classroom) return false;
-    // 通常コマ・オンライン・演習回（enshuu）・eiken・sat はyoubi+timeで判定
-    if (k.satType !== 'hira' && k.youbi === youbi && k.time === komaTime) return true;
-    // 旧形式互換: hiraKoma を持つ hira コマ
-    if (k.satType === 'hira' && k.hiraKoma) {
-      var hiraTarget = youbi + komaTime;
-      var hiraVal = k.hiraKoma;
-      if (hiraVal.indexOf('_') !== -1) hiraVal = hiraVal.split('_').slice(1).join('_');
-      return hiraVal === hiraTarget;
-    }
-    return false;
+    // 通常コマ・オンライン・演習回（enshuu）・英検は youbi+time で判定
+    // 【廃止済み 2026-06-13】平日振替（satType:'hira'）・土曜演習（satType:'sat'）は演習回（enshuu）に1本化。2026-11-08 本番0件を確かめて古い分岐を消した（_作り方標準 決まりの核10）
+    return k.youbi === youbi && k.time === komaTime;
   }
   function lessonRank(s) {
     return lessonRankCommon_(s, undefined, getTodayStr(), komaTime, classroom, matchesKoma);
@@ -3674,14 +3658,8 @@ function getKomasForClassroom(classroom) {
     (s.komas || []).forEach(function(k) {
       if (k.classroom === classroom) times[k.time] = true;
       else if (!k.classroom && k.satType && k.satType !== 'juken' && getMainClassroom(s) === classroom) {
-        // enshuu/eiken/satはyoubi+timeで管理。旧形式hiraKomaは後方互換
-        if (k.satType === 'hira' && k.hiraKoma) {
-          var hiraT = k.hiraKoma.indexOf('_') !== -1 ? k.hiraKoma.split('_').slice(1).join('_') : k.hiraKoma;
-          hiraT = hiraT.replace(/^[月火水木金土日]/, '');
-          if (hiraT) times[hiraT] = true;
-        } else if (k.time) {
-          times[k.time] = true;
-        }
+        // enshuu/eiken は youbi+time で管理
+        if (k.time) times[k.time] = true;
       }
     });
   });
@@ -3718,7 +3696,7 @@ function isNormalKomaInKoushu_(s, kt) {
 
 /**
  * 講習モード専用の生徒チップ（通常コマ設定を参照しないシンプル版）
- * 学年・名前・欠席バッジだけ表示。土曜演習等のコマ種別バッジは出さない。
+ * 学年・名前・欠席バッジだけ表示。演習回等のコマ種別バッジは出さない。
  */
 function koushuChipHtml(s, opts) {
   // 川上さん指示(2026-06-14)：講習コマに登録された子は全員「講習」扱い。CA/塾で区別しCAバッジを出す委譲ロジックは撤去
@@ -3799,7 +3777,7 @@ function koushuChipHtml(s, opts) {
   var clickAttr = s.sid || name
     ? ' onclick="openKoushuStudentEdit(\'' + esc(s.sid || name) + '\',\'' + esc(name) + '\',\'' + periodId + '\')"'
     : '';
-  var typeBadge = opts.assignType === 'taisaku' ? '<span class="chip-taisaku">対策</span>'
+  var typeBadge = opts.assignType === 'taisaku' ? '<span class="chip-taisaku">テ対</span>'
                 : opts.assignType === 'jishu'   ? '<span class="chip-jishu">自習</span>'
                 : (activePeriod && activePeriod.type !== 'test') ? '<span class="chip-koushu">講習</span>' : '';
   var assignIdAttr = assignId ? ' data-assign-id="' + assignId + '"' : '';
@@ -3808,7 +3786,7 @@ function koushuChipHtml(s, opts) {
   var colorCls = isElem ? ' koushu-chip-elem' : ' koushu-chip-juku';
   var koushuPolicyCorner = s.policy ? '<span class="cb-policy-corner"></span>' : '';  // 指導方針あり（2026-06-17）
   return '<div class="student-chip koushu-chip' + colorCls + '"' + assignIdAttr + draggableAttr + dataPopup + clickAttr + ' style="cursor:pointer;position:relative;overflow:hidden;padding-right:' + (assignId ? '18px' : '5px') + '">' + koushuPolicyCorner +
-    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name, opts) + twoKomaBadgeHtml_(s, opts && opts.dateStr, opts && opts.classroom) + crossClassroomBadgeHtml_(s, opts && opts.dateStr, opts && opts.classroom) + leaveBadgeHtml_(s, opts && opts.dateStr) + remainBadge + deleteBtn + '</div>';
+    absBadge + '<span class="chip-name">' + esc(name) + '</span>' + gradeLabel + typeBadge + customBadgesHtml_(name, opts) + twoKomaBadgeHtml_(s, opts && opts.dateStr, opts && opts.classroom, opts && opts.komaTime) + crossClassroomBadgeHtml_(s, opts && opts.dateStr, opts && opts.classroom) + leaveBadgeHtml_(s, opts && opts.dateStr) + remainBadge + deleteBtn + '</div>';
 }
 
 // 講習期間の見方（時間割の欄外に置くホバー注記・画面のみ／印刷では非表示 2026-07-18）
@@ -3884,17 +3862,11 @@ function attendsFaceToFace_(s, classroom, youbi, komaTime) {
   return s.komas.some(function(k) {
     if (k.online === true) return false;          // オンラインは対象外
     if (k.satType === 'juken') return false;      // 受験特訓は相乗り専用ブロックで別表示（getStudentsForKomaも除外）
-    // 通常コマ・オンライン・演習回(enshuu)・英検・土曜：youbi+timeで判定（matchesKomaと同じ）
-    if (k.satType !== 'hira') {
-      if (k.youbi !== youbi || k.time !== komaTime) return false;
-      if (k.classroom) return k.classroom === classroom;
-      if (k.satType) return getMainClassroom(s) === classroom; // 教室未設定の土曜系は主所属で判定
-      return true; // 教室未設定の通常コマ（旧データ等）は通す
-    }
-    // hira（平日演習回・旧形式）
-    var hv = k.hiraKoma || '';
-    if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
-    return hv === (youbi + komaTime);
+    // 通常コマ・オンライン・演習回(enshuu)・英検：youbi+timeで判定（matchesKomaと同じ）
+    if (k.youbi !== youbi || k.time !== komaTime) return false;
+    if (k.classroom) return k.classroom === classroom;
+    if (k.satType) return getMainClassroom(s) === classroom; // 教室未設定の土曜系は主所属で判定
+    return true; // 教室未設定の通常コマ（旧データ等）は通す
   });
 }
 
@@ -4107,10 +4079,6 @@ function lastLessonDateInMonth_(s, year, month) {
     if (k.online) return;
     if (k.satType === 'juken' || k.satType === 'eiken') return;
     var yb = k.youbi || '';
-    if (!yb && k.satType === 'hira' && k.hiraKoma) {
-      var hv = k.hiraKoma; if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
-      yb = hv.charAt(0);
-    }
     if (yb) lessonYoubis[yb] = true;
   });
   var keys = Object.keys(lessonYoubis);
@@ -4142,7 +4110,7 @@ function leaveBadgeHtml_(s, dateStr) {
 
 // ===== 2コマバッジ（同一教室・当日のコマ数）2026-07-21 川上さん指示 =====
 // 川上さん確定(2026-10-02)：対面の授業はすべて数える。数えないのはオンラインと欠席だけ。
-//   塾・CA・英検・演習回・土曜演習・受験特訓・講習・テスト対策・自習・振替を数える。
+//   塾・CA・英検・演習回・受験特訓・講習・テスト対策・自習・振替を数える。
 //   振替は元のコマが何でも数える（英検・オンラインの振替も数える 2026-10-03）。
 //   通常期の自習（_jishu）も数える（2026-10-03）。
 //   🚨 判定は「画面に出ている顔ぶれ」と必ず一致させる。数え方を変えたら、本番データで
@@ -4235,22 +4203,15 @@ function komaDayIndex_(s, iso) {
   // 2) 通常コマ（受験特訓も数える 2026-10-02）
   (s.komas || []).forEach(function (k) {
     var cr = k.classroom || getMainClassroom(s);
-    var kt = k.time, matches = false;
-    if (k.satType === 'hira' && k.hiraKoma) {
-      var hv = k.hiraKoma; if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_');
-      matches = (hv === (youbi + kt));
-    } else {
-      matches = (k.youbi === youbi);
-    }
-    if (!matches) return;
+    var kt = k.time;
+    if (k.youbi !== youbi) return;
     if (koushuView && !isNormalKomaInKoushu_(s, kt)) return;
     if (_tkAbsent_(s, iso, kt, cr)) return;
     var type = k.online ? 'オンライン'
       : (k.id || '').indexOf('ca_') === 0 ? 'CA'
       : k.satType === 'eiken' ? '英検'
       : k.satType === 'juken' ? '受験特訓'
-      : (k.satType === 'enshuu' || k.satType === 'hira') ? '演習回'
-      : k.satType === 'sat' ? '土曜演習' : '塾';
+      : k.satType === 'enshuu' ? '演習回' : '塾';
     add(cr, kt, type);
   });
   // 2.5) 通常期の自習（2026-10-03 川上さん指摘で追加）
@@ -4304,14 +4265,13 @@ function _komaTypeOf_(k){
   if (k.online) return 'online';
   if ((k.id || '').indexOf('ca_') === 0) return 'ca';
   if (k.satType === 'eiken') return 'eiken';
-  if (k.satType === 'enshuu' || k.satType === 'hira' || k.satType === 'sat') return 'enshuu';
+  if (k.satType === 'enshuu') return 'enshuu';
   return 'juku';
 }
 function _matchedKoma_(s, cr, youbi, kt){
   return (s.komas || []).find(function(k){
     if (k.satType === 'juken') return false;
     if (k.classroom && k.classroom !== cr) return false;
-    if (k.satType === 'hira' && k.hiraKoma){ var hv = k.hiraKoma; if (hv.indexOf('_') !== -1) hv = hv.split('_').slice(1).join('_'); return hv === (youbi + kt); }
     return k.youbi === youbi && k.time === kt;
   });
 }
@@ -4348,9 +4308,9 @@ function attendCmp_(a, b){ return (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]
  * 食い違っていた（例：中6（計13人））。各ビューは必ずこの関数を通すこと。
  */
 var CB_CAT_ORDER = ['小','中','高','他','ca','eiken','enshuu','koushu','taisaku','jishu',
-                    'fu_juku','fu_ca','fu_eiken','fu_enshuu','fu_jishu','fu_online','fu_x','juken','trial'];
+                    'fu_juku','fu_ca','fu_eiken','fu_enshuu','fu_online','fu_x','juken','trial'];
 var CB_CAT_LABEL = { ca:'CA', eiken:'英検', enshuu:'演習', koushu:'講習', taisaku:'テ対', jishu:'自習',
-                     fu_juku:'振塾', fu_ca:'振CA', fu_eiken:'振英検', fu_enshuu:'振演習', fu_jishu:'振自習',
+                     fu_juku:'振塾', fu_ca:'振CA', fu_eiken:'振英検', fu_enshuu:'振演習',
                      fu_online:'振オン', fu_x:'振替', juken:'受験', trial:'体験' };
 
 /* ===== 体験生（2026-10-30 川上さん確定）=====
@@ -4468,7 +4428,7 @@ function cbTrialChipHtml_(x) {
  * 本番80件で75件（94%）判定でき、残りは退会などで生徒マスタに居ない人。判定できない分は fu_x（「振替」）。 */
 function cbFurikaeCat_(r) {
   if (!r) return 'fu_x';
-  if (r.absenceKind === '自習' || r.absenceCourse === '自習') return 'fu_jishu';   // 2026-11-08：内訳「振自習」
+  if (r.absenceKind === '自習' || r.absenceCourse === '自習') return 'jishu';   // 2026-11-08 川上さん確定：自習の振替は内訳でも「自習」に数える
   var s = cbAbsStu_(r);
   if (!s) return 'fu_x';
   var yb = '';
@@ -4845,7 +4805,7 @@ function cbNormalRoster_(cr, kt, iso, youbi, countOnly) {
     });
   }
   /* ===== 同じ子・同じコマで予定が重なったときの優先順位（川上さん確定 2026-09-30） =====
-   *   対面の元コマ（塾・CA・英検・演習回・土曜演習）＝振替 ＞ テスト対策 ＞ 自習 ＞ オンライン
+   *   対面の元コマ（塾・CA・英検・演習回）＝振替 ＞ テスト対策 ＞ 自習 ＞ オンライン
    *  ・勝った種類で並び順・内訳（cat）を決める。人数はどの場合も1人
    *  ・負けた「対策」「自習」はチップにバッジで添えて残す
    *  ・オンラインが負けたときは、まとめ行に名前を横線で残す（struck）。ただ消さない
@@ -5169,14 +5129,20 @@ function cbSeatWhen_(iso, kt, cr) {
 
 
 // 2コマバッジHTML（同一教室で2コマ以上・ホバーで内訳＋ルール）
-function twoKomaBadgeHtml_(s, iso, classroom) {
+function twoKomaBadgeHtml_(s, iso, classroom, komaTime) {
   if (!s || !iso || !classroom) return '';
   var parts = (komaDayIndex_(s, iso)[classroom]) || [];
   if (parts.length < 2) return '';
+  // 2026-11-08 川上さん確定：何コマ目かを「1/2コマ」の形で出す。parts は時刻順（komaDayIndex_ で並べてある）
   var tip = 'この日 ' + parts.length + 'コマ\n' +
     parts.map(function (p) { return p.time + ' ' + p.type; }).join('\n') +
     '\n──\n同じ教室で2コマ以上を表示。オンラインと欠席だけは数えません。';
-  return '<span class="badge-2koma" data-tooltip="' + esc(tip) + '">' + parts.length + 'コマ</span>';
+  return '<span class="badge-2koma" data-tooltip="' + esc(tip) + '">' + twoKomaLabel_(parts, komaTime) + '</span>';
+}
+function twoKomaLabel_(parts, komaTime) {
+  var k = komaTime ? _tkTimeKey_(komaTime) : null, no = 0;
+  if (k !== null) parts.forEach(function (p, i) { if (!no && _tkTimeKey_(p.time) === k) no = i + 1; });
+  return no ? (no + '/' + parts.length + 'コマ') : (parts.length + 'コマ');
 }
 // 教室またぎバッジHTML（別教室にも数える対象のコマがある）
 function crossClassroomBadgeHtml_(s, iso, classroom) {
@@ -5210,7 +5176,7 @@ function crossBannerHtml_(iso) {
 function komaBadgeNoteHtml_() {
   var body = '<b>2コマバッジの見方</b><br>' +
     '・同じ教室でその日2コマ以上ある子に「2コマ」バッジ（アンバー）を付けます。バッジにカーソルを合わせると内訳が出ます。<br>' +
-    '・教室で受ける授業はすべて数えます（塾・CA・英検・演習回・土曜演習・受験特訓・講習・テスト対策・自習・振替）。<b>オンラインと欠席だけは数えません</b>。<br>' +
+    '・教室で受ける授業はすべて数えます（塾・CA・英検・演習回・受験特訓・講習・テスト対策・自習・振替）。<b>オンラインと欠席だけは数えません</b>。<br>' +
     '・「教室またぎ」赤バッジ：同じ日に別の教室にも授業があるときの注意表示（通常はありません。登録ミスの可能性）。';
   return '<span class="cb-help" style="margin-left:8px;cursor:help">' +
     '<span style="font-size:12px;color:var(--text-muted);font-weight:600;border-bottom:1px dotted var(--text-muted)">ⓘ 2コマバッジの見方</span>' +
@@ -5218,27 +5184,25 @@ function komaBadgeNoteHtml_() {
     '</span>';
 }
 
+/* 授業の札（2026-11-08）。label＝塾／CA／演習回／英検／受験特訓／オンライン */
+function cbLessonBadge_(label) {
+  var cls = { '塾': 'cbb-juku', 'CA': 'cbb-ca', '演習回': 'cbb-en', '英検': 'cbb-q', '受験特訓': 'cbb-q', 'オンライン': 'cbb-onl' }[label];
+  return cls ? '<span class="cbb ' + cls + '">' + esc(label) + '</span>' : '';
+}
 function studentChipHtml(s, opts) {
   // opts = { classroom, komaTime, youbi } — 渡されたコマのみで判定
   var koma = null;
   if (opts && opts.classroom && opts.komaTime && opts.youbi) {
     // enshuuコマを優先：同じ平日コマにenshuuと通常コマが両方ある場合、enshuuを使う
-    var _hiraKoma = (s.komas || []).find(function(k) {
+    var _enshuuKoma = (s.komas || []).find(function(k) {
       if (opts.isJuken) return false;
-      // 新形式: satType:'enshuu' でyoubi+timeが一致
       if (k.satType === 'enshuu' && k.youbi === opts.youbi && k.time === opts.komaTime) {
         if (k.classroom && k.classroom !== opts.classroom) return false;
         return true;
       }
-      // 旧形式互換: satType:'hira' + hiraKoma
-      if (k.satType !== 'hira' || !k.hiraKoma) return false;
-      if (k.classroom && k.classroom !== opts.classroom) return false;
-      var hiraTarget2 = opts.youbi + opts.komaTime;
-      var hiraVal2 = k.hiraKoma;
-      if (hiraVal2.indexOf('_') !== -1) hiraVal2 = hiraVal2.split('_').slice(1).join('_');
-      return hiraVal2 === hiraTarget2;
+      return false;
     });
-    koma = _hiraKoma || (s.komas || []).filter(function(k) {
+    koma = _enshuuKoma || (s.komas || []).filter(function(k) {
       // 受験特訓ブロック専用の呼び出し（opts.isJuken=true）のときのみjukenコマをマッチ
       if (opts.isJuken) {
         return k.satType === 'juken' && k.youbi === opts.youbi;
@@ -5248,8 +5212,8 @@ function studentChipHtml(s, opts) {
       // classroomが一致、または未設定（土曜コマ等）かつ getMainClassroom で教室が一致する場合に通す
       var crMatch = k.classroom ? k.classroom === opts.classroom : (!k.satType || k.satType === 'juken' ? false : getMainClassroom(s) === opts.classroom);
       if (!crMatch) return false;
-      // hira/enshuuコマは上で処理済みなのでスキップ
-      if (k.satType === 'hira' || k.satType === 'enshuu') return false;
+      // enshuuコマは上で処理済みなのでスキップ
+      if (k.satType === 'enshuu') return false;
       // 通常コマ・オンラインコマ
       if (k.youbi === opts.youbi && k.time === opts.komaTime) return true;
       return false;
@@ -5264,21 +5228,17 @@ function studentChipHtml(s, opts) {
     if (koma.online) {
       // 川上さん確定(2026-08-26)：通常コマがオンラインでも対策・自習で来る子は対面。
       // オンラインバッジは出さず、対策/自習バッジ（testBadgeHtml）だけにする。
-      lessonLabel = (opts && opts.hideOnlineBadge) ? '' : '<span class="badge badge-gray" style="font-size:10px">オンライン</span>';
+      lessonLabel = (opts && opts.hideOnlineBadge) ? '' : cbLessonBadge_('オンライン');
     } else if (komaIsCa) {
-      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
+      lessonLabel = cbLessonBadge_('CA');
     } else if (koma.satType === 'eiken') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#FAEEDA;color:#854F0B">英検</span>';
+      lessonLabel = cbLessonBadge_('英検');
     } else if (koma.satType === 'enshuu') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#dcfce7;color:#16a34a">演習回</span>';
-    } else if (koma.satType === 'sat') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#EAF3DE;color:#3B6D11">土曜演習</span>';
+      lessonLabel = cbLessonBadge_('演習回');
     } else if (koma.satType === 'juken') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#ede9fe;color:#6d28d9">受験特訓</span>';
-    } else if (koma.satType === 'hira') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#dcfce7;color:#16a34a">演習回</span>';
+      lessonLabel = cbLessonBadge_('受験特訓');
     } else {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
+      lessonLabel = cbLessonBadge_('塾');
     }
   } else {
     // コマが見つからない場合のフォールバック：塾コマがあれば塾、なければCA
@@ -5289,9 +5249,9 @@ function studentChipHtml(s, opts) {
     if (_jishuOnly) {
       lessonLabel = '';
     } else if (s.attrJuku) {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
+      lessonLabel = cbLessonBadge_('塾');
     } else if (s.attrCa) {
-      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
+      lessonLabel = cbLessonBadge_('CA');
     }
   }
 
@@ -5304,8 +5264,6 @@ function studentChipHtml(s, opts) {
     else if (koma.satType === 'eiken')  _courseName = '英検';
     else if (koma.satType === 'juken')  _courseName = '受験特訓';
     else if (koma.satType === 'enshuu') _courseName = '演習回';
-    else if (koma.satType === 'sat') _courseName = '土曜演習';
-    else if (koma.satType === 'hira') _courseName = '演習回';
     else                         _courseName = '塾';
   }
   // 自習だけで来ている子の欠席は「自習」（2026-11-08 川上さん確定：自習の休みも欠席の画面で扱う）
@@ -5314,22 +5272,12 @@ function studentChipHtml(s, opts) {
   // 振替生徒で absenceCourse が指定されている場合はバッジを上書き
   if (opts && opts.absenceCourse) {
     var _ac = opts.absenceCourse;
-    if (_ac === '土曜演習') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#EAF3DE;color:#3B6D11">土曜演習</span>';
-    } else if (_ac === '英検') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#FAEEDA;color:#854F0B">英検</span>';
-    } else if (_ac === '受験特訓') {
-      lessonLabel = '<span class="badge" style="font-size:10px;background:#ede9fe;color:#6d28d9">受験特訓</span>';
-    } else if (_ac === 'CA') {
-      lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
-    } else if (_ac === '自習') {
-      lessonLabel = '<span class="chip-jishu">自習</span>';   // 2026-11-08：自習の振替
-    }
+    if (_ac === '英検' || _ac === '受験特訓' || _ac === 'CA') lessonLabel = cbLessonBadge_(_ac);
   }
-  var badges = '';
-  badges += lessonLabel;
+  // 授業の札は、振替の判定（下の subRec）のあとで決まることがあるので、最後に差し込む（2026-11-08）
+  var badges = '%%CB_LESSON%%';
   badges += customBadgesHtml_(s.name, opts);  // カスタムバッジ（授業種別の右横・2026-06-17）
-  badges += twoKomaBadgeHtml_(s, opts && opts.dateStr, opts && opts.classroom);  // 2コマバッジ（2026-07-21）
+  badges += twoKomaBadgeHtml_(s, opts && opts.dateStr, opts && opts.classroom, opts && opts.komaTime);  // 2コマバッジ（2026-07-21・番号 2026-11-08）
   badges += crossClassroomBadgeHtml_(s, opts && opts.dateStr, opts && opts.classroom);  // 教室またぎ（2026-07-21）
 
   // ポップアップ：よみ・コース・全通塾コマ・部活・指導方針（学年・学校はチップ本体に表示するため除外）
@@ -5358,12 +5306,10 @@ function studentChipHtml(s, opts) {
         else if ((k.id || '').indexOf('ca_') === 0) typeLabel = 'CA';
         else if (k.satType === 'eiken')  typeLabel = '英検';
         else if (k.satType === 'enshuu') typeLabel = '演習回';
-        else if (k.satType === 'sat')    typeLabel = '土曜演習';
         else if (k.satType === 'juken')  typeLabel = '受験特訓';
-        else if (k.satType === 'hira')   typeLabel = '演習回';
         else typeLabel = '';
         var youbi = k.youbi || '';
-        var time  = k.time || (k.hiraKoma || '');
+        var time  = k.time || '';
         var cr    = k.classroom || '';
         var label = youbi + ' ' + time + (cr ? ' ' + cr : '') + (typeLabel ? '［' + typeLabel + '］' : '');
         return '<span style="display:inline-block;font-size:10px;background:#f3f4f6;color:#374151;border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb">' + esc(label.trim()) + '</span>';
@@ -5428,9 +5374,16 @@ function studentChipHtml(s, opts) {
       //   ⚡振替バッジをクリックで振替タブの該当カード（振替日編集）へ飛ばす。
       //   バッジ種別は元コマから 通常/演習回/CA を判定（②の振替タブと同じ subKomaType_ 基準）。
       var _subType = subKomaType_(subRec, s);
-      absenceBadge = '<span class="badge cb-sub-jump" style="font-size:10px;background:' + _subType.bg + ';color:' + _subType.fg + ';margin-left:2px;cursor:pointer" '
-        + 'onclick="event.stopPropagation();gotoSubstituteEdit_(\'' + (subRec.id||'') + '\')" '
-        + 'title="クリックで振替日の編集へ">⚡振替（' + _subType.label + '）</span>';
+      var _goSub = 'onclick="event.stopPropagation();gotoSubstituteEdit_(\'' + (subRec.id||'') + '\')" title="クリックで振替日の編集へ"';
+      if (_subType.label === '自習') {
+        // 2026-11-08 川上さん確定：自習の振替は「自習」の札に小さい ⚡ を付けるだけ（水色の⚡振替は出さない）
+        lessonLabel = '<span class="chip-jishu" style="cursor:pointer" ' + _goSub + '><span class="cb-jsub">⚡</span>自習</span>';
+        absenceBadge = '';
+      } else {
+        // 2026-11-08 川上さん確定：元の授業の札（塾・CA・演習回・英検）＋水色の ⚡振替（色は今までどおり）
+        lessonLabel = cbLessonBadge_(_subType.label);
+        absenceBadge = '<span class="badge cb-sub-jump" style="font-size:10px;background:#0ea5e9;color:#fff;margin-left:2px;cursor:pointer" ' + _goSub + '>⚡振替</span>';
+      }
       // 「欠」ボタンは出さない（振替の子は振替日修正が主操作のため）
     } else {
       absBtn = '<button class="absence-btn" onclick="event.stopPropagation();openAbsenceModal(\'' + esc(s.name) + '\',\'' + opts.dateStr + '\',\'' + esc(opts.komaTime) + '\',\'' + esc(opts.classroom) + '\',\'\',\'' + esc(_courseName) + '\',\'' + esc(s.sid || '') + '\')" title="欠席を記録">欠</button>';
@@ -5450,12 +5403,13 @@ function studentChipHtml(s, opts) {
       else { popup = '<div class="s-popup" style="min-width:200px;max-width:280px">' + _jmRow + '</div>'; }
     }
   }
+  badges = badges.replace('%%CB_LESSON%%', lessonLabel);
   var chipAbsentCls = (aRec && aRec.status !== 'cancelled') ? ' student-chip-absent' : '';
   // テスト対策モード（2026-06-10 カード統一）：対策/自習バッジ＋中高塾生はクリックでコマ登録
   // 2026-09-30：'taisaku,jishu' のように複数を受ける（重なって負けた側もバッジで添える）
   var testBadgeHtml = (opts && opts.testBadge)
     ? String(opts.testBadge).split(',').map(function(b) {
-        return b === 'jishu' ? '<span class="chip-jishu">自習</span>' : b === 'taisaku' ? '<span class="chip-taisaku">対策</span>' : '';
+        return b === 'jishu' ? '<span class="chip-jishu">自習</span>' : b === 'taisaku' ? '<span class="chip-taisaku">テ対</span>' : '';   // 2026-11-08：対策→テ対
       }).join('')
     : '';
   var tpClickAttr = '';
@@ -6471,13 +6425,7 @@ function buildWeekGrid(days, todayIso) {
           var matchFn = function(k) {
             if (k.satType==='juken') return false;
             if (k.classroom && k.classroom!==cr_) return false;
-            if (k.satType!=='hira' && k.youbi===YOUBIS[i] && k.time===komaT) return true;
-            if (k.satType==='hira' && k.hiraKoma) {
-              var ht = YOUBIS[i]+komaT;
-              var hv = k.hiraKoma.indexOf('_')!==-1 ? k.hiraKoma.split('_').slice(1).join('_') : k.hiraKoma;
-              return hv===ht;
-            }
-            return false;
+            return k.youbi===YOUBIS[i] && k.time===komaT;
           };
           var r = lessonRankCommon_(s, assignType, dateIso, komaT, cr_, matchFn);
           return r;
@@ -6905,11 +6853,10 @@ function printKoushuPeriod() {
             var _mk = (s.komas || []).find(function(k){
               if (k.satType === 'juken') return false;
               if (k.classroom && k.classroom !== cr) return false;
-              if (k.satType === 'hira' && k.hiraKoma) { var _hv = k.hiraKoma; if (_hv.indexOf('_') !== -1) _hv = _hv.split('_').slice(1).join('_'); return _hv === (youbi + kt); }
               return k.youbi === youbi && k.time === kt;
             });
             var _typ = 'juku';
-            if (_mk) { if ((_mk.id || '').indexOf('ca_') === 0) _typ = 'ca'; else if (_mk.online) _typ = 'online'; else if (_mk.satType === 'eiken') _typ = 'eiken'; else if (_mk.satType === 'enshuu' || _mk.satType === 'hira' || _mk.satType === 'sat') _typ = 'enshuu'; }
+            if (_mk) { if ((_mk.id || '').indexOf('ca_') === 0) _typ = 'ca'; else if (_mk.online) _typ = 'online'; else if (_mk.satType === 'eiken') _typ = 'eiken'; else if (_mk.satType === 'enshuu') _typ = 'enshuu'; }
             items.push({ name: s.name, grade: s.grade || '', badge: '', type: _typ, stu: s, absent: _tkAbsent_(s, iso, kt, cr), sortKey: attendSortKey_(s, { komaType: _typ }) });
           }
         });
@@ -7004,7 +6951,7 @@ function printKoushuPeriod() {
         var chips = items.map(function(it) {
           // 川上さん指示(2026-07-21)：印刷は多数派を無バッジにして少数派をバッジで判別。講習モード＝多数派は中学生の講習（講習バッジ出さない）、テスト対策モード＝多数派は中学生の通常塾（塾バッジ出さない）。小学生・高校生は学年色で判別。
           var _ty = it.type || '';
-          var _bmap = { ca: ['CA', 'kp-b-ca'], eiken: ['英検', 'kp-b-eiken'], enshuu: ['演習回', 'kp-b-enshuu'], furikae: ['振替', 'kp-b-furikae'], taisaku: ['対策', 'kp-b-taisaku'], jishu: ['自習', 'kp-b-jishu'] };
+          var _bmap = { ca: ['CA', 'kp-b-ca'], eiken: ['英検', 'kp-b-eiken'], enshuu: ['演習回', 'kp-b-enshuu'], furikae: ['振替', 'kp-b-furikae'], taisaku: ['テ対', 'kp-b-taisaku'], jishu: ['自習', 'kp-b-jishu'] };
           var bdg = _bmap[_ty] ? '<span class="kp-badge ' + _bmap[_ty][1] + '">' + _bmap[_ty][0] + '</span>' : '';
           if (_ty === 'trial') {   // 体験生（2026-10-30）：名前・学年・体験①だけ。2コマ・教室またぎは見ない（生徒マスタに居ない）
             return '<span class="kp-stu kp-stu-trial">' + esc(it.name) + (it.grade ? '<span class="kp-grade">(' + esc(it.grade) + ')</span>' : '') + '<span class="kp-badge kp-b-trial">体験' + cbTrialMark_(it.trialN || 0) + '</span></span>';
@@ -7013,7 +6960,7 @@ function printKoushuPeriod() {
           ['taisaku', 'jishu'].forEach(function(m) { if (it.marks && it.marks[m] && _ty !== m) bdg += '<span class="kp-badge ' + _bmap[m][1] + '">' + _bmap[m][0] + '</span>'; });
           var _s2 = _students.find(function(st){ return st.name === it.name; }) || { name: it.name };
           var _idx2 = komaDayIndex_(_s2, iso);
-          var _two2 = (_idx2[cr] || []).length >= 2 ? '<span class="kp-badge kp-b-2koma">' + _idx2[cr].length + 'コマ</span>' : '';
+          var _two2 = (_idx2[cr] || []).length >= 2 ? '<span class="kp-badge kp-b-2koma">' + twoKomaLabel_(_idx2[cr], kt) + '</span>' : '';   // 2026-11-08：番号
           var _cross2 = Object.keys(_idx2).some(function(c){ return c !== cr && (_idx2[c] || []).length > 0; }) ? '<span class="kp-badge kp-b-cross">教室またぎ</span>' : '';
           var _kes = it.absent ? '<span class="kp-badge kp-b-kesseki">欠席</span>' : '';
           var _nm = it.absent ? '<span class="kp-abs-name">' + esc(it.name) + '</span>' : esc(it.name);
@@ -8529,7 +8476,7 @@ function subKomaType_(rec, studentObj) {
   if (origKoma && (origKoma.id || '').indexOf('ca_') === 0) {
     return { label: 'CA', bg: '#f3e8ff', fg: '#7c3aed' };
   }
-  if (origKoma && (origKoma.satType === 'enshuu' || origKoma.satType === 'hira')) {
+  if (origKoma && origKoma.satType === 'enshuu') {
     return { label: '演習回', bg: '#dcfce7', fg: '#16a34a' };
   }
   // 2026-10-02：英検コマの振替を「塾」と出していた（コマ見出しの「振英検」と食い違い）
@@ -8597,7 +8544,7 @@ function renderAbsence() {
     var cardCls = 'absence-card';
     // ② 川上さん指示(2026-06-14)：各カードに元コマ種別バッジ（通常/演習回/CA）。subKomaType_ で①と同基準。
     var _ct = subKomaType_(r);
-    var typeBadge = '<span class="badge" style="font-size:10px;background:' + _ct.bg + ';color:' + _ct.fg + ';padding:1px 6px;border-radius:4px;margin-left:2px">' + _ct.label + '</span>';
+    var typeBadge = (_ct.label === '自習') ? '<span class="chip-jishu" style="margin-left:2px">自習</span>' : cbLessonBadge_(_ct.label).replace('class="cbb ', 'style="margin-left:2px" class="cbb ');   // 2026-11-08：チップと同じ札
     if (r.status === 'absent') {
       statusBadge = '<span class="ac-badge ac-badge-red">振替日未定</span>';
       cardCls += ' ac-waiting';
@@ -10297,8 +10244,7 @@ function ksKomaChips_(s) {
       : (k.id || '').indexOf('ca_') === 0 ? 'CA'
       : k.satType === 'eiken' ? '英'
       : k.satType === 'juken' ? '特'
-      : (k.satType === 'enshuu' || k.satType === 'hira') ? '演'
-      : k.satType === 'sat' ? '土' : '塾';
+      : k.satType === 'enshuu' ? '演' : '塾';
     var st = k.online ? 'border:1px solid var(--border);background:#f3f4f6;color:#9ca3af'
                       : 'border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8';
     return '<span style="display:inline-block;font-size:10px;border-radius:3px;padding:0 4px;margin:1px 3px 1px 0;white-space:nowrap;' + st + '">' +
@@ -10959,7 +10905,7 @@ function openKoushuStudentEdit(studentId, studentName, periodId, _loaded) {
           //  押し戻せることが画面から分からなくなる（案3は「空」で出す・機能仕様書 §8-2-3）。
           var _noK = (_kseCheck && !isOn && !jOff) ? (!tkKomaOnDay_(_kseCr, ds, kf) && !tkSubstituteHere_(_kseS, ds, kf)) : false;
           var _cf = (_kseCheck && !isOn && !jOff) ? tkFaceConflicts_(_kseS, ds, kf) : [];
-          var _cfShort = _cf.length ? ({ '塾': '塾', 'CA': 'CA', '英検': '英', '演習回': '演', '受験特訓': '特', '土曜演習': '土', '振替': '振' }[_cf[0].label] || '済') : '';
+          var _cfShort = _cf.length ? ({ '塾': '塾', 'CA': 'CA', '英検': '英', '演習回': '演', '受験特訓': '特', '振替': '振' }[_cf[0].label] || '済') : '';
           // オンライン授業があるコマは「オン」と出す。
           // 川上さん確定(2026-09-30)：どんな種類でも元コマがあれば確認を出す。オンラインも押すと確認が出る（強行は可）
           var _onl = (_kseCheck && !isOn && !jOff && !_noK && !_cf.length) ? tkOnlineKomas_(_kseS, ds, kf) : [];
