@@ -411,6 +411,99 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .jp-fchip:hover { border-color:var(--crimson); color:var(--crimson); }
 .jp-fchip.jp-on { border-color:var(--crimson); color:var(--crimson); font-weight:700; }
 .jp-fsearch { border:1px solid var(--border); border-radius:999px; padding:4px 12px; font-size:12px; font-family:inherit; width:180px; }
+/* ===== 自習の画面（2026-11-08 モックの形） ===== */
+.jx-sub { font-size:12px; font-weight:400; color:var(--text-muted); margin-left:10px; }
+.jx-tr2 { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,7fr); gap:10px; margin-top:6px; }
+@media (max-width:860px) { .jx-tr2 { grid-template-columns:1fr; } }
+.jx-colb { max-height:60vh; overflow-y:auto; flex:1; }
+.jx-common { margin:8px; border:1px solid #bbf7d0; background:#f7fdf9; border-radius:8px; padding:6px 8px; }
+.jx-ct { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#166534; }
+.jx-cn { font-weight:400; font-size:11px; color:#166534; }
+.jx-fold .jx-plan, .jx-fold .jx-addtile { display:none; }
+.jx-card { margin:8px; border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:#fff; }
+.jx-cardh { display:flex; align-items:center; gap:8px; font-size:12.5px; }
+.jx-nm { font-weight:700; }
+.jx-gr { font-size:11px; color:var(--text-muted); }
+.jx-link { font-size:11.5px; color:#166534; font-weight:700; }
+.jx-sum { font-size:11.5px; color:var(--text-muted); margin-top:3px; }
+.jx-mini { border:1px solid var(--border); background:#fff; border-radius:6px; padding:2px 8px; font-size:11px; cursor:pointer; font-family:inherit; color:var(--text-muted); }
+.jx-mini:hover { border-color:var(--crimson); color:var(--crimson); }
+.jx-del { border:none; background:none; color:#dc2626; font-weight:700; font-size:14px; cursor:pointer; padding:0 4px; font-family:inherit; margin-left:auto; }
+.jx-del:hover { background:#fee2e2; border-radius:4px; }
+.jx-plan { border:1px solid var(--border); border-radius:8px; padding:7px 9px; margin:6px 0; background:#fff; }
+.jx-r { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.jx-r + .jx-r { margin-top:6px; }
+.jx-seg { display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; flex-shrink:0; }
+.jx-seg button { border:none; background:#fff; padding:3px 10px; font-size:11.5px; cursor:pointer; font-family:inherit; color:var(--text-muted); border-right:1px solid var(--border); }
+.jx-seg button:last-child { border-right:none; }
+.jx-seg button.jx-on { background:#f0fdf4; color:#16a34a; font-weight:700; }
+.jx-plan select, .jx-plan input[type=date], .jx-memo { border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:11.5px; font-family:inherit; background:#fff; }
+.jx-memo { flex:1 1 140px; min-width:120px; }
+.jx-lbl { font-size:10.5px; color:var(--text-muted); }
+.jx-inf { font-size:10.5px; color:#94a3b8; }
+.jx-pno { font-size:13px; font-weight:700; color:#fff; background:#475569; border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; }
+.jx-addtile { display:block; width:100%; border:2px dashed #cbd5e1; background:#fff; border-radius:8px; color:#64748b; font-size:18px; font-weight:700; line-height:26px; cursor:pointer; margin:6px 0 2px; font-family:inherit; }
+.jx-addtile:hover { border-color:#16a34a; color:#16a34a; background:#f0fdf4; }
+.jx-cwrap { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; margin-top:6px; width:100%; }
+.jx-clist { flex:1 1 260px; min-width:240px; display:flex; flex-direction:column; gap:6px; }
+.jx-lh { font-size:12px; font-weight:700; display:flex; gap:8px; align-items:center; }
+.jx-lh b { color:#16a34a; margin-left:auto; }
+.jx-lb { border:1px solid var(--border); border-radius:8px; max-height:200px; overflow-y:auto; background:#fff; }
+.jx-li { display:flex; align-items:center; gap:8px; font-size:12px; padding:3px 8px; border-bottom:1px solid #f1f5f9; }
+.jx-li:last-child { border-bottom:none; }
+.jx-ld { min-width:5.2em; font-weight:600; }
+.jx-lt { color:var(--text-muted); }
+.jx-li select { border:1px solid var(--border); border-radius:5px; font-size:11.5px; padding:1px 4px; font-family:inherit; background:#fff; }
+.jx-ldel { margin-left:auto; border:none; background:none; color:#dc2626; font-weight:700; cursor:pointer; font-size:13px; }
+.jx-lx { color:#94a3b8; }
+.jx-cal { border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:#fff; width:296px; }
+.jx-calh { display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px; }
+.jx-calh button { border:1px solid var(--border); background:#fff; border-radius:5px; cursor:pointer; padding:0 8px; font-family:inherit; }
+.jx-g { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; }
+.jx-w { font-size:10px; color:var(--text-muted); text-align:center; }
+.jx-d { border:1px solid var(--border); background:#fff; border-radius:5px; font-size:11.5px; padding:4px 0; cursor:pointer; font-family:inherit; text-align:center; color:var(--text); }
+.jx-d:hover { border-color:#16a34a; }
+.jx-d.jx-on { background:#16a34a; border-color:#16a34a; color:#fff; font-weight:700; }
+.jx-d.jx-onp { background:#bbf7d0; border-color:#bbf7d0; color:#166534; }
+.jx-d.jx-off { background:#f1f5f9; color:#cbd5e1; border-color:#f1f5f9; cursor:not-allowed; }
+.jx-d.jx-blank { visibility:hidden; }
+.jx-d.jx-today { box-shadow:inset 0 0 0 1px var(--crimson); }
+.jx-d.jx-start { box-shadow:inset 0 0 0 2px #14532d; }
+.jx-warn { font-size:11px; color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:4px 8px; line-height:1.7; margin-top:6px; }
+.jx-pend { font-size:11.5px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%; }
+.jx-pend input { border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:11.5px; font-family:inherit; }
+/* 保存の状態：帯の言葉と行の色。帯を読めば状態が分かるようにする */
+.jx-stbar { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; border-radius:6px; padding:4px 8px; margin-bottom:6px; }
+.jx-undo { margin-left:auto; border:1px solid currentColor; background:#fff; color:inherit; border-radius:6px; font-size:11.5px; padding:2px 10px; cursor:pointer; font-family:inherit; font-weight:700; }
+.jx-st-saved { background:#f1f5f9; color:#475569; font-weight:600; }
+.jx-st-chg { background:#fde68a; color:#78350f; }
+.jx-st-new { background:#bfdbfe; color:#1e3a8a; }
+.jx-st-del { background:#fecaca; color:#7f1d1d; }
+.jx-plan.jx-pl-chg { background:#fffbeb; border:2px solid #f59e0b; }
+.jx-plan.jx-pl-new { background:#eff6ff; border:2px solid #3b82f6; }
+.jx-plan.jx-pl-del { background:#fef2f2; border:2px solid #ef4444; }
+.jx-pl-del .jx-body, .jx-pl-del .jx-pno, .jx-pl-del .jx-seg, .jx-pl-del select { text-decoration:line-through; opacity:.5; pointer-events:none; }
+.jx-chgf { border:2px solid #f59e0b !important; background:#fef3c7 !important; }
+.jx-was { font-size:10.5px; color:#92400e; font-weight:700; }
+.jx-foot { display:flex; gap:8px; align-items:center; padding-top:10px; flex-wrap:wrap; }
+.jx-cnt { font-size:12px; color:var(--crimson); font-weight:700; margin-right:auto; }
+.jx-unsaved { font-size:12.5px; font-weight:700; color:#78350f; background:#fde68a; border-radius:6px; padding:4px 10px; }
+.jx-nochg { font-size:12px; color:var(--text-muted); }
+.jx-ov { position:fixed; inset:0; background:rgba(15,23,42,.35); display:flex; align-items:center; justify-content:center; z-index:2000; }
+.jx-box { background:#fff; border-radius:10px; width:480px; max-width:92vw; box-shadow:0 8px 24px rgba(0,0,0,.18); }
+.jx-bh { padding:10px 14px; border-bottom:1px solid var(--border); font-weight:700; font-size:14px; }
+.jx-bb { padding:12px 14px; font-size:12.5px; line-height:1.8; }
+.jx-bf { display:flex; justify-content:flex-end; gap:8px; padding:0 14px 12px; }
+.jx-btn-del { background:#fff; color:#dc2626; border:1px solid #fca5a5; padding:7px 16px; border-radius:7px; cursor:pointer; font-size:13px; font-family:inherit; }
+/* 自習の一覧 */
+.jxl-t { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:8px; }
+.jxl-t th { text-align:left; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border); padding:6px 8px; background:#f8fafc; }
+.jxl-t td { border-bottom:1px solid #f1f5f9; padding:6px 8px; vertical-align:top; }
+.jxl-p { line-height:1.7; }
+.jxl-cr { font-size:11px; color:var(--text-muted); }
+.jxl-soon { font-size:10.5px; background:#fef3c7; color:#92400e; border-radius:4px; padding:0 6px; margin-left:4px; font-weight:700; }
+.jxl-memo { font-size:11px; color:#166534; }
+@media print { .jx-plan, .jx-common { display:none; } }
 .koushu-drop-target { outline: 2px dashed var(--crimson); outline-offset: -2px; background: rgba(220,38,38,0.05); }
 
 
@@ -2192,6 +2285,7 @@ tr.mx-done-row td { background: #f0fdf4; }
     <div class="nav-item" onclick="switchTab('shift')" id="nav-shift"><span class="icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> 勤務割</div>
     <div class="nav-item" onclick="switchTab('school')" id="nav-school"><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21V12h6v9"/><path d="M3 9h18"/></svg></span> 学校マスタ</div>
     <div class="nav-item" onclick="switchTab('exam')" id="nav-exam"><span class="icon"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span> 定期テスト</div>
+    <div class="nav-item" onclick="switchTab('jishu')" id="nav-jishu"><span class="icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> 自習</div>
     <div class="nav-item" onclick="switchTab('absence')" id="nav-absence"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span> 欠席・振替</div>
     <div class="nav-item" onclick="switchTab('settings')" id="nav-settings"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> 設定</div>
   </div>
@@ -2862,7 +2956,7 @@ var _tkBulkMode = ''; // '' | 'skip' | 'force'（一括登録の重複ダイア�
 
 // トップバーのタイトルエリアを更新（モードバッジ付き）
 function updateTopTitle(tab) {
-  var baseTitles = { today: '本日の時間割', week: '今週の時間割', shift: 'スタッフ勤務割', school: '学校マスタ・小テスト', exam: '定期テスト対策', settings: '設定', absence: '欠席・振替管理' };
+  var baseTitles = { jishu: '自習の一覧', today: '本日の時間割', week: '今週の時間割', shift: 'スタッフ勤務割', school: '学校マスタ・小テスト', exam: '定期テスト対策', settings: '設定', absence: '欠席・振替管理' };
   var baseTitle = baseTitles[tab] || 'Class Board';
   var el = document.getElementById('top-title');
   if (!el) return;
@@ -3390,6 +3484,7 @@ function renderCurrent() {
     case 'exam':     renderExam();     break;
     case 'settings': renderSettings(); break;
     case 'absence':  renderAbsence();  break;
+    case 'jishu':    renderJishuList(); break;   // 2026-11-08：自習の一覧
   }
 }
 
@@ -4220,9 +4315,9 @@ function attendCmp_(a, b){ return (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]
  * 食い違っていた（例：中6（計13人））。各ビューは必ずこの関数を通すこと。
  */
 var CB_CAT_ORDER = ['小','中','高','他','ca','eiken','enshuu','koushu','taisaku','jishu',
-                    'fu_juku','fu_ca','fu_eiken','fu_enshuu','fu_online','fu_x','juken','trial'];
+                    'fu_juku','fu_ca','fu_eiken','fu_enshuu','fu_jishu','fu_online','fu_x','juken','trial'];
 var CB_CAT_LABEL = { ca:'CA', eiken:'英検', enshuu:'演習', koushu:'講習', taisaku:'テ対', jishu:'自習',
-                     fu_juku:'振塾', fu_ca:'振CA', fu_eiken:'振英検', fu_enshuu:'振演習',
+                     fu_juku:'振塾', fu_ca:'振CA', fu_eiken:'振英検', fu_enshuu:'振演習', fu_jishu:'振自習',
                      fu_online:'振オン', fu_x:'振替', juken:'受験', trial:'体験' };
 
 /* ===== 体験生（2026-10-30 川上さん確定）=====
@@ -4340,6 +4435,7 @@ function cbTrialChipHtml_(x) {
  * 本番80件で75件（94%）判定でき、残りは退会などで生徒マスタに居ない人。判定できない分は fu_x（「振替」）。 */
 function cbFurikaeCat_(r) {
   if (!r) return 'fu_x';
+  if (r.absenceKind === '自習' || r.absenceCourse === '自習') return 'fu_jishu';   // 2026-11-08：内訳「振自習」
   var s = cbAbsStu_(r);
   if (!s) return 'fu_x';
   var yb = '';
@@ -4420,6 +4516,21 @@ function cbOnlToggle(btn) { if (btn && btn.parentNode) btn.parentNode.classList.
  */
 var _jishuCache = {};
 
+/* 毎週の行が その日に当たるか（曜日・開始日・期限・隔週）【2026-11-08 川上さん確定】
+ *  everyWeeks＝'2' は隔週。validFrom の週を1回目に数えて、1週おきに来る。空・'1' は毎週。
+ *  🚨 jishuOnKoma_（コマ→生徒）と jishuCellOf_（生徒→コマ）はこの1本を通す。隔週を片方だけに入れない。 */
+function jishuWeekDiff_(a, b) {
+  function mon_(x) { var d = new Date(x + 'T00:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+  return Math.round((mon_(b) - mon_(a)) / (7 * 86400000));
+}
+function jishuWeeklyHits_(r, iso, youbi) {
+  if (!r || r.kind !== 'weekly') return false;
+  if (r.youbi !== youbi) return false;
+  if (r.validFrom && r.validFrom > iso) return false;   // 開始前
+  if (r.validTo   && r.validTo   < iso) return false;   // 期限切れ
+  if (String(r.everyWeeks || '') === '2' && r.validFrom) return jishuWeekDiff_(r.validFrom, iso) % 2 === 0;
+  return true;
+}
 function jishuHiddenDate_(iso) {
   // 表示中の期間ではなく、その日付が講習期間に入っているかで見る
   //（通常表示のまま講習期間の日を今週タブで見ることがあるため）
@@ -4576,9 +4687,7 @@ function jishuOnKoma_(cr, kt, iso) {
     var rk = jkey_(r);
     if (!rk) continue;                                  // 生徒を特定できない行は出さない
     if (r.kind === 'weekly') {
-      if (r.youbi !== youbi) continue;
-      if (r.validFrom && r.validFrom > iso) continue;   // 開始前
-      if (r.validTo   && r.validTo   < iso) continue;   // 期限切れ
+      if (!jishuWeeklyHits_(r, iso, youbi)) continue;   // 曜日・開始・期限・隔週（2026-11-08）
       if (!hit[rk]) { hit[rk] = r; stuOf[rk] = cbJishuStu_(r.studentId, r.studentName); }
     } else if (r.kind === 'single') {
       if (r.date !== iso) continue;
@@ -4628,9 +4737,7 @@ function jishuCellOf_(stu, iso, kt) {
   var hit = null;
   mine.forEach(function(r) {
     if (r.kind === 'weekly') {
-      if (r.youbi !== youbi) return;
-      if (r.validFrom && r.validFrom > iso) return;
-      if (r.validTo   && r.validTo   < iso) return;
+      if (!jishuWeeklyHits_(r, iso, youbi)) return;   // jishuOnKoma_ と同じ判定（2026-11-08）
       if (!hit) hit = r;
     } else if (r.kind === 'single') {
       if (r.date === iso) hit = r;   // single が weekly より優先
@@ -5162,6 +5269,8 @@ function studentChipHtml(s, opts) {
     else if (koma.satType === 'hira') _courseName = '演習回';
     else                         _courseName = '塾';
   }
+  // 自習だけで来ている子の欠席は「自習」（2026-11-08 川上さん確定：自習の休みも欠席の画面で扱う）
+  if (!koma && opts && opts.testBadge && String(opts.testBadge).split(',').indexOf('jishu') >= 0) _courseName = '自習';
 
   // 振替生徒で absenceCourse が指定されている場合はバッジを上書き
   if (opts && opts.absenceCourse) {
@@ -5174,6 +5283,8 @@ function studentChipHtml(s, opts) {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#ede9fe;color:#6d28d9">受験特訓</span>';
     } else if (_ac === 'CA') {
       lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
+    } else if (_ac === '自習') {
+      lessonLabel = '<span class="chip-jishu">自習</span>';   // 2026-11-08：自習の振替
     }
   }
   var badges = '';
@@ -8323,6 +8434,18 @@ function courseColor_(name) {
   return COURSE_COLORS[hash % COURSE_COLORS.length];
 }
 
+/* 欠席の種類（欠席振替 N列 absenceKind）【2026-11-08 川上さん確定】
+ *  自習の休みも欠席の画面で扱う（振替しないなら［振替なし］、別の日に来るなら振替）。
+ *  自習の欠席は '自習'、授業の欠席は ''。振替の欠席（↩）は元の欠席の種類を引き継ぐ。 */
+function absKindOf_(d) {
+  if (!d) return '';
+  if (d.courseName === '自習') return '自習';
+  if (d.chainFromId) {
+    var pr = (_absenceRecords || []).filter(function(x) { return x && x.id === d.chainFromId; })[0];
+    if (pr && (pr.absenceKind === '自習' || pr.absenceCourse === '自習')) return '自習';
+  }
+  return '';
+}
 function normalizeAbsenceRecord_(r) {
   function toIso(v) {
     if (!v || v === '') return '';
@@ -8336,7 +8459,9 @@ function normalizeAbsenceRecord_(r) {
   }
   return Object.assign({}, r, {
     absenceDate:    toIso(r.absenceDate),
-    substituteDate: toIso(r.substituteDate)
+    substituteDate: toIso(r.substituteDate),
+    // 2026-11-08：コース名はシートに無いので、自習だけ N列から戻す（振替のチップ・タスク名に「自習」と出すため）
+    absenceCourse:  r.absenceCourse || (r.absenceKind === '自習' ? '自習' : '')
   });
 }
 
@@ -8345,6 +8470,8 @@ function normalizeAbsenceRecord_(r) {
 // 判定基準：元コマの koma.id が ca_ 始まり→CA、satType が enshuu/hira→演習回、それ以外→通常。
 // 川上さん指示(2026-06-14)：生徒の属性ではなく「来ているコマの種類」で判定する。
 function subKomaType_(rec, studentObj) {
+  // 2026-11-08：自習の欠席の振替は「⚡振替（自習）」（緑）
+  if (rec && (rec.absenceKind === '自習' || rec.absenceCourse === '自習')) return { label: '自習', bg: '#16a34a', fg: '#ffffff' };
   var s = studentObj;
   if (!s) {
     s = cbAbsStu_(rec);
@@ -8667,7 +8794,8 @@ function submitAbsence(mode) {
       status:      'nosub',
       memo:        memoC,
       chainFromId: d.chainFromId || '',
-      absenceCourse: d.courseName || ''
+      absenceCourse: d.courseName || '',
+      absenceKind: absKindOf_(d)   // 2026-11-08：欠席振替 N列
     };
     var tempIdC = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
     recC.id = tempIdC;
@@ -8726,7 +8854,8 @@ function submitAbsence(mode) {
       substituteClassroom:  subCr,
       memo:                 memo,
       chainFromId:          d.chainFromId || '',
-      absenceCourse:        d.courseName  || ''
+      absenceCourse:        d.courseName  || '',
+      absenceKind:          absKindOf_(d)   // 2026-11-08：欠席振替 N列
     };
     // 2026-08-28：同じミリ秒に2人が登録するとidが衝突し、GAS側のupsertで1行にまとまってしまう。乱数を足す
     var tempId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
@@ -8773,7 +8902,9 @@ function submitAbsence(mode) {
       classroom:   d.classroom,
       status:      'absent',
       memo:        memo,
-      chainFromId: d.chainFromId || ''
+      chainFromId: d.chainFromId || '',
+      absenceCourse: d.courseName || '',
+      absenceKind: absKindOf_(d)   // 2026-11-08：欠席振替 N列
     };
     // 2026-08-28：同じミリ秒に2人が登録するとidが衝突し、GAS側のupsertで1行にまとまってしまう。乱数を足す
     var tempId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
@@ -11114,200 +11245,13 @@ function jishuMemoShown_(m) {
   if (t === '会員管理から登録') return '';
   return t;
 }
-function jpKey_(s) { return String(s.id || '') + '|' + String(s.name || ''); }
+// 2026-11-08：s.id はいつも undefined（getStudentsForClassBoard が返さない）。本物のIDの s.sid を使う。同姓同名を1枚にまとめないため
+function jpKey_(s) { return String(s.sid || s.id || '') + '|' + String(s.name || ''); }
 function jpFindStu_(key) {
   return (_students || []).filter(function(s) { return jpKey_(s) === key; })[0] || null;
 }
 
-function openJishuKomaPicker(cr, kt, iso) {
-  if (jishuHiddenDate_(iso)) { miniToast('講習期間の日は自習を登録できません'); return; }
-  var youbi = YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()];
-  // 川上さん指示(2026-10-16)：種別（塾／CA）で絞れるようにし、開いたときは「塾」。判定は会員管理の印（attrJuku／attrCa）＝チェックリスト作成・テキスト貸出と同じ
-  _jpS = { cr: cr, kt: kt, iso: iso, youbi: youbi, f: { ty: '塾', cr: '', gr: '', sc: '', q: '' }, rows: {}, removed: [] };
-
-  // すでに自習が入っている子は、いまの設定のまま右に並べる
-  //  2026-09-19：jishuCellOf_ から jishuSameRow_ に差し替え。開始日より前の日でも登録ずみと分かる
-  (_students || []).forEach(function(s) {
-    if (s.status === '退会' || s.status === '休会') return;
-    var jr = jishuSameRow_(s, cr, kt, iso, youbi);
-    if (!jr) return;
-    _jpS.rows[jpKey_(s)] = {
-      kind: (jr.kind === 'single') ? 'single' : 'weekly',
-      limit: jr.validTo || '',
-      validFrom: jr.validFrom || '',
-      saved: true, jid: jr.id,
-      memoRaw: jr.memo || '', memo: jishuMemoShown_(jr.memo)   // 2026-10-16：メモ
-    };
-  });
-
-  var ex = document.getElementById('modal-jp');
-  if (ex) ex.remove();
-  var d = new Date(iso + 'T00:00:00');
-  var seat = cbSeatCount_(cr, kt, iso);
-  var m = document.createElement('div');
-  m.id = 'modal-jp';
-  m.className = 'modal-overlay';
-  m.onclick = function(e) { if (e.target === m) closeModal('modal-jp'); };
-  m.innerHTML =
-    '<div class="modal" style="max-width:96vw;width:1040px">' +
-    '<div class="modal-header"><span>&#128214; 自習を追加' +
-      '<span style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:10px">' +
-      (d.getMonth() + 1) + '/' + d.getDate() + '(' + esc(youbi) + ') ' + esc(kt) + ' ／ ' + esc(cr) +
-      ' ／ いま 計' + (seat ? seat.total : 0) + '人</span></span>' +
-      '<span class="modal-close" onclick="closeModal(\'modal-jp\')">&times;</span></div>' +
-    '<div class="modal-body" style="overflow-y:auto;max-height:calc(90vh - 80px)"><div id="jp-body"></div></div>' +
-    '</div>';
-  document.body.appendChild(m);
-  openModal('modal-jp');
-  jpRender_();
-}
-
-function jpSetF(kind, v) { if (_jpS) { _jpS.f[kind] = v; jpRender_(); } }
-function jpSetQ(v)       { if (_jpS) { _jpS.f.q = v; jpRender_(); } }
-function jpPick(key) {
-  if (!_jpS || _jpS.rows[key]) return;
-  _jpS.rows[key] = { kind: 'weekly', limit: jishuDefaultLimit_(), saved: false, jid: '', memoRaw: '', memo: '' };
-  jpRender_();
-}
-function jpDrop(key) {
-  if (!_jpS || !_jpS.rows[key]) return;
-  var r = _jpS.rows[key];
-  if (r.saved && r.jid) _jpS.removed.push(r.jid);   // 登録済みを外した＝削除する
-  delete _jpS.rows[key];
-  jpRender_();
-}
-function jpSetKind(key, v) {
-  if (!_jpS || !_jpS.rows[key]) return;
-  _jpS.rows[key].kind = v;
-  if (v === 'weekly' && !_jpS.rows[key].limit) _jpS.rows[key].limit = jishuDefaultLimit_();
-  jpRender_();
-}
-// メモは打つたびに描き直さない（描き直すと入力中の欄から抜けてしまう）
-function jpSetMemo(key, v) { if (_jpS && _jpS.rows[key]) _jpS.rows[key].memo = v; }
-function jpSetLimit(key, v) { if (_jpS && _jpS.rows[key]) { _jpS.rows[key].limit = v; jpRender_(); } }
-function jpApplyBulk() {
-  if (!_jpS) return;
-  var k = (document.getElementById('jp-bkind') || {}).value || 'weekly';
-  var l = (document.getElementById('jp-blimit') || {}).value || '';
-  Object.keys(_jpS.rows).forEach(function(key) {
-    _jpS.rows[key].kind = k;
-    _jpS.rows[key].limit = (k === 'single') ? '' : l;
-  });
-  jpRender_();
-}
-
-function jpRender_() {
-  var S = _jpS; if (!S) return;
-  var el = document.getElementById('jp-body'); if (!el) return;
-
-  // 母集団＝在籍生徒全員（退会・休会は出さない）
-  var pool = (_students || []).filter(function(s) { return s.status !== '退会' && s.status !== '休会'; });
-  function uniq_(fn, sorter) {
-    var c = {};
-    pool.forEach(function(s) { var v = fn(s); if (v) c[v] = (c[v] || 0) + 1; });
-    var ks = Object.keys(c);
-    return sorter ? ks.sort(sorter) : ks.sort(function(a, b) { return (c[b] - c[a]) || (a < b ? -1 : 1); });
-  }
-  var crs = uniq_(function(s) { return s.classroom || ''; });
-  var grs = uniq_(function(s) { return s.grade || ''; }, function(a, b) { return cbGradeRank_(a) - cbGradeRank_(b); });
-  var scs = uniq_(function(s) { var n = String(s.school || '').trim(); return (!n || /小(学校)?$/.test(n)) ? '' : n; });
-
-  function chipRow_(label, items, kind) {
-    var cur = S.f[kind];
-    return '<div class="jp-frow"><span class="jp-fl">' + label + '</span>' +
-      [''].concat(items).map(function(v) {
-        return '<button class="jp-fchip' + (cur === v ? ' jp-on' : '') +
-          '" onclick="jpSetF(\'' + kind + '\',\'' + esc(v).replace(/'/g, '') + '\')">' +
-          (v === '' ? 'すべて' : esc(v)) + '</button>';
-      }).join('') + '</div>';
-  }
-
-  // 左＝候補（右に入っていない子）
-  var q = String(S.f.q || '').trim();
-  var left = pool.filter(function(s) {
-    if (S.rows[jpKey_(s)]) return false;
-    if (S.f.ty === '塾' && !s.attrJuku) return false;
-    if (S.f.ty === 'CA' && !s.attrCa) return false;
-    if (S.f.cr && (s.classroom || '') !== S.f.cr) return false;
-    if (S.f.gr && (s.grade || '') !== S.f.gr) return false;
-    if (S.f.sc && String(s.school || '').trim() !== S.f.sc) return false;
-    if (q && String(s.name || '').indexOf(q) < 0) return false;
-    return true;
-  }).sort(function(a, b) {
-    var d = cbGradeRank_(a.grade || '') - cbGradeRank_(b.grade || '');
-    return d || (String(a.name) < String(b.name) ? -1 : 1);
-  });
-
-  var leftHtml = left.map(function(s) {
-    // そのコマの通塾状況（対面 → オンライン の順で出す）
-    var cf = tkFaceConflicts_(s, S.iso, S.kt);
-    var stTxt = '', stCls = '';
-    if (cf.length) { stTxt = tkConflictText_(cf); }
-    else {
-      var onl = (typeof tkOnlineKomas_ === 'function') ? tkOnlineKomas_(s, S.iso, S.kt) : [];
-      if (onl && onl.length) { stTxt = tkConflictText_(onl); stCls = ' jp-onl'; }
-    }
-    return '<div class="jp-lrow" onclick="jpPick(\'' + esc(jpKey_(s)).replace(/'/g, "\\'") + '\')">' +
-      '<span class="jp-nm">' + esc(s.name) + '</span>' +
-      '<span class="jp-gr">' + esc(s.grade || '') + '</span>' +
-      '<span class="jp-st' + stCls + '">' + esc(stTxt) + '</span>' +
-      '<span class="jp-arr">&rarr;</span></div>';
-  }).join('');
-
-  // 右＝自習で来る
-  var keys = Object.keys(S.rows).sort(function(a, b) {
-    var sa = jpFindStu_(a), sb = jpFindStu_(b);
-    if (!sa || !sb) return 0;
-    var d = cbGradeRank_(sa.grade || '') - cbGradeRank_(sb.grade || '');
-    return d || (String(sa.name) < String(sb.name) ? -1 : 1);
-  });
-  var rightHtml = keys.map(function(key) {
-    var r = S.rows[key], s = jpFindStu_(key);
-    if (!s) return '';
-    var single = (r.kind === 'single');
-    var kq = esc(key).replace(/'/g, "\\'");
-    return '<div class="jp-rrow' + (single ? ' jp-single' : '') + '">' +
-      '<span class="jp-nm">' + esc(s.name) + '</span>' +
-      '<span class="jp-gr">' + esc(s.grade || '') + '</span>' +
-      (r.saved ? '<span class="jp-saved">登録ずみ</span>' : '') +
-      '<select onchange="jpSetKind(\'' + kq + '\',this.value)">' +
-        '<option value="weekly"' + (single ? '' : ' selected') + '>毎週 ' + esc(S.youbi) + '曜</option>' +
-        '<option value="single"' + (single ? ' selected' : '') + '>この日だけ</option>' +
-      '</select>' +
-      '<span class="jp-lim"><span class="jp-lb">期限</span>' +
-        '<input type="date" value="' + esc(r.limit || '') + '"' + (single ? ' disabled' : '') +
-        ' onchange="jpSetLimit(\'' + kq + '\',this.value)">' +
-        '<span class="jp-lb">' + (single ? '　' : (r.limit ? '' : 'なし＝無期限')) + '</span></span>' +
-      '<input class="jp-memo" placeholder="やること" value="' + esc(r.memo || '') + '" oninput="jpSetMemo(\'' + kq + '\',this.value)">' +
-      '<button class="jp-del" title="外す" onclick="jpDrop(\'' + kq + '\')">&times;</button>' +
-      '</div>';
-  }).join('');
-
-  el.innerHTML =
-    chipRow_('種別', ['塾', 'CA'], 'ty') +
-    chipRow_('教室', crs, 'cr') +
-    chipRow_('学年', grs, 'gr') +
-    (scs.length ? chipRow_('中学校', scs, 'sc') : '') +
-    '<div class="jp-frow"><span class="jp-fl">検索</span>' +
-      '<input class="jp-fsearch" placeholder="名前で検索" value="' + esc(S.f.q || '') + '" oninput="jpSetQ(this.value)"></div>' +
-    '<div class="jp-tr2">' +
-      '<div class="jp-col"><div class="jp-colh"><span>候補</span>' +
-        '<span style="font-weight:400;color:var(--text-muted)">（' + left.length + '人）</span></div>' +
-        '<div class="jp-colb">' + (leftHtml || '<div style="padding:18px 10px;font-size:11.5px;color:#b6bfcc;text-align:center">該当する生徒がいません</div>') + '</div></div>' +
-      '<div class="jp-col"><div class="jp-colh"><span>自習で来る</span>' +
-        '<span style="font-weight:400;color:var(--text-muted)">（' + keys.length + '人）</span>' +
-        '<span class="jp-bulk"><span class="jp-lb">まとめて</span>' +
-          '<select id="jp-bkind"><option value="weekly">毎週 ' + esc(S.youbi) + '曜</option><option value="single">この日だけ</option></select>' +
-          '<input type="date" id="jp-blimit" value="' + esc(jishuDefaultLimit_()) + '">' +
-          '<button onclick="jpApplyBulk()">全員に入れる</button></span></div>' +
-        '<div class="jp-colb' + (keys.length ? '' : ' jp-empty') + '">' + rightHtml + '</div></div>' +
-    '</div>' +
-    '<div style="display:flex;gap:8px;align-items:center;padding-top:10px">' +
-      '<span style="font-size:12px;color:var(--crimson);font-weight:700;margin-right:auto">' + keys.length + '人を選択中</span>' +
-      '<button class="btn-secondary" onclick="closeModal(\'modal-jp\')">閉じる</button>' +
-      '<button id="jp-save-btn" class="btn-primary" onclick="jpSave()"' + ((keys.length || S.removed.length) ? '' : ' disabled') + '>登録</button>' +
-    '</div>';
-}
+/* 2026-11-08：［＋自習］の画面は作り直した（下の「自習の画面」jx〜）。古い jp 版（jpRender_ / jpSave）は backup\20261108_自習の画面を作り直す前 にある */
 
 /* 承知のうえで登録するか確認（対面授業と重なる／その曜日にコマが無い） */
 var _jpConfCb = null;
@@ -11340,99 +11284,508 @@ function jpConfirmDo_() {
   if (cb) cb();
 }
 
-var _jpForced = false;
-function jpSave() {
-  var S = _jpS; if (!S) return;
+
+/* =====================================================================
+ * 自習の画面（［＋自習］と「自習」タブの［変える］）【2026-11-08 川上さん確定・モックで決めた形】
+ *  モック：モック\20261108_モック_自習を時間割から操作.html
+ *  ・右に生徒ごとのカード。予定は何本でも（カードの下の点線の［＋］）。2本以上のときだけ番号
+ *  ・予定1本＝［毎週／隔週／日付を選ぶ］＋カレンダー（押した日で決める）＋右に来る日のリスト
+ *      毎週：押した日の曜日で、その日から毎週／隔週：押した日から1週おき（everyWeeks='2'）／日付を選ぶ：押した日を足す・外す（日ごとにコマ）
+ *  ・「🔗 まとめて入れる予定」を変えると、つながっている子全員にその場で入る。［この子だけ変える］で切り離す
+ *  ・予定ごとに状態の帯：✓ 保存ずみ／✎ 変更あり まだ保存していません／＋ 新しく追加 まだ保存していません／🗑 消します まだ保存していません
+ *  ・消すときは確認を出さず取り消し線で残す。［登録］で消える。未保存のまま閉じると止める
+ *  ・登録ずみの毎週の予定の曜日・コマ・教室・繰り返しを変えるときは「いつから変える？」。元の行は前日で終わらせて残す
+ *  🚨 足すのが先、消すのが後（機能仕様書 §9-4）
+ *  🚨 通常期の休校日のデータは Class Board に無い。来る日から外すのは講習期間の日だけ（jishuHiddenDate_）
+ * ===================================================================== */
+var _jx = null;   // 画面の状態
+var _jxUid = 0;
+
+function jxYb_(d) { return YOUBI_MAP[new Date(d + 'T00:00:00').getDay()]; }
+function jxAdd_(d, n) { var x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + n); return isoDate(x); }
+function jxMd_(d) { var x = new Date(d + 'T00:00:00'); return (x.getMonth() + 1) + '/' + x.getDate() + '(' + YOUBI_MAP[x.getDay()] + ')'; }
+function jxQ_(s) { return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"; }
+function jxKomas_(cr) { var a = getKomasForClassroom(cr) || []; return a.length ? a : ['17:15〜18:35', '18:40〜20:00', '20:05〜21:25']; }
+function jxKt_(cr, kt) {   // その教室のコマ表記にそろえる
+  var n = normKomaTime_(kt);
+  return jxKomas_(cr).filter(function(k) { return normKomaTime_(k) === n; })[0] || kt;
+}
+function jxKtOf_(L, d) { return (L.rep === 'dates' && L.dkt && L.dkt[d]) || L.kt; }
+
+/* その予定で来る日（過ぎた日も含む）。x＝講習期間で来ない日 */
+function jxOccAll_(L) {
+  var out = [], x = [];
+  function put(d) { if (jishuHiddenDate_(d)) x.push(d); else out.push(d); }
+  if (L.rep === 'dates') { L.dates.slice().sort().forEach(put); }
+  else if (L.from) {
+    var end = L.to || jxAdd_(L.from, 364), cur = L.from, g = 0;
+    while (cur <= end && g++ < 400) {
+      if (jxYb_(cur) === L.youbi && (L.rep === 'weekly' || jishuWeekDiff_(L.from, cur) % 2 === 0)) put(cur);
+      cur = jxAdd_(cur, 1);
+    }
+  }
+  return { days: out, x: x };
+}
+function jxFut_(L) { var t = getTodayStr(); return jxOccAll_(L).days.filter(function(d) { return d >= t; }); }
+
+function jxNewLine_() {
+  var O = _jx.open, dk = {}; dk[O.iso] = O.kt;
+  return { lid: 'L' + (++_jxUid), rep: 'weekly', youbi: jxYb_(O.iso), kt: O.kt, cr: O.cr, from: O.iso, to: jishuDefaultLimit_(),
+           dates: [O.iso], dkt: dk, memo: '', memoRaw: '', jid: '', calM: O.iso.slice(0, 7) };
+}
+function jxCopy_(L) { var c = JSON.parse(JSON.stringify(L)); c.lid = 'L' + (++_jxUid); c.jid = ''; c.cut = false; delete c.pend; delete c.orig; delete c.splitOf; c.del = false; return c; }
+function jxSig_(L) {
+  var dk = {}; (L.dates || []).forEach(function(d) { dk[d] = jxKtOf_(L, d); });
+  return JSON.stringify({ rep: L.rep, youbi: L.youbi, kt: L.kt, cr: L.cr, from: L.from, to: L.to, memo: L.memo,
+                          dates: L.rep === 'dates' ? L.dates.slice().sort() : [], dkt: L.rep === 'dates' ? dk : {} });
+}
+function jxFromRow_(r) {
+  var L = { lid: 'L' + (++_jxUid), jid: r.id, cr: r.classroom || '', memo: jishuMemoShown_(r.memo), memoRaw: r.memo || '' };
+  L.kt = jxKt_(L.cr, r.komaTime);
+  if (r.kind === 'single') {
+    L.rep = 'dates'; L.dates = [r.date]; L.dkt = {}; L.dkt[r.date] = L.kt; L.youbi = jxYb_(r.date); L.from = ''; L.to = '';
+    L.calM = r.date.slice(0, 7);
+  } else {
+    L.rep = (String(r.everyWeeks || '') === '2') ? 'biweekly' : 'weekly';
+    L.youbi = r.youbi; L.from = r.validFrom || ''; L.to = r.validTo || ''; L.dates = []; L.dkt = {};
+    var nx = jxFut_(L); L.calM = (nx[0] || L.from || getTodayStr()).slice(0, 7);
+  }
+  L.orig = jxSig_(L);
+  return L;
+}
+// その子の自習（取り消しの off は除く。これから先に来ないものは出さない）
+function jxRowsOfStu_(s) {
+  var t = getTodayStr();
+  return (_jishu || []).filter(function(r) {
+    if (!r || r.kind === 'off') return false;
+    if (cbJishuStu_(r.studentId, r.studentName) !== s) return false;
+    if (r.kind === 'single') return r.date >= t;
+    return !r.validTo || r.validTo >= t;
+  }).sort(function(a, b) { return (a.kind === b.kind ? 0 : a.kind === 'weekly' ? -1 : 1) || String(a.date || a.youbi).localeCompare(String(b.date || b.youbi)); });
+}
+function jxLines_(key) { if (key === 'C') return _jx.common; var r = _jx.rows[key]; return r.mode === 'common' ? _jx.common : r.lines; }
+function jxOwn_(key) { if (key === 'C') return; var r = _jx.rows[key]; if (r.mode === 'common') { r.mode = 'own'; r.lines = _jx.common.map(jxCopy_); } }
+function jxFind_(key, lid) { return jxLines_(key).filter(function(L) { return L.lid === lid; })[0]; }
+function jxIdx_(key, lid) { var a = jxLines_(key); for (var i = 0; i < a.length; i++) if (a[i].lid === lid) return i; return -1; }
+function jxOwnLid_(key, lid) { if (key === 'C' || _jx.rows[key].mode !== 'common') return lid; var i = jxIdx_(key, lid); jxOwn_(key); return _jx.rows[key].lines[i].lid; }
+function jxState_(L) { if (L.del) return 'del'; if (!L.jid) return 'new'; if (L.cut || jxSig_(L) !== L.orig) return 'chg'; return 'saved'; }
+function jxOrig_(L) { return L.orig ? JSON.parse(L.orig) : null; }
+function jxCount_() {
+  var c = { 'new': 0, chg: 0, del: 0 };
+  Object.keys(_jx.rows).forEach(function(k) { jxLines_(k).forEach(function(L) { var st = jxState_(L); if (st !== 'saved') c[st]++; }); });
+  return c;
+}
+
+/* 入口1：時間割のコマの［＋自習］ */
+function openJishuKomaPicker(cr, kt, iso) {
+  if (jishuHiddenDate_(iso)) { miniToast('講習期間の日は自習を登録できません'); return; }
+  var youbi = YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()];
+  _jx = { single: '', open: { cr: cr, kt: jxKt_(cr, kt), iso: iso }, f: { ty: '塾', cr: '', gr: '', sc: '', q: '' },
+          common: [], rows: {}, dlg: null, cOpen: false, seatC: {} };
+  _jx.common = [jxNewLine_()];
+  // そのコマに自習が入っている子は、その子の自習を全部並べる（期限に関係なく同じ登録を探す：§8-1-5）
+  (_students || []).forEach(function(s) {
+    if (s.status === '退会' || s.status === '休会') return;
+    if (!jishuSameRow_(s, cr, kt, iso, youbi)) return;
+    _jx.rows[jpKey_(s)] = { mode: 'own', lines: jxRowsOfStu_(s).map(jxFromRow_) };
+  });
+  jxOpenModal_();
+}
+/* 入口2：「自習」タブの［変える］［入れる］ */
+function openJishuStudentEditor(key) {
+  var s = jpFindStu_(key); if (!s) return;
+  var cr = s.classroom || '北久里浜', t = getTodayStr();
+  var ks = jxKomas_(cr);
+  _jx = { single: key, open: { cr: cr, kt: ks[0], iso: t }, f: {}, common: [], rows: {}, dlg: null, cOpen: false, seatC: {} };
+  var ls = jxRowsOfStu_(s).map(jxFromRow_);
+  if (!ls.length) ls = [jxNewLine_()];
+  _jx.rows[key] = { mode: 'own', lines: ls };
+  jxOpenModal_();
+}
+function jxOpenModal_() {
+  var ex = document.getElementById('modal-jp'); if (ex) ex.remove();
+  var m = document.createElement('div');
+  m.id = 'modal-jp'; m.className = 'modal-overlay';
+  m.onclick = function(e) { if (e.target === m) jxTryClose(); };
+  m.innerHTML = '<div class="modal" style="max-width:96vw;width:1180px"><div id="jx-root"></div></div>';
+  document.body.appendChild(m);
+  openModal('modal-jp');
+  jxRender_();
+}
+function jxTryClose() { var c = jxCount_(); if (c['new'] + c.chg + c.del) { _jx.dlg = { kind: 'close' }; jxRender_(); return; } jxClose(); }
+function jxClose() { closeModal('modal-jp'); var e = document.getElementById('modal-jp'); if (e) e.remove(); _jx = null; }
+
+/* 注意（授業と重なる・その曜日にコマが無い・定員・同じ子の予定どうし） */
+function jxSeat_(d, cr, kt) { var k = d + '|' + cr + '|' + kt; if (!(k in _jx.seatC)) _jx.seatC[k] = cbSeatCount_(cr, kt, d).total; return _jx.seatC[k]; }
+function jxAdded_() {
+  var m = {};
+  Object.keys(_jx.rows).forEach(function(k) { jxLines_(k).forEach(function(L) { if (L.jid || L.del) return;
+    jxFut_(L).forEach(function(d) { var x = d + '|' + L.cr + '|' + jxKtOf_(L, d); m[x] = (m[x] || 0) + 1; }); }); });
+  return m;
+}
+function jxList_(a) { return a.slice(0, 3).map(jxMd_).join('・') + (a.length > 3 ? ' ほか 計' + a.length + '日' : ''); }
+function jxNum_(key, no) { return jxLines_(key).length > 1 ? String.fromCharCode(0x2460 + no - 1) : ''; }
+function jxStuWarn_(key, L, no) {
+  var s = jpFindStu_(key); if (!s || L.del) return [];
+  var out = [], days = jxFut_(L), hit = {}, nok = [], pre = jxNum_(key, no) ? jxNum_(key, no) + '：' : '';
+  days.forEach(function(d) {
+    var kt = jxKtOf_(L, d);
+    var cf = tkRegConflicts_(s, d, kt);
+    if (cf.length) { var t = tkConflictText_(cf); (hit[t] = hit[t] || []).push(d); }
+    if (!tkKomaOnDay_(L.cr, d, kt)) nok.push(d);
+  });
+  Object.keys(hit).forEach(function(t) { out.push(pre + t + 'と重なる ' + jxList_(hit[t])); });
+  if (nok.length) out.push(pre + 'その曜日にこのコマが無い ' + jxList_(nok));
+  jxLines_(key).forEach(function(M, j) {
+    if (M === L || M.del || j + 1 >= no || M.cr !== L.cr) return;
+    var d2 = jxFut_(M), dup = days.filter(function(d) { return d2.indexOf(d) >= 0 && jxKtOf_(M, d) === jxKtOf_(L, d); });
+    if (dup.length) out.push(String.fromCharCode(0x2460 + no - 1) + '：' + String.fromCharCode(0x2460 + j) + 'と同じ日・同じコマ ' + jxList_(dup));
+  });
+  return out;
+}
+function jxSeatWarn_(key, L, no, am) {
+  if (L.jid || L.del) return [];
+  var over = jxFut_(L).filter(function(d) { var kt = jxKtOf_(L, d); return jxSeat_(d, L.cr, kt) + (am[d + '|' + L.cr + '|' + kt] || 0) >= CB_SEAT_LIMIT; });
+  if (!over.length) return [];
+  var pre = jxNum_(key, no) ? jxNum_(key, no) + '：' : '';
+  return [pre + '定員' + CB_SEAT_LIMIT + '人に達する ' + over.slice(0, 3).map(function(d) { var kt = jxKtOf_(L, d), b = jxSeat_(d, L.cr, kt); return jxMd_(d) + '（' + b + '人→' + (b + am[d + '|' + L.cr + '|' + kt]) + '人）'; }).join('・') + (over.length > 3 ? ' ほか 計' + over.length + '日' : '')];
+}
+
+/* 操作 */
+function jxSetF(k, v) { _jx.f[k] = v; jxRender_(); }
+function jxSetQ(v) { _jx.f.q = v; jxRender_(); var e = document.getElementById('jx-q'); if (e) { e.focus(); e.setSelectionRange(v.length, v.length); } }
+function jxPick(key) {
+  if (_jx.rows[key]) return;
+  var s = jpFindStu_(key); if (!s) return;
+  var ex = jxRowsOfStu_(s);
+  // ほかのコマに自習がある子は、それも並べたうえで新しい予定を足す（二重登録・時間違いに気づくため）
+  if (ex.length) _jx.rows[key] = { mode: 'own', lines: ex.map(jxFromRow_).concat(_jx.common.map(jxCopy_)) };
+  else _jx.rows[key] = { mode: 'common', lines: [] };
+  jxRender_();
+}
+function jxSaved_(key) { var r = _jx.rows[key]; return r.mode === 'own' ? r.lines.filter(function(L) { return L.jid; }) : []; }
+function jxDrop(key) {
+  if (!jxSaved_(key).length) { delete _jx.rows[key]; jxRender_(); return; }
+  var r = _jx.rows[key]; r.lines = r.lines.filter(function(L) { return L.jid; }); r.lines.forEach(function(L) { L.del = true; delete L.pend; });
+  jxRender_();
+}
+function jxToOwn(key) { jxOwn_(key); jxRender_(); }
+function jxToCommon(key) { var r = _jx.rows[key]; r.mode = 'common'; r.lines = []; jxRender_(); }
+function jxAddLine(key) { jxOwn_(key); jxLines_(key).push(jxNewLine_()); jxRender_(); }
+function jxDelLine(key, lid) {
+  lid = jxOwnLid_(key, lid); var a = jxLines_(key), i = jxIdx_(key, lid); if (i < 0) return; var L = a[i];
+  if (L.jid) { L.del = true; delete L.pend; } else a.splice(i, 1);
+  jxRender_();
+}
+function jxUndo(key, lid) {
+  var a = jxLines_(key), L = jxFind_(key, lid); if (!L) return;
+  if (L.del) { L.del = false; jxRender_(); return; }
+  var o = jxOrig_(L); if (o) { for (var k in o) L[k] = o[k]; L.dates = (o.dates || []).slice(); L.dkt = JSON.parse(JSON.stringify(o.dkt || {})); }
+  L.cut = false; delete L.pend;
+  for (var i = a.length - 1; i >= 0; i--) if (a[i].splitOf === L.lid) a.splice(i, 1);
+  jxRender_();
+}
+var JX_SPLIT = { rep: 1, youbi: 1, kt: 1, cr: 1 };
+function jxEdit(key, lid, field, val) {
+  lid = jxOwnLid_(key, lid); var L = jxFind_(key, lid); if (!L || L.del) return;
+  if (L.jid && L.rep !== 'dates' && JX_SPLIT[field] && L[field] !== val) { L.pend = { field: field, val: val, from: jxFut_(L)[0] || getTodayStr() }; jxRender_(); return; }
+  L[field] = val;
+  if (field === 'cr') { L.kt = jxKt_(val, L.kt); }
+  if (field === 'rep' && val === 'dates') { if (!L.dates.length) { L.dates = [L.from && L.from >= getTodayStr() ? L.from : _jx.open.iso]; } L.dkt = L.dkt || {}; L.dates.forEach(function(d) { if (!L.dkt[d]) L.dkt[d] = L.kt; }); }
+  if (field === 'rep' && val !== 'dates') { if (!L.to) L.to = jishuDefaultLimit_(); if (!L.from) { L.from = L.dates.slice().sort()[0] || _jx.open.iso; L.youbi = jxYb_(L.from); } }
+  jxRender_();
+}
+function jxPendFrom(key, lid, v) { var L = jxFind_(key, lid); if (L && L.pend) L.pend.from = v; }
+function jxPendNo(key, lid) { var L = jxFind_(key, lid); if (L) delete L.pend; jxRender_(); }
+function jxPendYes(key, lid) {
+  var a = jxLines_(key), i = jxIdx_(key, lid), L = a[i], P = L.pend, from = P.from || getTodayStr(); delete L.pend;
+  if (from <= L.from) { L[P.field] = P.val; if (P.field === 'youbi') L.from = from; if (P.field === 'cr') L.kt = jxKt_(P.val, L.kt); if (P.field === 'rep' && P.val === 'dates') { L.dates = [from]; L.dkt = {}; L.dkt[from] = L.kt; } jxRender_(); return; }
+  var N = jxCopy_(L); N.splitOf = L.lid; N.memo = L.memo; N.memoRaw = '';
+  N[P.field] = P.val; N.from = from;
+  if (P.field === 'youbi') N.from = from;
+  if (P.field === 'cr') N.kt = jxKt_(P.val, N.kt);
+  if (P.field === 'rep' && P.val === 'dates') { N.dates = [from]; N.dkt = {}; N.dkt[from] = N.kt; }
+  N.calM = from.slice(0, 7);
+  L.to = jxAdd_(from, -1); L.cut = true;
+  a.splice(i + 1, 0, N); jxRender_();
+}
+function jxCalMove(key, lid, n) { var L = jxFind_(key, lid); var p = L.calM.split('-'); var d = new Date(+p[0], +p[1] - 1 + n, 1); L.calM = d.getFullYear() + '-' + zeroPad(d.getMonth() + 1); jxRender_(); }
+function jxClickCal(key, lid, d) {
+  lid = jxOwnLid_(key, lid); var L = jxFind_(key, lid); if (!L || L.del) return;
+  if (L.rep === 'dates') { jxToggleDate(key, lid, d); return; }
+  if (L.jid && jxYb_(d) !== L.youbi) { L.pend = { field: 'youbi', val: jxYb_(d), from: d }; jxRender_(); return; }   // 登録ずみの曜日を変える＝いつから
+  L.youbi = jxYb_(d); L.from = d; jxRender_();
+}
+function jxToggleDate(key, lid, d) {
+  lid = jxOwnLid_(key, lid); var L = jxFind_(key, lid); L.dkt = L.dkt || {};
+  var k = L.dates.indexOf(d);
+  if (k >= 0) { L.dates.splice(k, 1); delete L.dkt[d]; } else { L.dates.push(d); L.dkt[d] = L.kt; }   // 新しい日は最後に選んだコマ
+  jxRender_();
+}
+function jxSetDkt(key, lid, d, v) { lid = jxOwnLid_(key, lid); var L = jxFind_(key, lid); L.dkt[d] = v; L.kt = v; jxRender_(); }
+function jxSetMemo(key, lid, v) { lid = jxOwnLid_(key, lid); var L = jxFind_(key, lid); L.memo = v; jxRender_(); }
+
+/* 描画 */
+var JX_ST = { saved: '&#10003; 保存ずみ', chg: '&#9998; 変更あり　まだ保存していません', 'new': '&#65291; 新しく追加　まだ保存していません', del: '&#128465; 消します　まだ保存していません' };
+function jxChg_(L, f) { var o = jxOrig_(L); return (o && !L.del && String(o[f]) !== String(L[f])) ? ' jx-chgf' : ''; }
+function jxWas_(L, f, fmt) { var o = jxOrig_(L); if (!o || L.del || String(o[f]) === String(L[f])) return ''; return '<span class="jx-was">元：' + (fmt ? fmt(o[f]) : esc(o[f] || 'なし')) + '</span>'; }
+function jxCalHtml_(key, L) {
+  var K = jxQ_(key), I = jxQ_(L.lid), t = getTodayStr();
+  var p = L.calM.split('-'), y = +p[0], m = +p[1], first = new Date(y, m - 1, 1), last = new Date(y, m, 0).getDate(), cells = [], lead = (first.getDay() + 6) % 7;
+  var on = {}; jxOccAll_(L).days.forEach(function(d) { on[d] = 1; });
+  if (lead < 6) for (var i = 0; i < lead; i++) cells.push('<span class="jx-d jx-blank">.</span>');
+  for (var dd = 1; dd <= last; dd++) {
+    var s = y + '-' + zeroPad(m) + '-' + zeroPad(dd); if (new Date(s + 'T00:00:00').getDay() === 0) continue;
+    var ko = jishuHiddenDate_(s), past = s < t, ng = ko || past, o = !!on[s];
+    var cls = 'jx-d' + (o ? (past ? ' jx-onp' : ' jx-on') : '') + (ng && !o ? ' jx-off' : '') + ((L.rep !== 'dates' && s === L.from) ? ' jx-start' : '') + (s === t ? ' jx-today' : '');
+    cells.push('<button class="' + cls + '"' + (ko ? ' title="講習期間の日"' : past ? ' title="過ぎた日"' : '') + (ng || L.del ? ' disabled' : ' onclick="jxClickCal(' + K + ',' + I + ',' + jxQ_(s) + ')"') + '>' + dd + '</button>');
+  }
+  return '<div class="jx-cal"><div class="jx-calh"><button onclick="jxCalMove(' + K + ',' + I + ',-1)">&lsaquo;</button>' + y + '年' + m + '月<button onclick="jxCalMove(' + K + ',' + I + ',1)">&rsaquo;</button></div>' +
+    '<div class="jx-g">' + ['月', '火', '水', '木', '金', '土'].map(function(w) { return '<span class="jx-w">' + w + '</span>'; }).join('') + cells.join('') + '</div></div>';
+}
+function jxListHtml_(key, L) {
+  var K = jxQ_(key), I = jxQ_(L.lid), t = getTodayStr(), oa = jxOccAll_(L);
+  var fut = oa.days.filter(function(d) { return d >= t; });
+  var all = fut.map(function(d) { return { d: d }; }).concat(oa.x.filter(function(d) { return d >= t; }).map(function(d) { return { d: d, x: 1 }; }))
+    .sort(function(a, b) { return a.d < b.d ? -1 : 1; });
+  var o = jxOrig_(L), od = (o && o.rep === 'dates') ? o.dkt : null, ks = jxKomas_(L.cr);
+  var head = '<div class="jx-lh">' + (L.rep === 'dates' ? '選んだ日' : (L.rep === 'weekly' ? '毎週 ' : '隔週 ') + esc(L.youbi) + '曜　' + (L.from ? jxMd_(L.from) + 'から' : '')) +
+    '<b>' + ((L.rep !== 'dates' && !L.to) ? '終わりなし' : 'これから 計' + fut.length + '回') + '</b></div>';
+  var rows = all.map(function(z) {
+    if (z.x) return '<div class="jx-li jx-lx"><span class="jx-ld">' + jxMd_(z.d) + '</span><span>講習期間で来ない</span></div>';
+    if (L.rep === 'dates') {
+      var kt = jxKtOf_(L, z.d), ch = (od && !L.del && od[z.d] && od[z.d] !== kt) ? ' jx-chgf' : '';
+      return '<div class="jx-li"><span class="jx-ld">' + jxMd_(z.d) + '</span><select class="' + ch + '"' + (L.del ? ' disabled' : '') + ' onchange="jxSetDkt(' + K + ',' + I + ',' + jxQ_(z.d) + ',this.value)">' +
+        ks.map(function(k) { return '<option value="' + esc(k) + '"' + (normKomaTime_(k) === normKomaTime_(kt) ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select>' +
+        (L.del ? '' : '<button class="jx-ldel" title="この日を外す" onclick="jxToggleDate(' + K + ',' + I + ',' + jxQ_(z.d) + ')">&times;</button>') + '</div>';
+    }
+    return '<div class="jx-li"><span class="jx-ld">' + jxMd_(z.d) + '</span><span class="jx-lt">' + esc(String(L.kt).split('〜')[0]) + '</span></div>';
+  }).join('');
+  if (!all.length) rows = '<div class="jx-li jx-lx">' + (L.rep === 'dates' ? 'カレンダーで日を押す' : 'これから来る日がありません') + '</div>';
+  return head + '<div class="jx-lb">' + rows + '</div>';
+}
+function jxLineHtml_(key, L, canDel, no, am) {
+  var K = jxQ_(key), I = jxQ_(L.lid), st = (key === 'C') ? '' : jxState_(L), o = jxOrig_(L);
+  var seg = '<span class="jx-seg">' + [['weekly', '毎週'], ['biweekly', '隔週'], ['dates', '日付を選ぶ']].map(function(x) {
+    return '<button class="' + (L.rep === x[0] ? 'jx-on' : '') + '"' + (L.del ? ' disabled' : '') + ' onclick="jxEdit(' + K + ',' + I + ',\'rep\',\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
+  var repW = (o && !L.del && o.rep !== L.rep) ? '<span class="jx-was">元：' + ({ weekly: '毎週', biweekly: '隔週', dates: '日付を選ぶ' }[o.rep]) + '</span>' : '';
+  var ktSel = (L.rep === 'dates') ? '' : '<select class="' + jxChg_(L, 'kt') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxEdit(' + K + ',' + I + ',\'kt\',this.value)">' +
+    jxKomas_(L.cr).map(function(k) { return '<option value="' + esc(k) + '"' + (normKomaTime_(k) === normKomaTime_(L.kt) ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select>';
+  var crSel = '<select class="' + jxChg_(L, 'cr') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxEdit(' + K + ',' + I + ',\'cr\',this.value)">' +
+    ['北久里浜', '久里浜'].map(function(c) { return '<option' + (c === L.cr ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select>';
+  var bar = st ? '<div class="jx-stbar jx-st-' + st + '"><span>' + JX_ST[st] + (L.cut ? '　（' + jxMd_(L.to) + 'で終わりにして、すぐ下に新しい予定を足します）' : '') + '</span>' +
+    ((st === 'chg' || st === 'del') ? '<button class="jx-undo" onclick="jxUndo(' + K + ',' + I + ')">元に戻す</button>' : '') + '</div>' : '';
+  var num = jxNum_(key, no) ? '<span class="jx-pno">' + no + '</span>' : '';
+  var r1 = bar + '<div class="jx-r">' + num + seg + repW + ktSel + (L.rep === 'dates' ? '' : jxWas_(L, 'kt', function(v) { return String(v).split('〜')[0]; })) + crSel + jxWas_(L, 'cr') +
+    jxWas_(L, 'youbi', function(v) { return v + '曜'; }) + ((canDel && !L.del) ? '<button class="jx-del" title="この予定を消す" onclick="jxDelLine(' + K + ',' + I + ')">&times;</button>' : '') + '</div>';
+  var pend = L.pend ? '<div class="jx-r"><div class="jx-pend"><b>いつから変える？</b><input type="date" value="' + esc(L.pend.from) + '" onchange="jxPendFrom(' + K + ',' + I + ',this.value)">' +
+    '<button class="jx-mini" onclick="jxPendYes(' + K + ',' + I + ')">この日から変える</button><button class="jx-mini" onclick="jxPendNo(' + K + ',' + I + ')">やめる</button></div></div>' : '';
+  var endRow = (L.rep === 'dates') ? '' : '<span class="jx-lbl">終了</span><input type="date" class="' + jxChg_(L, 'to') + '" value="' + esc(L.to || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxEdit(' + K + ',' + I + ',\'to\',this.value)">' +
+    (L.to ? '' : '<span class="jx-inf">無期限</span>') + jxWas_(L, 'to', function(v) { return v ? jxMd_(v) : '無期限'; }) + jxWas_(L, 'from', function(v) { return v ? '開始 ' + jxMd_(v) : '開始なし'; });
+  var body = '<div class="jx-cwrap">' + jxCalHtml_(key, L) + '<div class="jx-clist"><div class="jx-r">' + endRow +
+    '<input class="jx-memo' + jxChg_(L, 'memo') + '" placeholder="やること" value="' + esc(L.memo || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxSetMemo(' + K + ',' + I + ',this.value)"></div>' +
+    jxListHtml_(key, L) + '</div></div>';
+  var w = jxSeatWarn_(key, L, no, am);
+  if (key === 'C') Object.keys(_jx.rows).forEach(function(k) { if (_jx.rows[k].mode !== 'common') return; var s = jpFindStu_(k);
+    jxStuWarn_(k, L, no).forEach(function(x) { w.push(s.name + '　' + x); }); });
+  else if (_jx.rows[key].mode === 'own') w = w.concat(jxStuWarn_(key, L, no));
+  var warn = w.length ? '<div class="jx-warn">&#9888; ' + w.map(esc).join('<br>&#9888; ') + '</div>' : '';
+  return '<div class="jx-plan' + (st ? ' jx-pl-' + st : '') + '">' + r1 + pend + '<div class="jx-body">' + body + warn + '</div></div>';
+}
+function jxSum_(lines) {
+  return lines.map(function(L, i) {
+    var n = lines.length > 1 ? String.fromCharCode(0x2460 + i) + ' ' : '';
+    if (L.rep === 'dates') return n + L.dates.slice().sort().map(function(d) { return jxMd_(d) + ' ' + String(jxKtOf_(L, d)).split('〜')[0]; }).join('・');
+    return n + (L.rep === 'weekly' ? '毎週' : '隔週') + L.youbi + ' ' + String(L.kt).split('〜')[0];
+  }).join('　／　');
+}
+function jxRender_() {
+  var root = document.getElementById('jx-root'); if (!root || !_jx) return;
+  var S = _jx, f = S.f, O = S.open, am = jxAdded_();
+  var keys = Object.keys(S.rows).sort(function(a, b) { var sa = jpFindStu_(a), sb = jpFindStu_(b); if (!sa || !sb) return 0;
+    return (cbGradeRank_(sa.grade || '') - cbGradeRank_(sb.grade || '')) || (String(sa.name) < String(sb.name) ? -1 : 1); });
+  var nC = keys.filter(function(k) { return S.rows[k].mode === 'common'; });
+  var head;
+  if (S.single) { var ss = jpFindStu_(S.single); head = '&#128214; 自習を変える<span class="jx-sub">' + esc(ss ? ss.name : '') + ' ' + esc(ss ? ss.grade || '' : '') + '</span>'; }
+  else { var seat = cbSeatCount_(O.cr, O.kt, O.iso); head = '&#128214; 自習を追加<span class="jx-sub">' + jxMd_(O.iso) + ' ' + esc(O.kt) + ' ／ ' + esc(O.cr) + ' ／ いま 計' + (seat ? seat.total : 0) + '人</span>'; }
+
+  var leftCol = '';
+  if (!S.single) {
+    var pool = (_students || []).filter(function(s) { return s.status !== '退会' && s.status !== '休会'; });
+    function uniq_(fn, sorter) { var c = {}; pool.forEach(function(s) { var v = fn(s); if (v) c[v] = (c[v] || 0) + 1; }); var ks = Object.keys(c); return sorter ? ks.sort(sorter) : ks.sort(function(a, b) { return (c[b] - c[a]) || (a < b ? -1 : 1); }); }
+    var crs = uniq_(function(s) { return s.classroom || ''; });
+    var grs = uniq_(function(s) { return s.grade || ''; }, function(a, b) { return cbGradeRank_(a) - cbGradeRank_(b); });
+    var scs = uniq_(function(s) { var n = String(s.school || '').trim(); return (!n || /小(学校)?$/.test(n)) ? '' : n; });
+    function chip_(label, items, k) { return '<div class="jp-frow"><span class="jp-fl">' + label + '</span>' + [''].concat(items).map(function(v) {
+      return '<button class="jp-fchip' + (f[k] === v ? ' jp-on' : '') + '" onclick="jxSetF(\'' + k + '\',' + jxQ_(v) + ')">' + (v === '' ? 'すべて' : esc(v)) + '</button>'; }).join('') + '</div>'; }
+    var q = String(f.q || '').trim();
+    var left = pool.filter(function(s) {
+      if (S.rows[jpKey_(s)]) return false;
+      if (f.ty === '塾' && !s.attrJuku) return false; if (f.ty === 'CA' && !s.attrCa) return false;
+      if (f.cr && (s.classroom || '') !== f.cr) return false; if (f.gr && (s.grade || '') !== f.gr) return false;
+      if (f.sc && String(s.school || '').trim() !== f.sc) return false; if (q && String(s.name || '').indexOf(q) < 0) return false;
+      return true;
+    }).sort(function(a, b) { return (cbGradeRank_(a.grade || '') - cbGradeRank_(b.grade || '')) || (String(a.name) < String(b.name) ? -1 : 1); });
+    var lh = left.map(function(s) {
+      var cf = tkFaceConflicts_(s, O.iso, O.kt), tx = '', cl = '';
+      if (cf.length) tx = tkConflictText_(cf); else { var onl = tkOnlineKomas_(s, O.iso, O.kt); if (onl && onl.length) { tx = tkConflictText_(onl); cl = ' jp-onl'; } }
+      return '<div class="jp-lrow" onclick="jxPick(' + jxQ_(jpKey_(s)) + ')"><span class="jp-nm">' + esc(s.name) + '</span><span class="jp-gr">' + esc(s.grade || '') + '</span><span class="jp-st' + cl + '">' + esc(tx) + '</span><span class="jp-arr">&rarr;</span></div>';
+    }).join('') || '<div style="padding:18px 10px;font-size:11.5px;color:#b6bfcc;text-align:center">該当する生徒がいません</div>';
+    leftCol = chip_('種別', ['塾', 'CA'], 'ty') + chip_('教室', crs, 'cr') + chip_('学年', grs, 'gr') + (scs.length ? chip_('中学校', scs, 'sc') : '') +
+      '<div class="jp-frow"><span class="jp-fl">検索</span><input id="jx-q" class="jp-fsearch" placeholder="名前で検索" value="' + esc(f.q || '') + '" oninput="jxSetQ(this.value)"></div>';
+    leftCol = { filters: leftCol, list: lh, n: left.length };
+  }
+  var fold = (!nC.length && keys.length > 0 && !S.cOpen);
+  var common = S.single ? '' : '<div class="jx-common' + (fold ? ' jx-fold' : '') + '"><div class="jx-ct">&#128279; まとめて入れる予定<span class="jx-cn">' +
+    (nC.length ? nC.map(function(k) { return esc(jpFindStu_(k).name); }).join('・') + ' に入ります' : '') + '</span>' +
+    (fold ? '<button class="jx-mini" style="margin-left:auto" onclick="_jx.cOpen=true;jxRender_()">開く</button>' : '') + '</div>' +
+    S.common.map(function(L, i) { return jxLineHtml_('C', L, S.common.length > 1, i + 1, am); }).join('') +
+    '<button class="jx-addtile" title="予定をもう1つ足す" onclick="jxAddLine(\'C\')">＋</button></div>';
+  var cards = keys.map(function(k) {
+    var s = jpFindStu_(k), r = S.rows[k]; if (!s) return '';
+    var hd = '<div class="jx-cardh"><span class="jx-nm">' + esc(s.name) + '</span><span class="jx-gr">' + esc(s.grade || '') + '</span>' +
+      (r.mode === 'common' ? '<span class="jx-link">&#128279; まとめて入れる予定と同じ</span><button class="jx-mini" onclick="jxToOwn(' + jxQ_(k) + ')">この子だけ変える</button>'
+        : ((S.single || jxSaved_(k).length) ? '' : '<button class="jx-mini" onclick="jxToCommon(' + jxQ_(k) + ')">&#128279; まとめて入れる予定と同じにする</button>')) +
+      (S.single ? '' : '<button class="jx-del" title="外す" onclick="jxDrop(' + jxQ_(k) + ')">&times;</button>') + '</div>';
+    var bd;
+    if (r.mode === 'common') {
+      var w = []; S.common.forEach(function(L, i) { w = w.concat(jxStuWarn_(k, L, i + 1)); });
+      bd = '<div class="jx-stbar jx-st-new"><span>' + JX_ST['new'] + '</span></div><div class="jx-sum">' + esc(jxSum_(S.common)) + '</div>' +
+        (w.length ? '<div class="jx-warn">&#9888; ' + w.map(esc).join('<br>&#9888; ') + '</div>' : '');
+    } else {
+      bd = r.lines.map(function(L, i) { return jxLineHtml_(k, L, true, i + 1, am); }).join('') + '<button class="jx-addtile" title="予定をもう1つ足す" onclick="jxAddLine(' + jxQ_(k) + ')">＋</button>';
+    }
+    return '<div class="jx-card">' + hd + bd + '</div>';
+  }).join('');
+  var c = jxCount_(), n = c['new'] + c.chg + c.del, tl = 0; keys.forEach(function(k) { tl += jxLines_(k).length; });
+  var foot = '<div class="jx-foot"><span class="jx-cnt">' + keys.length + '人・予定' + tl + '本</span>' +
+    (n ? '<span class="jx-unsaved">まだ保存していない変更が ' + n + '件（' + [c['new'] ? '新しく追加 ' + c['new'] : '', c.chg ? '変更 ' + c.chg : '', c.del ? '消す ' + c.del : ''].filter(Boolean).join('・') + '）</span>' : '<span class="jx-nochg">保存していない変更はありません</span>') +
+    '<button class="btn-secondary" onclick="jxTryClose()">閉じる</button><button id="jx-save-btn" class="btn-primary" onclick="jxSave()"' + (n ? '' : ' disabled') + '>登録</button></div>';
+  var dlg = '';
+  if (S.dlg && S.dlg.kind === 'close') dlg = '<div class="jx-ov"><div class="jx-box"><div class="jx-bh">保存していない変更があります</div><div class="jx-bb">閉じると、この画面で変えた内容は消えます。</div><div class="jx-bf"><button class="btn-secondary" onclick="_jx.dlg=null;jxRender_()">戻る</button><button class="jx-btn-del" onclick="jxClose()">保存せずに閉じる</button></div></div></div>';
+  var right = '<div class="jp-col"><div class="jp-colh"><span>自習で来る</span><span style="font-weight:400;color:var(--text-muted)">（' + keys.length + '人）</span></div><div class="jx-colb">' + common +
+    (cards || '<div style="padding:14px 10px;font-size:11.5px;color:#b6bfcc;text-align:center">左の候補を押すとここに入ります</div>') + '</div></div>';
+  root.innerHTML = '<div class="modal-header"><span>' + head + '</span><span class="modal-close" onclick="jxTryClose()">&times;</span></div>' +
+    '<div class="modal-body" style="overflow-y:auto;max-height:calc(92vh - 70px)">' +
+    (S.single ? right : leftCol.filters + '<div class="jx-tr2"><div class="jp-col"><div class="jp-colh"><span>候補</span><span style="font-weight:400;color:var(--text-muted)">（' + leftCol.n + '人）</span></div><div class="jx-colb">' + leftCol.list + '</div></div>' + right + '</div>') +
+    foot + dlg + '</div>';
+}
+
+/* 登録：足すのが先、消すのが後 */
+var _jxForced = false;
+function jxSave() {
+  var S = _jx; if (!S) return;
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { miniToast('GAS URLが未設定です'); return; }
-
-  var toSave = [], addNames = [], confRows = [];
-  var today = isoDate(new Date());
-  Object.keys(S.rows).forEach(function(key) {
-    var r = S.rows[key], s = jpFindStu_(key);
-    if (!s) return;
-    var weekly = (r.kind !== 'single');
-    // 2026-09-19：画面を開いたあとに別の端末で足された分を拾う保険。新しい id を振る前にもう一度探す
-    var exRow = r.jid ? null : jishuSameRow_(s, S.cr, S.kt, S.iso, weekly ? S.youbi : '');
-    toSave.push({
-      id: r.jid || (exRow && exRow.id) || ('jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
-      studentId: s.sid || '', studentName: s.name || '',   // 2026-09-20：本物のIDを書く（s.id は undefined だった）
-      classroom: S.cr,
-      kind: weekly ? 'weekly' : 'single',
-      youbi: weekly ? S.youbi : '',
-      date: weekly ? '' : S.iso,
-      komaTime: normKomaTime_(S.kt),
-      validFrom: weekly ? (r.validFrom || today) : '',
-      validTo: weekly ? (r.limit || '') : '',
-      // 2026-10-16：触っていないメモは元の文字のまま返す（記録用の文字を消さない）
-      targetId: '', memo: (String(r.memo || '').trim() === jishuMemoShown_(r.memoRaw)) ? (r.memoRaw || '') : String(r.memo || '').trim()
-    });
-    if (!r.saved) {
-      addNames.push(s.name);
-      // 🚨 判定は「その曜日に実在しない枠 → 対面重複」の順（既存の決まりに合わせる）
-      var noK = !tkKomaOnDay_(S.cr, S.iso, S.kt);
-      var cf  = tkRegConflicts_(s, S.iso, S.kt);   // 2026-09-30：オンラインも含めて確認を出す
-      if (noK)      confRows.push({ who: s.name, why: S.youbi + '曜に ' + S.kt + ' のコマがありません' });
-      else if (cf.length) confRows.push({ who: s.name, why: 'すでに ' + tkConflictText_(cf) + ' があります' });
-    }
-  });
-  var toDel = (S.removed || []).slice();
-  if (!toSave.length && !toDel.length) { miniToast('変更はありません'); return; }
-
-  // 確認1：対面授業と重なる／その曜日にコマが無い
-  if (confRows.length && !_jpForced) {
-    jpConfirmAsk_(confRows, function() { _jpForced = true; try { jpSave(); } finally { _jpForced = false; } });
-    return;
-  }
-  // 確認2：定員15人。🚨 まとめて入れる分を積み上げて数える（1人ずつ比べると誰も引っかからない）
-  if (addNames.length && !_jpForced) {
-    var sc = cbSeatCheck_(S.cr, S.kt, S.iso, addNames);
-    if (sc && sc.over) {
-      cbSeatAsk_([{ who: addNames.join('・'), when: cbSeatWhen_(S.iso, S.kt, S.cr), before: sc.before, after: sc.after }],
-        'このまま登録', function() { _jpForced = true; try { jpSave(); } finally { _jpForced = false; } });
-      return;
-    }
-  }
-  _jpForced = false;
-
-  var btn = document.getElementById('jp-save-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '登録中...'; }
-
-  /* 🚨 足すのが先、消すのが後。追加に失敗したら削除しない（機能仕様書 §9-4） */
-  function doDel_() {
-    if (!toDel.length) { jpFinish_(); return; }
-    callGas(url, { action: 'deleteJishuAssignments', ids: toDel, by: getUserName(), from: '＋自習の画面' }, function(res) {   // 2026-10-09 削除ログ用
-      if (res && res.success) {
-        var d = {}; toDel.forEach(function(id) { d[id] = true; });
-        _jishu = (_jishu || []).filter(function(x) { return !d[x.id]; });
+  var by = getUserName(), saves = [], dels = [], conf = [];
+  function nid_() { return 'jsh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); }
+  function memoOut_(L) { var m = String(L.memo || '').trim(); return (L.memoRaw && m === jishuMemoShown_(L.memoRaw)) ? L.memoRaw : m; }
+  var am = jxAdded_();
+  Object.keys(S.rows).forEach(function(k) {
+    var s = jpFindStu_(k); if (!s) return;
+    jxLines_(k).forEach(function(L, i) {
+      var st = jxState_(L);
+      if (st === 'saved') return;
+      if (st === 'del') { if (L.jid) dels.push(L.jid); return; }
+      // 注意が出ている予定は、登録の前にまとめて確かめる（強行は残す）
+      jxStuWarn_(k, L, i + 1).concat(jxSeatWarn_(k, L, i + 1, am)).forEach(function(x) { conf.push({ who: s.name, why: x }); });
+      var base = { studentId: s.sid || '', studentName: s.name || '', classroom: L.cr, targetId: '', memo: memoOut_(L), updatedBy: by };
+      if (L.rep === 'dates') {
+        var ds = L.dates.slice().sort().filter(function(d) { return !jishuHiddenDate_(d); });
+        if (L.jid && !ds.length) { dels.push(L.jid); return; }
+        ds.forEach(function(d, j) {
+          saves.push(Object.assign({}, base, { id: (j === 0 && L.jid) ? L.jid : nid_(), kind: 'single', everyWeeks: '', youbi: '', date: d,
+            komaTime: normKomaTime_(jxKtOf_(L, d)), validFrom: '', validTo: '' }));
+        });
       } else {
-        miniToast('取り消しに失敗: ' + (res && res.error ? res.error : '不明'));
+        saves.push(Object.assign({}, base, { id: L.jid || nid_(), kind: 'weekly', everyWeeks: L.rep === 'biweekly' ? '2' : '1', youbi: L.youbi, date: '',
+          komaTime: normKomaTime_(L.kt), validFrom: L.from || '', validTo: L.to || '' }));
       }
-      jpFinish_();
+    });
+  });
+  if (!saves.length && !dels.length) { miniToast('変更はありません'); return; }
+  if (conf.length && !_jxForced) { jpConfirmAsk_(conf, function() { _jxForced = true; try { jxSave(); } finally { _jxForced = false; } }); return; }
+  _jxForced = false;
+  var btn = document.getElementById('jx-save-btn'); if (btn) { btn.disabled = true; btn.textContent = '登録中...'; }
+  var from = S.single ? '自習の一覧' : '＋自習の画面';
+  function fail_(msg) { if (btn) { btn.disabled = false; btn.textContent = '登録'; } miniToast(msg); }
+  function doDel_() {
+    if (!dels.length) { done_(); return; }
+    callGas(url, { action: 'deleteJishuAssignments', ids: dels, by: by, from: from }, function(res) {
+      if (res && res.success) { var d = {}; dels.forEach(function(id) { d[id] = 1; }); _jishu = (_jishu || []).filter(function(x) { return !d[x.id]; }); done_(); }
+      else { _jishuCache = {}; fail_('保存はできましたが、消すのに失敗しました: ' + (res && res.error ? res.error : '不明')); renderCurrent(); }
     }, 'POST');
   }
-  function jpFinish_() {
+  function done_() {
     _jishuCache = {};
-    if (btn) { btn.disabled = false; btn.textContent = '登録'; }
-    closeModal('modal-jp');
-    miniToast('登録しました（' + (toSave.length + toDel.length) + '件）');
-    if (_currentTab === 'today' || _currentTab === 'week') renderCurrent();
+    jxClose();
+    miniToast('登録しました（保存 ' + saves.length + '件・削除 ' + dels.length + '件）');
+    renderCurrent();
   }
-  if (!toSave.length) { doDel_(); return; }
-  callGas(url, { action: 'saveJishuAssignments', rows: toSave }, function(res) {
-    if (res && res.success) {
-      toSave.forEach(function(row) {
-        var ix = -1;
-        (_jishu || []).forEach(function(x, n) { if (x.id === row.id) ix = n; });
-        if (ix >= 0) _jishu[ix] = row; else _jishu.push(row);
-      });
-      doDel_();
-    } else {
-      if (btn) { btn.disabled = false; btn.textContent = '登録'; }
-      miniToast('保存に失敗: ' + (res && res.error ? res.error : '不明'));
-      // 🚨 追加に失敗したので削除には進まない
-    }
-  }, 'POST');
+  // 50件ずつ送る（GASの上限）。🚨 追加に失敗したら削除には進まない
+  var chunks = []; for (var i = 0; i < saves.length; i += 50) chunks.push(saves.slice(i, i + 50));
+  (function next_(ci) {
+    if (ci >= chunks.length) { doDel_(); return; }
+    callGas(url, { action: 'saveJishuAssignments', rows: chunks[ci] }, function(res) {
+      if (res && res.success) {
+        chunks[ci].forEach(function(row) { var ix = -1; (_jishu || []).forEach(function(x, n) { if (x.id === row.id) ix = n; }); if (ix >= 0) _jishu[ix] = row; else _jishu.push(row); });
+        next_(ci + 1);
+      } else { _jishuCache = {}; fail_('保存に失敗: ' + (res && res.error ? res.error : '不明') + (ci ? '（' + (ci * 50) + '件までは保存ずみ）' : '')); }
+    }, 'POST');
+  })(0);
+}
+
+/* =====================================================================
+ * 「自習」タブ：生徒ごとの自習の一覧【2026-11-08 川上さん確定】
+ *  ［変える］で上の画面を、その子だけの状態で開く。自習のない子は「全員」にすると出る（［入れる］）
+ * ===================================================================== */
+var _jxl = { cr: '', gr: '', q: '', all: false };
+function jxlSet(k, v) { _jxl[k] = v; renderJishuList(); if (k === 'q') { var e = document.getElementById('jxl-q'); if (e) { e.focus(); e.setSelectionRange(v.length, v.length); } } }
+function renderJishuList() {
+  var el = document.getElementById('main-content'); if (!el) return;
+  // 🚨 まだ読めていない・読めなかったを「自習なし」に見せない（ClassBoard_保存とGAS.md）
+  if (!_cbLoaded.jishu || !_cbLoaded.students || _cbFail.jishu || _cbFail.students) { el.innerHTML = cbEmptyHtml_(['students', 'jishu'], '自習', '', ''); return; }
+  var t = getTodayStr(), soon = jxAdd_(t, 30);
+  var pool = (_students || []).filter(function(s) { return s.status !== '退会' && s.status !== '休会'; });
+  var crs = {}, grs = {}; pool.forEach(function(s) { if (s.classroom) crs[s.classroom] = 1; if (s.grade) grs[s.grade] = 1; });
+  var q = String(_jxl.q || '').trim();
+  var list = pool.map(function(s) {
+    var rows = jxRowsOfStu_(s);
+    return { s: s, rows: rows };
+  }).filter(function(x) {
+    if (!_jxl.all && !x.rows.length) return false;
+    if (_jxl.cr && (x.s.classroom || '') !== _jxl.cr) return false;
+    if (_jxl.gr && (x.s.grade || '') !== _jxl.gr) return false;
+    if (q && String(x.s.name || '').indexOf(q) < 0) return false;
+    return true;
+  }).sort(function(a, b) { return (cbGradeRank_(a.s.grade || '') - cbGradeRank_(b.s.grade || '')) || (String(a.s.name) < String(b.s.name) ? -1 : 1); });
+  function chips_(label, items, k) { return '<div class="jp-frow"><span class="jp-fl">' + label + '</span>' + [''].concat(items).map(function(v) {
+    return '<button class="jp-fchip' + (_jxl[k] === v ? ' jp-on' : '') + '" onclick="jxlSet(\'' + k + '\',' + jxQ_(v) + ')">' + (v === '' ? 'すべて' : esc(v)) + '</button>'; }).join('') + '</div>'; }
+  var nStu = pool.filter(function(s) { return jxRowsOfStu_(s).length; }).length;
+  var html = '<div class="card"><div class="card-header" style="display:flex;align-items:center;gap:10px"><span>&#128214; 自習の一覧</span>' +
+    '<span style="font-size:12px;font-weight:400;color:var(--text-muted)">自習が入っている子 ' + nStu + '人</span></div><div class="card-body">' +
+    chips_('教室', Object.keys(crs).sort(), 'cr') + chips_('学年', Object.keys(grs).sort(function(a, b) { return cbGradeRank_(a) - cbGradeRank_(b); }), 'gr') +
+    '<div class="jp-frow"><span class="jp-fl">検索</span><input id="jxl-q" class="jp-fsearch" placeholder="名前で検索" value="' + esc(_jxl.q || '') + '" oninput="jxlSet(\'q\',this.value)">' +
+    '<button class="jp-fchip' + (_jxl.all ? ' jp-on' : '') + '" style="margin-left:8px" onclick="jxlSet(\'all\',' + (!_jxl.all) + ')">自習のない子も出す</button></div>' +
+    '<table class="jxl-t"><thead><tr><th>生徒</th><th>学年</th><th>教室</th><th>自習の予定</th><th>次に来る日</th><th></th></tr></thead><tbody>' +
+    list.map(function(x) {
+      var key = jpKey_(x.s), nexts = [];
+      var plans = x.rows.map(function(r) {
+        var L = jxFromRow_(r), fut = jxFut_(L); if (fut[0]) nexts.push(fut[0]);
+        var txt = (r.kind === 'single') ? jxMd_(r.date) + ' ' + String(r.komaTime || '').split('〜')[0] + ' だけ'
+          : (String(r.everyWeeks || '') === '2' ? '隔週 ' : '毎週 ') + esc(r.youbi) + ' ' + esc(String(r.komaTime || '').split('〜')[0]) +
+            (String(r.everyWeeks || '') === '2' && r.validFrom ? '（' + jxMd_(r.validFrom) + 'から）' : '') + '　〜' + (r.validTo ? jxMd_(r.validTo) : '無期限');
+        var tag = (r.kind === 'weekly' && r.validTo && r.validTo <= soon) ? '<span class="jxl-soon">もうすぐ終わる</span>' : '';
+        var memo = jishuMemoShown_(r.memo);
+        return '<div class="jxl-p">' + txt + ' <span class="jxl-cr">' + esc(r.classroom || '') + '</span>' + tag + (memo ? ' <span class="jxl-memo">&#9998; ' + esc(memo) + '</span>' : '') + '</div>';
+      }).join('') || '<span style="color:#94a3b8">なし</span>';
+      nexts.sort();
+      return '<tr><td><b>' + esc(x.s.name) + '</b></td><td>' + esc(x.s.grade || '') + '</td><td>' + esc(x.s.classroom || '') + '</td><td>' + plans + '</td>' +
+        '<td>' + (nexts[0] ? jxMd_(nexts[0]) : '<span style="color:#94a3b8">—</span>') + '</td>' +
+        '<td style="text-align:right"><button class="btn-secondary" style="padding:4px 12px;font-size:12px" onclick="openJishuStudentEditor(' + jxQ_(key) + ')">' + (x.rows.length ? '変える' : '入れる') + '</button></td></tr>';
+    }).join('') + '</tbody></table>' + (list.length ? '' : '<div style="padding:16px;color:#94a3b8;font-size:13px">該当する生徒がいません</div>') +
+    '</div></div>';
+  el.innerHTML = html;
 }
 
 function kseToggleCell(btn) {
