@@ -454,6 +454,7 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .jx-seg button.jx-on { background:#f0fdf4; color:#16a34a; font-weight:700; }
 .jx-plan select, .jx-plan input[type=date], .jx-memo { border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:11.5px; font-family:inherit; background:#fff; }
 .jx-memo { flex:1 1 140px; min-width:120px; }
+.jx-memo-lb { font-size:11.5px; font-weight:700; color:#166534; flex-shrink:0; }
 .jx-lbl { font-size:10.5px; color:var(--text-muted); }
 .jx-inf { font-size:10.5px; color:#94a3b8; }
 .jx-pno { font-size:13px; font-weight:700; color:#fff; background:#475569; border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; }
@@ -514,7 +515,16 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 /* 自習の一覧をカレンダーで（2026-11-08） */
 .jxc-legend { display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:11.5px; color:var(--text-muted); margin:10px 0 4px; }
 .jxc-legend > span { display:inline-flex; align-items:center; gap:4px; }
-.jxc-row { display:grid; grid-template-columns:200px 1fr; gap:14px; padding:12px 4px; border-top:1px solid #eef1f5; align-items:start; }
+.jxc-row { display:grid; grid-template-columns:200px 1fr; gap:14px; padding:0 12px 0 0; margin:12px 0; border:1px solid #cbd5e1; border-left:5px solid #94a3b8; border-radius:10px; align-items:stretch; background:#fff; overflow:hidden; }
+.jxc-row .jxc-who { padding:12px 12px 14px; }
+.jxc-row .jxc-weeks { padding:10px 0 12px; }
+.jxc-row.jxc-kita { border-left-color:#0284c7; }
+.jxc-row.jxc-kita .jxc-who { background:#f0f9ff; border-right:1px solid #bae6fd; }
+.jxc-row.jxc-kuri { border-left-color:#ea580c; }
+.jxc-row.jxc-kuri .jxc-who { background:#fff7ed; border-right:1px solid #fed7aa; }
+.jxc-crb { display:inline-block; font-size:11px; font-weight:700; border-radius:4px; padding:0 6px; margin-left:2px; }
+.jxc-kita .jxc-crb { background:#0284c7; color:#fff; }
+.jxc-kuri .jxc-crb { background:#ea580c; color:#fff; }
 .jxc-nm { font-weight:700; font-size:15px; }
 .jxc-gr { font-size:12px; color:var(--text-muted); margin-top:2px; }
 .jxc-nx { font-size:12px; margin-top:8px; }
@@ -551,6 +561,8 @@ td.jxc-past .jxc-js { background:#86efac; color:#14532d; }
 @media print { .jx-plan, .jx-common { display:none; } }
 /* 2026-11-08 夜：画面を大きく・左右を別々にスクロール・登録ずみは1行（川上さん「ウィンドウが狭すぎる」） */
 .modal.jx-modal { width:min(1680px, 98vw); max-width:98vw; height:94vh; max-height:94vh; display:flex; flex-direction:column; overflow:hidden; padding:0; }
+.modal.jx-modal.jx-modal-one { width:min(1080px, 96vw); height:auto; }
+.modal.jx-modal.jx-modal-one #jx-root { height:auto; max-height:94vh; }
 #jx-root { display:flex; flex-direction:column; height:100%; min-height:0; }
 #jx-root > .modal-header { flex-shrink:0; }
 .jx-main { flex:1; min-height:0; display:grid; grid-template-columns:300px minmax(0,1fr); gap:10px; padding:8px 14px 0; }
@@ -5430,7 +5442,7 @@ function studentChipHtml(s, opts) {
     var _jmt = _jme ? jishuMemoShown_(_jme.row.memo) : '';
     if (_jmt) {
       jMemoMk = '<span class="jishu-memo-mk">✎</span>';
-      var _jmRow = '<div class="sp-row" style="margin-bottom:6px;padding-bottom:5px;border-bottom:0.5px solid #e5e7eb"><span style="font-size:10px;color:#166534;font-weight:700">自習でやること</span><br><span style="font-size:12px;color:#111">' + esc(_jmt) + '</span></div>';
+      var _jmRow = '<div class="sp-row" style="margin-bottom:6px;padding-bottom:5px;border-bottom:0.5px solid #e5e7eb"><span style="font-size:10px;color:#166534;font-weight:700">自習のメモ</span><br><span style="font-size:12px;color:#111">' + esc(_jmt) + '</span></div>';
       if (popup) { popup = popup.replace('min-width:200px;max-width:280px">', 'min-width:200px;max-width:280px">' + _jmRow); }
       else { popup = '<div class="s-popup" style="min-width:200px;max-width:280px">' + _jmRow + '</div>'; }
     }
@@ -11597,10 +11609,10 @@ function jxLineHtml_(key, L, canDel, no, am) {
     return '<div class="jx-plan jx-fold1' + (st === 'del' ? ' jx-pl-del' : '') + '" id="jxl-' + L.lid + '">' +
       (jxNum_(key, no) ? '<span class="jx-pno">' + no + '</span>' : '') +
       (st === 'del' ? '<span class="jx-tag jx-st-del">&#128465; 消します・まだ保存していません</span>' : '<span class="jx-tag jx-st-saved">&#10003; 保存ずみ</span>') +
-      '<span class="jx-one">' + jxOneLine_(L) + (L.memo ? '　<span class="jx-memo1">&#9998; ' + esc(L.memo) + '</span>' : '') + '</span>' +
+      '<span class="jx-one">' + jxOneLine_(L) + (L.memo ? '　<span class="jx-memo1">メモ：' + esc(L.memo) + '</span>' : '') + '</span>' +
       (wn ? '<span class="jx-wn" title="' + esc(wl.join('\n')) + '">&#9888; ' + wn + '</span>' : '') +
       (st === 'del' ? '<button class="jx-undo" onclick="jxUndo(' + K + ',' + I + ')">元に戻す</button>'
-                    : '<button class="jx-mini" onclick="jxOpenLine(' + K + ',' + I + ',true)">変える</button>' + (canDel ? '<button class="jx-del" title="この予定を消す" onclick="jxDelLine(' + K + ',' + I + ')">&times;</button>' : '')) +
+                    : '<button class="jx-mini" onclick="jxOpenLine(' + K + ',' + I + ',true)">編集</button>' + (canDel ? '<button class="jx-del" title="この予定を消す" onclick="jxDelLine(' + K + ',' + I + ')">&times;</button>' : '')) +
       '</div>';
   }
   var seg = '<span class="jx-seg">' + [['weekly', '毎週'], ['biweekly', '隔週'], ['dates', '日付を選ぶ']].map(function(x) {
@@ -11620,7 +11632,7 @@ function jxLineHtml_(key, L, canDel, no, am) {
   var endRow = (L.rep === 'dates') ? '' : '<span class="jx-lbl">終了</span><input type="date" class="' + jxChg_(L, 'to') + '" value="' + esc(L.to || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxEdit(' + K + ',' + I + ',\'to\',this.value)">' +
     (L.to ? '' : '<span class="jx-inf">無期限</span>') + jxWas_(L, 'to', function(v) { return v ? jxMd_(v) : '無期限'; }) + jxWas_(L, 'from', function(v) { return v ? '開始 ' + jxMd_(v) : '開始なし'; });
   var body = '<div class="jx-cwrap">' + jxCalHtml_(key, L) + '<div class="jx-clist"><div class="jx-r">' + endRow +
-    '<input class="jx-memo' + jxChg_(L, 'memo') + '" placeholder="やること" value="' + esc(L.memo || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxSetMemo(' + K + ',' + I + ',this.value)"></div>' +
+    '<span class="jx-memo-lb">メモ</span><input class="jx-memo' + jxChg_(L, 'memo') + '" placeholder="この自習でやること（例：テスト直し）" value=""' + esc(L.memo || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxSetMemo(' + K + ',' + I + ',this.value)"></div>' +
     jxListHtml_(key, L) + '</div></div>';
   var w = jxSeatWarn_(key, L, no, am);
   if (key === 'C') Object.keys(_jx.rows).forEach(function(k) { if (_jx.rows[k].mode !== 'common') return; var s = jpFindStu_(k);
@@ -11644,6 +11656,8 @@ function jxRender_() {
     return (cbGradeRank_(sa.grade || '') - cbGradeRank_(sb.grade || '')) || (String(sa.name) < String(sb.name) ? -1 : 1); });
   var nC = keys.filter(function(k) { return S.rows[k].mode === 'common'; });
   var head;
+  // 2026-11-08 川上さん「横長すぎて無駄なスペース」：1人だけの編集は幅をしぼり、高さは中身に合わせる（時間割から開く［＋自習］は今の広さのまま）
+  if (root.parentNode && root.parentNode.classList) root.parentNode.classList.toggle('jx-modal-one', !!S.single);
   if (S.single) { var ss = jpFindStu_(S.single); head = '&#128214; 自習を編集<span class="jx-sub">' + esc(ss ? ss.name : '') + ' ' + esc(ss ? ss.grade || '' : '') + '</span>'; }
   else { var seat = cbSeatCount_(O.cr, O.kt, O.iso); head = '&#128214; 自習を追加<span class="jx-sub">' + jxMd_(O.iso) + ' ' + esc(O.kt) + ' ／ ' + esc(O.cr) + ' ／ いま 計' + (seat ? seat.total : 0) + '人</span>'; }
 
@@ -11885,14 +11899,14 @@ function renderJishuList() {
     var rl = []; if (nW) rl.push('毎週の自習 ' + nW + 'コマ'); if (nB) rl.push('隔週の自習 ' + nB + 'コマ'); if (nS) rl.push('この日だけの自習 ' + nS + 'コマ');
     var toK = Object.keys(tos);
     var ex = !toK.length ? '' : (toK.length === 1 ? '自習の期限 ' + (toK[0] ? '〜' + jxMd_(toK[0]) : '無期限') : '自習の期限 いろいろ（［編集］で見る）');
-    var left = '<div class="jxc-who"><div class="jxc-nm">' + esc(s.name) + '</div><div class="jxc-gr">' + esc(s.grade || '') + '・' + esc(home) + '</div>' +
+    var left = '<div class="jxc-who"><div class="jxc-nm">' + esc(s.name) + '</div><div class="jxc-gr">' + esc(s.grade || '') + ' <span class="jxc-crb">' + esc(home) + '</span></div>' +
       (x.rows.length ? '<div class="jxc-nx">次の自習 <b>' + (nextTxt || '—') + '</b></div>' +
         '<div class="jxc-rule">' + rl.join('・') + (ex ? '<br>' + ex : '') + (soonEnd ? ' <span class="jxl-soon">もうすぐ終わる</span>' : '') + '</div>'
         : '<div class="jxc-rule">自習なし</div>') +
       (later.length ? '<div class="jxc-later"><b>この先の自習</b><br>' + later.join('<br>') + '</div>' : '') +
-      (memos.length ? '<div class="jxc-memo">' + memos.map(function(m) { return '&#9998; ' + esc(m); }).join('<br>') + '</div>' : '') +
+      (memos.length ? '<div class="jxc-memo">' + memos.map(function(m) { return 'メモ：' + esc(m); }).join('<br>') + '</div>' : '') +
       '<button class="btn-secondary jxc-edit" onclick="openJishuStudentEditor(' + jxQ_(key) + ')">' + (x.rows.length ? '編集' : '入れる') + '</button></div>';
-    return '<div class="jxc-row">' + left + grid + '</div>';
+    return '<div class="jxc-row ' + (home === '北久里浜' ? 'jxc-kita' : home === '久里浜' ? 'jxc-kuri' : '') + '">' + left + grid + '</div>';
   }
 
   var legend = '<div class="jxc-legend"><span><span class="jxc-js">&#10003;</span>自習（毎週）</span><span><span class="jxc-js"><span class="jxc-tg">隔</span>&#10003;</span>隔週</span>' +
@@ -12108,7 +12122,7 @@ function kseRenderList() {
         '<select onchange="kseJRow(' + i + ',\'cr\',this.value)" style="' + _selSt + '">' +
           ['北久里浜','久里浜'].map(function(x) { return '<option value="' + x + '"' + (cr3 === x ? ' selected' : '') + '>' + x + '</option>'; }).join('') +
         '</select>' +
-        '<input placeholder="やること" value="' + esc(('jmemonew' in c.dataset) ? c.dataset.jmemonew : jishuMemoShown_(c.dataset.jmemo)) + '"' +
+        '<span class="jx-memo-lb">メモ</span><input placeholder="この自習でやること" value="' + esc(('jmemonew' in c.dataset) ? c.dataset.jmemonew : jishuMemoShown_(c.dataset.jmemo)) + '"' +
           ' oninput="kseJRow(' + i + ',\'memo\',this.value)"' +
           ' style="flex:1;min-width:150px;font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:6px">' +
         (isWeekly
