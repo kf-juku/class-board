@@ -419,6 +419,9 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .jx-common { margin:8px; border:1px solid #bbf7d0; background:#f7fdf9; border-radius:8px; padding:6px 8px; }
 .jx-ct { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#166534; }
 .jx-cn { font-weight:400; font-size:11px; color:#166534; }
+.jx-ctog { cursor:pointer; user-select:none; padding:2px 0; }
+.jx-ctog:hover { color:#14532d; }
+.jx-arrow { display:inline-block; width:16px; font-size:11px; color:#16a34a; }
 .jx-fold .jx-plan, .jx-fold .jx-addtile { display:none; }
 .jx-card { margin:8px; border:1px solid var(--border); border-radius:8px; padding:6px 8px; background:#fff; }
 .jx-cardh { display:flex; align-items:center; gap:8px; font-size:12.5px; }
@@ -11327,7 +11330,7 @@ function jpConfirmDo_() {
  *  ・右に生徒ごとのカード。予定は何本でも（カードの下の点線の［＋］）。2本以上のときだけ番号
  *  ・予定1本＝［毎週／隔週／日付を選ぶ］＋カレンダー（押した日で決める）＋右に来る日のリスト
  *      毎週：押した日の曜日で、その日から毎週／隔週：押した日から1週おき（everyWeeks='2'）／日付を選ぶ：押した日を足す・外す（日ごとにコマ）
- *  ・「🔗 まとめて入れる予定」を変えると、つながっている子全員にその場で入る。［この子だけ変える］で切り離す
+ *  ・「全員に同じ予定を入れる」（2026-11-08 改名。旧「🔗 まとめて入れる予定」）を変えると、つながっている子全員にその場で入る。［この子だけ変える］で切り離す
  *  ・予定ごとに状態の帯：✓ 保存ずみ／✎ 変更あり まだ保存していません／＋ 新しく追加 まだ保存していません／🗑 消します まだ保存していません
  *  ・消すときは確認を出さず取り消し線で残す。［登録］で消える。未保存のまま閉じると止める
  *  ・登録ずみの毎週の予定の曜日・コマ・教室・繰り返しを変えるときは「いつから変える？」。元の行は前日で終わらせて残す
@@ -11692,17 +11695,19 @@ function jxRender_() {
       '<div class="jp-frow"><span class="jp-fl">検索</span><input id="jx-q" class="jp-fsearch" placeholder="名前で検索" value="' + esc(f.q || '') + '" oninput="jxSetQ(this.value)"></div>';
     leftCol = { filters: leftCol, list: lh, n: left.length };
   }
-  var fold = (!nC.length && keys.length > 0 && !S.cOpen);
-  var common = S.single ? '' : '<div class="jx-common' + (fold ? ' jx-fold' : '') + '"><div class="jx-ct">&#128279; まとめて入れる予定<span class="jx-cn">' +
-    (nC.length ? nC.map(function(k) { return esc(jpFindStu_(k).name); }).join('・') + ' に入ります' : '') + '</span>' +
-    (fold ? '<button class="jx-mini" style="margin-left:auto" onclick="_jx.cOpen=true;jxRender_()">開く</button>' : '') + '</div>' +
+  // 2026-11-08 川上さん：「まとめて入れる予定」は分かりにくい → 「全員に同じ予定を入れる」。右端の［開く］はやめ、見出しの左の ▶／▼ を押して開け閉めする
+  //  開け閉めを一度でも押したら、その状態を守る（cFold）。押していないあいだは、全員と同じ子がいない＆右に子がいるときだけ閉じる
+  var fold = (S.cFold !== undefined) ? S.cFold : (!nC.length && keys.length > 0);
+  var common = S.single ? '' : '<div class="jx-common' + (fold ? ' jx-fold' : '') + '"><div class="jx-ct jx-ctog" onclick="_jx.cFold=' + (!fold) + ';jxRender_()">' +
+    '<span class="jx-arrow">' + (fold ? '&#9654;' : '&#9660;') + '</span>全員に同じ予定を入れる<span class="jx-cn">' +
+    (nC.length ? '（' + nC.map(function(k) { return esc(jpFindStu_(k).name); }).join('・') + '）' : '') + '</span></div>' +
     S.common.map(function(L, i) { return jxLineHtml_('C', L, S.common.length > 1, i + 1, am); }).join('') +
     '<button class="jx-addtile" onclick="jxAddLine(\'C\')">＋ 予定を追加</button></div>';
   var cards = keys.map(function(k) {
     var s = jpFindStu_(k), r = S.rows[k]; if (!s) return '';
     var hd = '<div class="jx-cardh"><span class="jx-nm">' + esc(s.name) + '</span><span class="jx-gr">' + esc(s.grade || '') + '</span>' +
-      (r.mode === 'common' ? '<span class="jx-link">&#128279; まとめて入れる予定と同じ</span><button class="jx-mini" onclick="jxToOwn(' + jxQ_(k) + ')">この子だけ変える</button>'
-        : ((S.single || jxSaved_(k).length) ? '' : '<button class="jx-mini" onclick="jxToCommon(' + jxQ_(k) + ')">&#128279; まとめて入れる予定と同じにする</button>')) +
+      (r.mode === 'common' ? '<span class="jx-link">全員と同じ予定</span><button class="jx-mini" onclick="jxToOwn(' + jxQ_(k) + ')">この子だけ変える</button>'
+        : ((S.single || jxSaved_(k).length) ? '' : '<button class="jx-mini" onclick="jxToCommon(' + jxQ_(k) + ')">全員と同じ予定にする</button>')) +
       (r.mode === 'common' ? '' : '<button class="jx-addbtn" onclick="jxAddLine(' + jxQ_(k) + ')">＋ 予定を追加</button>') +
       (S.single ? '' : '<button class="jx-del" title="外す" onclick="jxDrop(' + jxQ_(k) + ')">&times;</button>') + '</div>';
     var bd;
