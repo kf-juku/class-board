@@ -2688,7 +2688,7 @@ function testAssignPopupBadges_(s, forcePeriod) {
     var isTa = a.type === 'taisaku';
     var bg  = isPast ? '#f3f4f6' : (isJi ? '#dcfce7' : isTa ? '#fef9c3' : '#ffedd5');
     var col = isPast ? '#9ca3af' : (isJi ? '#166534' : isTa ? '#854d0e' : '#9a3412');
-    var tag = isJi ? '自習' : isTa ? '対策' : '講習';
+    var tag = isJi ? '自習' : isTa ? 'テ対' : '講習';
     return '<span style="display:inline-block;font-size:10px;background:' + bg + ';color:' + col + ';border-radius:4px;padding:2px 6px;margin:2px 2px 0 0;border:0.5px solid #e5e7eb;white-space:nowrap">' + esc(label.trim()) + '【' + tag + '】</span>';
   }
   var listTitle = tp.type === 'test' ? 'テスト対策の予定' : '講習の予定';
@@ -5175,7 +5175,7 @@ function crossBannerHtml_(iso) {
 // 全モード常時表示の欄外注記（2コマバッジの見方）
 function komaBadgeNoteHtml_() {
   var body = '<b>2コマバッジの見方</b><br>' +
-    '・同じ教室でその日2コマ以上ある子に「2コマ」バッジ（アンバー）を付けます。バッジにカーソルを合わせると内訳が出ます。<br>' +
+    '・同じ教室でその日2コマ以上ある子に「1/2コマ」「2/3コマ」のバッジ（点線の枠）を付けます。何コマ目／その日何コマ、の意味です。バッジにカーソルを合わせると内訳が出ます。<br>' +
     '・教室で受ける授業はすべて数えます（塾・CA・英検・演習回・受験特訓・講習・テスト対策・自習・振替）。<b>オンラインと欠席だけは数えません</b>。<br>' +
     '・「教室またぎ」赤バッジ：同じ日に別の教室にも授業があるときの注意表示（通常はありません。登録ミスの可能性）。';
   return '<span class="cb-help" style="margin-left:8px;cursor:help">' +
@@ -5245,7 +5245,9 @@ function studentChipHtml(s, opts) {
     // 🚨 川上さん確定(2026-11-08)：自習だけで来ている子には出さない（「自習」のバッジだけ）。
     //    授業が無いコマに「塾」と出ると塾の授業で来ていると読める。生徒の属性でバッジを決めない（最重要ルール）。
     //    羽角玲音 北久里浜 20:05 で「自習 塾」、同じ子の 18:40（オンラインのコマあり）では「自習」だけ、と食い違っていた。
-    var _jishuOnly = !!(opts && opts.testBadge && String(opts.testBadge).split(',').indexOf('jishu') >= 0);
+    //    2026-11-08（同日・川上さん「推奨でOK」）：テスト対策の割付だけで来る子も同じ。「テ対」のバッジだけにする。
+    var _tbList = (opts && opts.testBadge) ? String(opts.testBadge).split(',') : [];
+    var _jishuOnly = _tbList.indexOf('jishu') >= 0 || _tbList.indexOf('taisaku') >= 0;
     if (_jishuOnly) {
       lessonLabel = '';
     } else if (s.attrJuku) {
