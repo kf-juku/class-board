@@ -11632,7 +11632,7 @@ function jxLineHtml_(key, L, canDel, no, am) {
   var endRow = (L.rep === 'dates') ? '' : '<span class="jx-lbl">終了</span><input type="date" class="' + jxChg_(L, 'to') + '" value="' + esc(L.to || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxEdit(' + K + ',' + I + ',\'to\',this.value)">' +
     (L.to ? '' : '<span class="jx-inf">無期限</span>') + jxWas_(L, 'to', function(v) { return v ? jxMd_(v) : '無期限'; }) + jxWas_(L, 'from', function(v) { return v ? '開始 ' + jxMd_(v) : '開始なし'; });
   var body = '<div class="jx-cwrap">' + jxCalHtml_(key, L) + '<div class="jx-clist"><div class="jx-r">' + endRow +
-    '<span class="jx-memo-lb">メモ</span><input class="jx-memo' + jxChg_(L, 'memo') + '" placeholder="この自習でやること（例：テスト直し）" value=""' + esc(L.memo || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxSetMemo(' + K + ',' + I + ',this.value)"></div>' +
+    '<span class="jx-memo-lb">メモ</span><input class="jx-memo' + jxChg_(L, 'memo') + '" placeholder="この自習でやること（例：テスト直し）" value="' + esc(L.memo || '') + '"' + (L.del ? ' disabled' : '') + ' onchange="jxSetMemo(' + K + ',' + I + ',this.value)"></div>' +
     jxListHtml_(key, L) + '</div></div>';
   var w = jxSeatWarn_(key, L, no, am);
   if (key === 'C') Object.keys(_jx.rows).forEach(function(k) { if (_jx.rows[k].mode !== 'common') return; var s = jpFindStu_(k);
