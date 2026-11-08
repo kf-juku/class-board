@@ -5279,7 +5279,13 @@ function studentChipHtml(s, opts) {
     }
   } else {
     // コマが見つからない場合のフォールバック：塾コマがあれば塾、なければCA
-    if (s.attrJuku) {
+    // 🚨 川上さん確定(2026-11-08)：自習だけで来ている子には出さない（「自習」のバッジだけ）。
+    //    授業が無いコマに「塾」と出ると塾の授業で来ていると読める。生徒の属性でバッジを決めない（最重要ルール）。
+    //    羽角玲音 北久里浜 20:05 で「自習 塾」、同じ子の 18:40（オンラインのコマあり）では「自習」だけ、と食い違っていた。
+    var _jishuOnly = !!(opts && opts.testBadge && String(opts.testBadge).split(',').indexOf('jishu') >= 0);
+    if (_jishuOnly) {
+      lessonLabel = '';
+    } else if (s.attrJuku) {
       lessonLabel = '<span class="badge" style="font-size:10px;background:#555;color:#fff">塾</span>';
     } else if (s.attrCa) {
       lessonLabel = '<span class="badge badge-blue" style="font-size:10px">CA</span>';
