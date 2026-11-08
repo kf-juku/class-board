@@ -511,6 +511,36 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .jx-bf { display:flex; justify-content:flex-end; gap:8px; padding:0 14px 12px; }
 .jx-btn-del { background:#fff; color:#dc2626; border:1px solid #fca5a5; padding:7px 16px; border-radius:7px; cursor:pointer; font-size:13px; font-family:inherit; }
 /* 自習の一覧 */
+/* 自習の一覧をカレンダーで（2026-11-08） */
+.jxc-legend { display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:11.5px; color:var(--text-muted); margin:10px 0 4px; }
+.jxc-legend > span { display:inline-flex; align-items:center; gap:4px; }
+.jxc-row { display:grid; grid-template-columns:200px 1fr; gap:14px; padding:12px 4px; border-top:1px solid #eef1f5; align-items:start; }
+.jxc-nm { font-weight:700; font-size:15px; }
+.jxc-gr { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.jxc-nx { font-size:12px; margin-top:8px; }
+.jxc-nx b { font-size:14px; }
+.jxc-rule { font-size:11.5px; color:var(--text-muted); margin-top:6px; line-height:1.6; }
+.jxc-later { margin-top:8px; font-size:11.5px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:4px 7px; line-height:1.7; color:#14532d; }
+.jxc-later b { font-size:11px; color:#166534; }
+.jxc-memo { margin-top:6px; font-size:11.5px; color:#92400e; line-height:1.6; }
+.jxc-edit { margin-top:8px; padding:5px 18px !important; font-size:13px !important; }
+.jxc-weeks { display:flex; gap:12px; flex-wrap:wrap; min-width:0; }
+.jxc-wk { flex:1 1 400px; min-width:340px; }
+.jxc-wt { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:3px; }
+table.jxc-g { border-collapse:collapse; width:100%; table-layout:fixed; font-size:12px; }
+table.jxc-g th, table.jxc-g td { border:1px solid #e5e9f0; text-align:center; height:30px; padding:0; }
+table.jxc-g th { background:#f8fafc; font-weight:600; font-size:11.5px; height:24px; }
+table.jxc-g .jxc-tm { width:46px; background:#fafbfc; color:var(--text-muted); font-size:11px; font-weight:600; }
+table.jxc-g th.jxc-today { background:#fff0f0; color:var(--crimson); }
+table.jxc-g td.jxc-past { background:#f6f7f9; }
+.jxc-js { display:inline-flex; align-items:center; justify-content:center; gap:2px; background:#16a34a; color:#fff; border-radius:5px; padding:2px 7px; font-weight:700; font-size:12px; }
+.jxc-js .jxc-tg { font-size:9.5px; }
+.jxc-js .jxc-cr { font-size:9.5px; background:#fff; color:#166534; border-radius:3px; padding:0 2px; margin-left:1px; }
+td.jxc-past .jxc-js { background:#86efac; color:#14532d; }
+.jxc-off { font-size:11px; color:#9ca3af; text-decoration:line-through; }
+.jxc-ls { display:inline-block; font-size:10.5px; color:#64748b; background:#f1f5f9; border-radius:3px; padding:0 4px; }
+.jxc-ls.jxc-onl { color:#2D8CFF; background:#eff6ff; }
+@media (max-width:760px) { .jxc-row { grid-template-columns:1fr; } .jxc-wk { min-width:0; } }
 .jxl-t { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:8px; }
 .jxl-t th { text-align:left; font-size:11.5px; color:var(--text-muted); border-bottom:1px solid var(--border); padding:6px 8px; background:#f8fafc; }
 .jxl-t td { border-bottom:1px solid #f1f5f9; padding:6px 8px; vertical-align:top; }
@@ -11614,7 +11644,7 @@ function jxRender_() {
     return (cbGradeRank_(sa.grade || '') - cbGradeRank_(sb.grade || '')) || (String(sa.name) < String(sb.name) ? -1 : 1); });
   var nC = keys.filter(function(k) { return S.rows[k].mode === 'common'; });
   var head;
-  if (S.single) { var ss = jpFindStu_(S.single); head = '&#128214; 自習を変える<span class="jx-sub">' + esc(ss ? ss.name : '') + ' ' + esc(ss ? ss.grade || '' : '') + '</span>'; }
+  if (S.single) { var ss = jpFindStu_(S.single); head = '&#128214; 自習を編集<span class="jx-sub">' + esc(ss ? ss.name : '') + ' ' + esc(ss ? ss.grade || '' : '') + '</span>'; }
   else { var seat = cbSeatCount_(O.cr, O.kt, O.iso); head = '&#128214; 自習を追加<span class="jx-sub">' + jxMd_(O.iso) + ' ' + esc(O.kt) + ' ／ ' + esc(O.cr) + ' ／ いま 計' + (seat ? seat.total : 0) + '人</span>'; }
 
   var leftCol = '';
@@ -11759,6 +11789,10 @@ function jxSave() {
 var _jxl = { cr: '', gr: '', q: '', all: false };
 function jxlSet(k, v) { _jxl[k] = v; renderJishuList(); if (k === 'q') { var e = document.getElementById('jxl-q'); if (e) { e.focus(); e.setSelectionRange(v.length, v.length); } } }
 function renderJishuList() {
+  /* 自習の一覧【2026-11-08 川上さん確定・モック 20261108_モック_自習一覧をカレンダーで.html】
+   *  1人1行。左＝名前・次の自習・自習の決まりの数と期限・この先の自習・［編集］。右＝今週・来週の表（月〜土×コマ）。
+   *  🚨 マスの判定は jishuCellOf_ を通す（時間割・生徒カードと同じ決まり。隔週・この日だけ・その日休み・講習期間の日）。ここで別の判定を作らない。
+   *  授業は灰色の小さい字（塾・CA・演・英・特・オ）。自習が入っているマスは自習を出す。編集は今までどおり openJishuStudentEditor。 */
   var el = document.getElementById('main-content'); if (!el) return;
   // 🚨 まだ読めていない・読めなかったを「自習なし」に見せない（ClassBoard_保存とGAS.md）
   if (!_cbLoaded.jishu || !_cbLoaded.students || _cbFail.jishu || _cbFail.students) { el.innerHTML = cbEmptyHtml_(['students', 'jishu'], '自習', '', ''); return; }
@@ -11779,28 +11813,99 @@ function renderJishuList() {
   function chips_(label, items, k) { return '<div class="jp-frow"><span class="jp-fl">' + label + '</span>' + [''].concat(items).map(function(v) {
     return '<button class="jp-fchip' + (_jxl[k] === v ? ' jp-on' : '') + '" onclick="jxlSet(\'' + k + '\',' + jxQ_(v) + ')">' + (v === '' ? 'すべて' : esc(v)) + '</button>'; }).join('') + '</div>'; }
   var nStu = pool.filter(function(s) { return jxRowsOfStu_(s).length; }).length;
+
+  // 表の2週間：今週の月曜から。日曜に開いたときは次の週から
+  var t0 = new Date(t + 'T00:00:00'), dw = t0.getDay();
+  var mon = new Date(t0); mon.setDate(t0.getDate() + (dw === 0 ? 1 : 1 - dw));
+  function isoOf_(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  var days = []; for (var i = 0; i < 13; i++) { if (i === 6) continue; var d = new Date(mon); d.setDate(mon.getDate() + i); days.push(isoOf_(d)); }
+  var endIso = days[days.length - 1];
+  var BASE_KT = ['17:15〜18:35', '18:40〜20:00', '20:05〜21:25'];
+  function crShort_(cr) { return cr === '北久里浜' ? '北' : cr === '久里浜' ? '久' : String(cr || '').slice(0, 1); }
+  function lessonTag_(k) {
+    if (!k) return '';
+    if (k.online) return 'オ';
+    if ((k.id || '').indexOf('ca_') === 0) return 'CA';
+    if (k.satType === 'enshuu') return '演';
+    if (k.satType === 'eiken') return '英';
+    if (k.satType === 'juken') return '特';
+    return '塾';
+  }
+
+  function rowHtml_(x) {
+    var s = x.s, key = jpKey_(s), home = s.classroom || '';
+    // 行（コマ）：いつもの3コマ＋その子の自習にだけある時刻
+    var kts = BASE_KT.slice();
+    x.rows.forEach(function(r) { var n = normKomaTime_(r.komaTime); if (n && kts.map(normKomaTime_).indexOf(n) < 0) kts.push(r.komaTime); });
+    kts.sort(function(a, b) { return normKomaTime_(a) < normKomaTime_(b) ? -1 : 1; });
+    var komas = s.komas || [];
+    var nextKey = '';
+    function cell_(iso, kt) {
+      var yb = YOUBI_MAP[new Date(iso + 'T00:00:00').getDay()];
+      var c = jishuCellOf_(s, iso, kt);
+      if (c && c.off) return '<span class="jxc-off">休み</span>';
+      if (c && c.row) {
+        var r = c.row;
+        var tag = r.kind === 'single' ? '1回' : (String(r.everyWeeks || '') === '2' ? '隔' : '');
+        if (iso > t) { var nk = iso + ' ' + normKomaTime_(kt); if (!nextKey || nk < nextKey) nextKey = nk; }
+        return '<span class="jxc-js">' + (tag ? '<span class="jxc-tg">' + tag + '</span>' : '') + '&#10003;' +
+          (r.classroom && r.classroom !== home ? '<span class="jxc-cr">' + esc(crShort_(r.classroom)) + '</span>' : '') + '</span>';
+      }
+      var hit = komas.filter(function(k) { return k && k.youbi === yb && k.time && tkTimeOverlap_(k.time, kt); })[0];
+      if (hit) { var lt = lessonTag_(hit); return '<span class="jxc-ls' + (lt === 'オ' ? ' jxc-onl' : '') + '">' + lt + '</span>'; }
+      return '';
+    }
+    function week_(ds, title) {
+      var h = '<div class="jxc-wk"><div class="jxc-wt">' + title + '</div><table class="jxc-g"><tr><th class="jxc-tm"></th>' +
+        ds.map(function(iso) { return '<th class="' + (iso === t ? 'jxc-today' : '') + '">' + jxMd_(iso) + '</th>'; }).join('') + '</tr>';
+      kts.forEach(function(kt) {
+        h += '<tr><td class="jxc-tm">' + esc(String(kt).split('〜')[0]) + '</td>' +
+          ds.map(function(iso) { return '<td class="' + (iso < t ? 'jxc-past' : '') + '">' + cell_(iso, kt) + '</td>'; }).join('') + '</tr>';
+      });
+      return h + '</table></div>';
+    }
+    var grid = '<div class="jxc-weeks">' + week_(days.slice(0, 6), '今週 ' + jxMd_(days[0]).replace(/\(.\)/, '') + '〜') +
+      week_(days.slice(6), '来週 ' + jxMd_(days[6]).replace(/\(.\)/, '') + '〜') + '</div>';
+
+    // 左：自習の決まりの数・期限・この先の自習・メモ
+    var nW = 0, nB = 0, nS = 0, tos = {}, soonEnd = false, later = [], memos = [];
+    x.rows.forEach(function(r) {
+      if (r.kind === 'single') { nS++; if (r.date > endIso) later.push(jxMd_(r.date) + ' ' + esc(String(r.komaTime || '').split('〜')[0]) + ' 1回' + (r.classroom && r.classroom !== home ? ' ' + esc(crShort_(r.classroom)) : '')); }
+      else {
+        if (String(r.everyWeeks || '') === '2') nB++; else nW++;
+        tos[r.validTo || ''] = 1;
+        if (r.validTo && r.validTo <= soon) soonEnd = true;
+        if (r.validFrom && r.validFrom > endIso) later.push(jxMd_(r.validFrom).replace(/\(.\)/, '') + 'から ' + (String(r.everyWeeks || '') === '2' ? '隔週' : '毎週') + ' ' + esc(r.youbi) + ' ' + esc(String(r.komaTime || '').split('〜')[0]));
+      }
+      var m = jishuMemoShown_(r.memo); if (m && memos.indexOf(m) < 0) memos.push(m);
+    });
+    var nk = nextKey ? nextKey.split(' ') : null;
+    var nextTxt = nk ? jxMd_(nk[0]) + ' ' + nk[1].split('〜')[0] : '';
+    if (!nextTxt) { x.rows.forEach(function(r) { var f = jxFut_(jxFromRow_(r)).filter(function(d) { return d > t; }); if (f[0] && (!nextTxt || f[0] < nextTxt)) nextTxt = f[0]; }); if (nextTxt) nextTxt = jxMd_(nextTxt); }
+    var rl = []; if (nW) rl.push('毎週の自習 ' + nW + 'コマ'); if (nB) rl.push('隔週の自習 ' + nB + 'コマ'); if (nS) rl.push('この日だけの自習 ' + nS + 'コマ');
+    var toK = Object.keys(tos);
+    var ex = !toK.length ? '' : (toK.length === 1 ? '自習の期限 ' + (toK[0] ? '〜' + jxMd_(toK[0]) : '無期限') : '自習の期限 いろいろ（［編集］で見る）');
+    var left = '<div class="jxc-who"><div class="jxc-nm">' + esc(s.name) + '</div><div class="jxc-gr">' + esc(s.grade || '') + '・' + esc(home) + '</div>' +
+      (x.rows.length ? '<div class="jxc-nx">次の自習 <b>' + (nextTxt || '—') + '</b></div>' +
+        '<div class="jxc-rule">' + rl.join('・') + (ex ? '<br>' + ex : '') + (soonEnd ? ' <span class="jxl-soon">もうすぐ終わる</span>' : '') + '</div>'
+        : '<div class="jxc-rule">自習なし</div>') +
+      (later.length ? '<div class="jxc-later"><b>この先の自習</b><br>' + later.join('<br>') + '</div>' : '') +
+      (memos.length ? '<div class="jxc-memo">' + memos.map(function(m) { return '&#9998; ' + esc(m); }).join('<br>') + '</div>' : '') +
+      '<button class="btn-secondary jxc-edit" onclick="openJishuStudentEditor(' + jxQ_(key) + ')">' + (x.rows.length ? '編集' : '入れる') + '</button></div>';
+    return '<div class="jxc-row">' + left + grid + '</div>';
+  }
+
+  var legend = '<div class="jxc-legend"><span><span class="jxc-js">&#10003;</span>自習（毎週）</span><span><span class="jxc-js"><span class="jxc-tg">隔</span>&#10003;</span>隔週</span>' +
+    '<span><span class="jxc-js"><span class="jxc-tg">1回</span>&#10003;</span>この日だけ</span><span><span class="jxc-off">休み</span>その日は自習に来ない</span>' +
+    '<span><span class="jxc-ls">塾</span>授業（塾・CA・演＝演習回・英＝英検・特＝受験特訓・オ＝オンライン）</span>' +
+    '<span><span class="jxc-js">&#10003;<span class="jxc-cr">北</span></span>所属と違う教室で自習</span></div>';
   var html = '<div class="card"><div class="card-header" style="display:flex;align-items:center;gap:10px"><span>&#128214; 自習の一覧</span>' +
     '<span style="font-size:12px;font-weight:400;color:var(--text-muted)">自習が入っている子 ' + nStu + '人</span></div><div class="card-body">' +
     chips_('教室', Object.keys(crs).sort(), 'cr') + chips_('学年', Object.keys(grs).sort(function(a, b) { return cbGradeRank_(a) - cbGradeRank_(b); }), 'gr') +
     '<div class="jp-frow"><span class="jp-fl">検索</span><input id="jxl-q" class="jp-fsearch" placeholder="名前で検索" value="' + esc(_jxl.q || '') + '" oninput="jxlSet(\'q\',this.value)">' +
     '<button class="jp-fchip' + (_jxl.all ? ' jp-on' : '') + '" style="margin-left:8px" onclick="jxlSet(\'all\',' + (!_jxl.all) + ')">自習のない子も出す</button></div>' +
-    '<table class="jxl-t"><thead><tr><th>生徒</th><th>学年</th><th>教室</th><th>自習の予定</th><th>次に来る日</th><th></th></tr></thead><tbody>' +
-    list.map(function(x) {
-      var key = jpKey_(x.s), nexts = [];
-      var plans = x.rows.map(function(r) {
-        var L = jxFromRow_(r), fut = jxFut_(L); if (fut[0]) nexts.push(fut[0]);
-        var txt = (r.kind === 'single') ? jxMd_(r.date) + ' ' + String(r.komaTime || '').split('〜')[0] + ' だけ'
-          : (String(r.everyWeeks || '') === '2' ? '隔週 ' : '毎週 ') + esc(r.youbi) + ' ' + esc(String(r.komaTime || '').split('〜')[0]) +
-            (String(r.everyWeeks || '') === '2' && r.validFrom ? '（' + jxMd_(r.validFrom) + 'から）' : '') + '　〜' + (r.validTo ? jxMd_(r.validTo) : '無期限');
-        var tag = (r.kind === 'weekly' && r.validTo && r.validTo <= soon) ? '<span class="jxl-soon">もうすぐ終わる</span>' : '';
-        var memo = jishuMemoShown_(r.memo);
-        return '<div class="jxl-p">' + txt + ' <span class="jxl-cr">' + esc(r.classroom || '') + '</span>' + tag + (memo ? ' <span class="jxl-memo">&#9998; ' + esc(memo) + '</span>' : '') + '</div>';
-      }).join('') || '<span style="color:#94a3b8">なし</span>';
-      nexts.sort();
-      return '<tr><td><b>' + esc(x.s.name) + '</b></td><td>' + esc(x.s.grade || '') + '</td><td>' + esc(x.s.classroom || '') + '</td><td>' + plans + '</td>' +
-        '<td>' + (nexts[0] ? jxMd_(nexts[0]) : '<span style="color:#94a3b8">—</span>') + '</td>' +
-        '<td style="text-align:right"><button class="btn-secondary" style="padding:4px 12px;font-size:12px" onclick="openJishuStudentEditor(' + jxQ_(key) + ')">' + (x.rows.length ? '変える' : '入れる') + '</button></td></tr>';
-    }).join('') + '</tbody></table>' + (list.length ? '' : '<div style="padding:16px;color:#94a3b8;font-size:13px">該当する生徒がいません</div>') +
+    legend + list.map(rowHtml_).join('') +
+    (list.length ? '' : '<div style="padding:16px;color:#94a3b8;font-size:13px">該当する生徒がいません</div>') +
     '</div></div>';
   el.innerHTML = html;
 }
