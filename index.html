@@ -504,6 +504,36 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiry
 .jxl-soon { font-size:10.5px; background:#fef3c7; color:#92400e; border-radius:4px; padding:0 6px; margin-left:4px; font-weight:700; }
 .jxl-memo { font-size:11px; color:#166534; }
 @media print { .jx-plan, .jx-common { display:none; } }
+/* 2026-11-08 夜：画面を大きく・左右を別々にスクロール・登録ずみは1行（川上さん「ウィンドウが狭すぎる」） */
+.modal.jx-modal { width:min(1680px, 98vw); max-width:98vw; height:94vh; max-height:94vh; display:flex; flex-direction:column; overflow:hidden; padding:0; }
+#jx-root { display:flex; flex-direction:column; height:100%; min-height:0; }
+#jx-root > .modal-header { flex-shrink:0; }
+.jx-main { flex:1; min-height:0; display:grid; grid-template-columns:300px minmax(0,1fr); gap:10px; padding:8px 14px 0; }
+.jx-main.jx-main1 { grid-template-columns:minmax(0,1fr); }
+.jx-left, .jx-right { display:flex; flex-direction:column; min-height:0; border:1px solid var(--border); border-radius:8px; background:#fff; overflow:hidden; }
+.jx-filters { padding:6px 8px 2px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.jx-filters .jp-frow { margin-bottom:3px; gap:3px; }
+.jx-filters .jp-fl { width:36px; font-size:10.5px; }
+.jx-filters .jp-fchip { padding:1px 8px; font-size:11px; }
+.jx-filters .jp-fsearch { width:100%; flex:1; padding:3px 10px; }
+.jx-scroll { flex:1; min-height:0; overflow-y:auto; position:relative; }
+.jx-left .jp-lrow { padding:5px 8px; }
+.jx-left .jp-lrow .jp-st { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.jx-foot { flex-shrink:0; padding:8px 14px 10px; border-top:1px solid var(--border); margin-top:8px; }
+.jx-card { margin:6px 8px; }
+.jx-plan { margin:5px 0; }
+.jx-plan.jx-fold1 { display:flex; align-items:center; gap:8px; padding:5px 8px; flex-wrap:wrap; }
+.jx-tag { font-size:11px; font-weight:700; border-radius:5px; padding:2px 8px; flex-shrink:0; }
+.jx-one { font-size:12.5px; font-weight:600; flex:1; min-width:200px; }
+.jx-next { color:#16a34a; font-weight:600; }
+.jx-memo1 { font-size:11.5px; color:#166534; font-weight:400; }
+.jx-wn { font-size:11px; color:#b91c1c; font-weight:700; }
+.jx-addbtn { margin-left:auto; border:1px solid #16a34a; background:#f0fdf4; color:#166534; border-radius:6px; padding:3px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+.jx-addbtn:hover { background:#dcfce7; }
+.jx-addbtn + .jx-del { margin-left:4px; }
+.jx-addtile { font-size:13px; line-height:28px; }
+.jx-stbar { margin-bottom:5px; padding:3px 8px; }
+@media (max-width:860px) { .jx-main { grid-template-columns:1fr; overflow-y:auto; } .jx-left, .jx-right { overflow:visible; } .jx-scroll { overflow:visible; } }
 .koushu-drop-target { outline: 2px dashed var(--crimson); outline-offset: -2px; background: rgba(220,38,38,0.05); }
 
 
@@ -11331,9 +11361,9 @@ function jxFut_(L) { var t = getTodayStr(); return jxOccAll_(L).days.filter(func
 function jxNewLine_() {
   var O = _jx.open, dk = {}; dk[O.iso] = O.kt;
   return { lid: 'L' + (++_jxUid), rep: 'weekly', youbi: jxYb_(O.iso), kt: O.kt, cr: O.cr, from: O.iso, to: jishuDefaultLimit_(),
-           dates: [O.iso], dkt: dk, memo: '', memoRaw: '', jid: '', calM: O.iso.slice(0, 7) };
+           dates: [O.iso], dkt: dk, memo: '', memoRaw: '', jid: '', calM: O.iso.slice(0, 7), open: true };
 }
-function jxCopy_(L) { var c = JSON.parse(JSON.stringify(L)); c.lid = 'L' + (++_jxUid); c.jid = ''; c.cut = false; delete c.pend; delete c.orig; delete c.splitOf; c.del = false; return c; }
+function jxCopy_(L) { var c = JSON.parse(JSON.stringify(L)); c.lid = 'L' + (++_jxUid); c.jid = ''; c.cut = false; delete c.pend; delete c.orig; delete c.splitOf; c.del = false; c.open = true; return c; }
 function jxSig_(L) {
   var dk = {}; (L.dates || []).forEach(function(d) { dk[d] = jxKtOf_(L, d); });
   return JSON.stringify({ rep: L.rep, youbi: L.youbi, kt: L.kt, cr: L.cr, from: L.from, to: L.to, memo: L.memo,
@@ -11351,6 +11381,7 @@ function jxFromRow_(r) {
     var nx = jxFut_(L); L.calM = (nx[0] || L.from || getTodayStr()).slice(0, 7);
   }
   L.orig = jxSig_(L);
+  L.open = false;   // 2026-11-08：登録ずみは1行にたたむ。［変える］で開く
   return L;
 }
 // その子の自習（取り消しの off は除く。これから先に来ないものは出さない）
@@ -11407,7 +11438,7 @@ function jxOpenModal_() {
   var m = document.createElement('div');
   m.id = 'modal-jp'; m.className = 'modal-overlay';
   m.onclick = function(e) { if (e.target === m) jxTryClose(); };
-  m.innerHTML = '<div class="modal" style="max-width:96vw;width:1180px"><div id="jx-root"></div></div>';
+  m.innerHTML = '<div class="modal jx-modal"><div id="jx-root"></div></div>';
   document.body.appendChild(m);
   openModal('modal-jp');
   jxRender_();
@@ -11471,7 +11502,8 @@ function jxDrop(key) {
 }
 function jxToOwn(key) { jxOwn_(key); jxRender_(); }
 function jxToCommon(key) { var r = _jx.rows[key]; r.mode = 'common'; r.lines = []; jxRender_(); }
-function jxAddLine(key) { jxOwn_(key); jxLines_(key).push(jxNewLine_()); jxRender_(); }
+function jxAddLine(key) { jxOwn_(key); var L = jxNewLine_(); jxLines_(key).push(L); _jx.scrollTo = L.lid; jxRender_(); }
+function jxOpenLine(key, lid, v) { lid = jxOwnLid_(key, lid); var L = jxFind_(key, lid); if (L) { L.open = v; if (v) _jx.scrollTo = L.lid; } jxRender_(); }
 function jxDelLine(key, lid) {
   lid = jxOwnLid_(key, lid); var a = jxLines_(key), i = jxIdx_(key, lid); if (i < 0) return; var L = a[i];
   if (L.jid) { L.del = true; delete L.pend; } else a.splice(i, 1);
@@ -11564,8 +11596,26 @@ function jxListHtml_(key, L) {
   if (!all.length) rows = '<div class="jx-li jx-lx">' + (L.rep === 'dates' ? 'カレンダーで日を押す' : 'これから来る日がありません') + '</div>';
   return head + '<div class="jx-lb">' + rows + '</div>';
 }
+function jxOneLine_(L) {
+  var fut = jxFut_(L);
+  if (L.rep === 'dates') return L.dates.slice().sort().map(function(d) { return jxMd_(d) + ' ' + String(jxKtOf_(L, d)).split('〜')[0]; }).join('・') + '　' + esc(L.cr);
+  return (L.rep === 'weekly' ? '毎週 ' : '隔週 ') + esc(L.youbi) + '曜 ' + esc(L.kt) + '　' + esc(L.cr) + '　〜' + (L.to ? jxMd_(L.to) : '無期限') +
+    '　<span class="jx-next">次 ' + (fut[0] ? jxMd_(fut[0]) : 'なし') + '</span>';
+}
 function jxLineHtml_(key, L, canDel, no, am) {
   var K = jxQ_(key), I = jxQ_(L.lid), st = (key === 'C') ? '' : jxState_(L), o = jxOrig_(L);
+  // たたんだ予定（登録ずみで触っていないもの・消す予定）は1行
+  if (key !== 'C' && !L.open && (st === 'saved' || st === 'del')) {
+    var wl = (st === 'saved') ? jxStuWarn_(key, L, no) : [], wn = wl.length;
+    return '<div class="jx-plan jx-fold1' + (st === 'del' ? ' jx-pl-del' : '') + '" id="jxl-' + L.lid + '">' +
+      (jxNum_(key, no) ? '<span class="jx-pno">' + no + '</span>' : '') +
+      (st === 'del' ? '<span class="jx-tag jx-st-del">&#128465; 消します・まだ保存していません</span>' : '<span class="jx-tag jx-st-saved">&#10003; 保存ずみ</span>') +
+      '<span class="jx-one">' + jxOneLine_(L) + (L.memo ? '　<span class="jx-memo1">&#9998; ' + esc(L.memo) + '</span>' : '') + '</span>' +
+      (wn ? '<span class="jx-wn" title="' + esc(wl.join('\n')) + '">&#9888; ' + wn + '</span>' : '') +
+      (st === 'del' ? '<button class="jx-undo" onclick="jxUndo(' + K + ',' + I + ')">元に戻す</button>'
+                    : '<button class="jx-mini" onclick="jxOpenLine(' + K + ',' + I + ',true)">変える</button>' + (canDel ? '<button class="jx-del" title="この予定を消す" onclick="jxDelLine(' + K + ',' + I + ')">&times;</button>' : '')) +
+      '</div>';
+  }
   var seg = '<span class="jx-seg">' + [['weekly', '毎週'], ['biweekly', '隔週'], ['dates', '日付を選ぶ']].map(function(x) {
     return '<button class="' + (L.rep === x[0] ? 'jx-on' : '') + '"' + (L.del ? ' disabled' : '') + ' onclick="jxEdit(' + K + ',' + I + ',\'rep\',\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</span>';
   var repW = (o && !L.del && o.rep !== L.rep) ? '<span class="jx-was">元：' + ({ weekly: '毎週', biweekly: '隔週', dates: '日付を選ぶ' }[o.rep]) + '</span>' : '';
@@ -11590,7 +11640,8 @@ function jxLineHtml_(key, L, canDel, no, am) {
     jxStuWarn_(k, L, no).forEach(function(x) { w.push(s.name + '　' + x); }); });
   else if (_jx.rows[key].mode === 'own') w = w.concat(jxStuWarn_(key, L, no));
   var warn = w.length ? '<div class="jx-warn">&#9888; ' + w.map(esc).join('<br>&#9888; ') + '</div>' : '';
-  return '<div class="jx-plan' + (st ? ' jx-pl-' + st : '') + '">' + r1 + pend + '<div class="jx-body">' + body + warn + '</div></div>';
+  var fold = (key !== 'C' && L.jid && st === 'saved') ? '<button class="jx-mini" style="margin-left:6px" onclick="jxOpenLine(' + K + ',' + I + ',false)">たたむ</button>' : '';
+  return '<div class="jx-plan' + (st ? ' jx-pl-' + st : '') + '" id="jxl-' + L.lid + '">' + r1.replace('</div>', fold + '</div>') + pend + '<div class="jx-body">' + body + warn + '</div></div>';
 }
 function jxSum_(lines) {
   return lines.map(function(L, i) {
@@ -11640,12 +11691,13 @@ function jxRender_() {
     (nC.length ? nC.map(function(k) { return esc(jpFindStu_(k).name); }).join('・') + ' に入ります' : '') + '</span>' +
     (fold ? '<button class="jx-mini" style="margin-left:auto" onclick="_jx.cOpen=true;jxRender_()">開く</button>' : '') + '</div>' +
     S.common.map(function(L, i) { return jxLineHtml_('C', L, S.common.length > 1, i + 1, am); }).join('') +
-    '<button class="jx-addtile" title="予定をもう1つ足す" onclick="jxAddLine(\'C\')">＋</button></div>';
+    '<button class="jx-addtile" onclick="jxAddLine(\'C\')">＋ 予定を追加</button></div>';
   var cards = keys.map(function(k) {
     var s = jpFindStu_(k), r = S.rows[k]; if (!s) return '';
     var hd = '<div class="jx-cardh"><span class="jx-nm">' + esc(s.name) + '</span><span class="jx-gr">' + esc(s.grade || '') + '</span>' +
       (r.mode === 'common' ? '<span class="jx-link">&#128279; まとめて入れる予定と同じ</span><button class="jx-mini" onclick="jxToOwn(' + jxQ_(k) + ')">この子だけ変える</button>'
         : ((S.single || jxSaved_(k).length) ? '' : '<button class="jx-mini" onclick="jxToCommon(' + jxQ_(k) + ')">&#128279; まとめて入れる予定と同じにする</button>')) +
+      (r.mode === 'common' ? '' : '<button class="jx-addbtn" onclick="jxAddLine(' + jxQ_(k) + ')">＋ 予定を追加</button>') +
       (S.single ? '' : '<button class="jx-del" title="外す" onclick="jxDrop(' + jxQ_(k) + ')">&times;</button>') + '</div>';
     var bd;
     if (r.mode === 'common') {
@@ -11653,7 +11705,7 @@ function jxRender_() {
       bd = '<div class="jx-stbar jx-st-new"><span>' + JX_ST['new'] + '</span></div><div class="jx-sum">' + esc(jxSum_(S.common)) + '</div>' +
         (w.length ? '<div class="jx-warn">&#9888; ' + w.map(esc).join('<br>&#9888; ') + '</div>' : '');
     } else {
-      bd = r.lines.map(function(L, i) { return jxLineHtml_(k, L, true, i + 1, am); }).join('') + '<button class="jx-addtile" title="予定をもう1つ足す" onclick="jxAddLine(' + jxQ_(k) + ')">＋</button>';
+      bd = r.lines.map(function(L, i) { return jxLineHtml_(k, L, true, i + 1, am); }).join('') || '<div class="jx-sum">予定がありません</div>';
     }
     return '<div class="jx-card">' + hd + bd + '</div>';
   }).join('');
@@ -11663,12 +11715,18 @@ function jxRender_() {
     '<button class="btn-secondary" onclick="jxTryClose()">閉じる</button><button id="jx-save-btn" class="btn-primary" onclick="jxSave()"' + (n ? '' : ' disabled') + '>登録</button></div>';
   var dlg = '';
   if (S.dlg && S.dlg.kind === 'close') dlg = '<div class="jx-ov"><div class="jx-box"><div class="jx-bh">保存していない変更があります</div><div class="jx-bb">閉じると、この画面で変えた内容は消えます。</div><div class="jx-bf"><button class="btn-secondary" onclick="_jx.dlg=null;jxRender_()">戻る</button><button class="jx-btn-del" onclick="jxClose()">保存せずに閉じる</button></div></div></div>';
-  var right = '<div class="jp-col"><div class="jp-colh"><span>自習で来る</span><span style="font-weight:400;color:var(--text-muted)">（' + keys.length + '人）</span></div><div class="jx-colb">' + common +
+  var right = '<div class="jx-right"><div class="jp-colh"><span>自習で来る</span><span style="font-weight:400;color:var(--text-muted)">（' + keys.length + '人）</span></div><div class="jx-scroll" id="jx-rs">' + common +
     (cards || '<div style="padding:14px 10px;font-size:11.5px;color:#b6bfcc;text-align:center">左の候補を押すとここに入ります</div>') + '</div></div>';
+  // 🚨 描き直すとスクロール位置が一番上に戻る。押すたびに上へ飛んで使えなかった（2026-11-08 川上さん指摘）。前の位置を覚えて戻す
+  var ls = document.getElementById('jx-ls'), rs = document.getElementById('jx-rs');
+  var lsT = ls ? ls.scrollTop : 0, rsT = rs ? rs.scrollTop : 0;
   root.innerHTML = '<div class="modal-header"><span>' + head + '</span><span class="modal-close" onclick="jxTryClose()">&times;</span></div>' +
-    '<div class="modal-body" style="overflow-y:auto;max-height:calc(92vh - 70px)">' +
-    (S.single ? right : leftCol.filters + '<div class="jx-tr2"><div class="jp-col"><div class="jp-colh"><span>候補</span><span style="font-weight:400;color:var(--text-muted)">（' + leftCol.n + '人）</span></div><div class="jx-colb">' + leftCol.list + '</div></div>' + right + '</div>') +
-    foot + dlg + '</div>';
+    '<div class="jx-main' + (S.single ? ' jx-main1' : '') + '">' +
+    (S.single ? '' : '<div class="jx-left"><div class="jx-filters">' + leftCol.filters + '</div><div class="jp-colh"><span>候補</span><span style="font-weight:400;color:var(--text-muted)">（' + leftCol.n + '人）</span></div><div class="jx-scroll" id="jx-ls">' + leftCol.list + '</div></div>') +
+    right + '</div>' + foot + dlg;
+  ls = document.getElementById('jx-ls'); rs = document.getElementById('jx-rs');
+  if (ls) ls.scrollTop = lsT; if (rs) rs.scrollTop = rsT;
+  if (S.scrollTo) { var tg = document.getElementById('jxl-' + S.scrollTo); S.scrollTo = ''; if (tg && rs) rs.scrollTop = Math.max(0, tg.offsetTop - 40); }
 }
 
 /* 登録：足すのが先、消すのが後 */
