@@ -19220,6 +19220,11 @@ function ttProg_(t, onlyKnown) {
   });
   return { a: a, b: b, n: n };
 }
+function ttProgIn_(t, stus) {
+  var a = 0, b = 0, n = 0;
+  stus.forEach(function(s) { var i = ttItemIdx_(t, s); if (i < 0) return; n++; var st = +t.items[i].st || 0; if (st >= 1) a++; if (st === 2) b++; });
+  return { a: a, b: b, n: n };
+}
 function ttOpenTask_(t) { var p = ttProg_(t, true); return p.n > 0 && p.b < p.n; }
 function ttGradeIdx_(g) { var i = TT_GRADE_ORDER.indexOf(g); return i < 0 ? 99 : i; }
 
@@ -19260,7 +19265,7 @@ function ttMatrixHtml_(tasks, mode) {
     var stus = ttSortStus_(grp.stus, mode === 'today');
     var out = '<div class="tt-grp"><div class="tt-g">' + esc(grp.g) + '</div><div class="tt-lgd">';
     grp.tasks.forEach(function(t, k) {
-      var p = ttProg_(t, true);
+      var p = ttProgIn_(t, grp.stus);   // 2026-11-18：その学年の子だけで数える（学年をまたぐタスクで 2/2 と出て紛らわしかった）
       out += '<div class="tt-lg"><span class="tt-no">' + TT_CIR.charAt(k) + '</span><span class="tt-tt" title="' + esc(t.title + (t.memo ? '\n' + t.memo : '')) + '">' + esc(t.title) + '</span>' +
         '<span class="tt-pr">渡す・伝える ' + p.a + '/' + p.n + '　チェック ' + p.b + '/' + p.n + (t.memo ? '　' + esc(t.memo) : '') + '</span>' +
         (mode === 'tab' ? '<button class="tt-ed" onclick="ttOpenEdit(\'' + esc(t.id) + '\')">✎ 編集</button>' : '') + '</div>';
