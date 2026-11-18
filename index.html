@@ -1914,25 +1914,26 @@ tr.mx-done-row td { background: #f0fdf4; }
 .tt-col { border-radius: 8px; padding: 0 8px 8px; border: 1px solid; min-width: 0; }
 .tt-col.kita { background: var(--kitakurihama-bg); border-color: var(--kitakurihama-border); }
 .tt-col.kuri { background: var(--kurihama-bg); border-color: var(--kurihama-border); }
-.tt-col-h { margin: 0 -8px 4px; padding: 5px 10px; color: #fff; font-weight: 700; font-size: 13px; border-radius: 7px 7px 0 0; display: flex; align-items: center; gap: 10px; }
+.tt-col-h { margin: 0 -8px 2px; padding: 4px 10px; color: #fff; font-weight: 700; font-size: 13px; border-radius: 7px 7px 0 0; display: flex; align-items: center; gap: 10px; }
 .tt-col.kita .tt-col-h { background: var(--kitakurihama-header); }
 .tt-col.kuri .tt-col-h { background: var(--kurihama-header); }
 .tt-colsub { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.22); border-radius: 4px; padding: 0 6px; }
-.tt-g { font-size: 13px; font-weight: 700; margin: 8px 0 2px; }
-.tt-sch { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 4px 0 3px 2px; }
-.tt-rows { display: flex; flex-direction: column; gap: 5px; }
+.tt-sch { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 4px 0 2px 2px; }
+.tt-sch.gtop { margin-top: 7px; }
+.tt-sch b { color: var(--text); font-size: 12.5px; margin-right: 6px; }
+.tt-rows { display: flex; flex-direction: column; gap: 3px; }
 .tt-split { border-top: 2px dashed #94a3b8; margin: 10px 0 2px; }
 /* 生徒1人＝1枚 */
-.tt-card { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; border: 1px solid; border-left-width: 4px; border-radius: 7px; background: #fff; }
+.tt-card { display: flex; align-items: flex-start; gap: 6px; padding: 2px 6px; border: 1px solid; border-left-width: 4px; border-radius: 7px; background: #fff; }
 .tt-card.kita { border-color: var(--kitakurihama-border); border-left-color: var(--kitakurihama-header); }
 .tt-card.kuri { border-color: var(--kurihama-border); border-left-color: var(--kurihama-header); }
-.tt-who { width: 190px; flex-shrink: 0; font-size: 13px; padding-top: 1px; }
+.tt-who { width: 124px; flex-shrink: 0; font-size: 13px; padding-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tt-who .sub { font-size: 11px; color: #94a3b8; margin-left: 4px; }
 .tt-card.td .tt-who { font-weight: 700; }
 .tt-card.off .tt-who { color: var(--text-muted); }
 .tt-today-mk { display: inline-block; font-size: 10px; font-weight: 600; border: 1px solid var(--text); border-radius: 3px; padding: 0 3px; margin-left: 4px; line-height: 1.4; }
-.tt-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; flex: 1; min-width: 0; }
-.tt-chip { position: relative; display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 5px; padding: 1px 7px 1px 3px; font-size: 12px; background: #fff; white-space: nowrap; }
+.tt-chips { display: flex; flex-wrap: wrap; gap: 3px 5px; flex: 1; min-width: 0; }
+.tt-chip { position: relative; display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 5px; padding: 0 6px 0 2px; font-size: 12px; background: #fff; white-space: nowrap; }
 .tt-chip .tt-nm { margin-left: 3px; cursor: pointer; }
 .tt-chip.dn { background: var(--surface); }
 .tt-chip.dn .tt-nm { color: #94a3b8; }
@@ -1944,7 +1945,7 @@ tr.mx-done-row td { background: #f0fdf4; }
 .tt-pop span { display: block; color: var(--text-muted); margin-top: 2px; }
 .tt-chip:hover .tt-pop, .tt-chip.pin .tt-pop { display: block; }
 /* □（ブラウザ既定を使わない） */
-.tt-cbx { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1.5px solid #94a3b8; border-radius: 4px; background: #fff; cursor: pointer; vertical-align: middle; box-sizing: border-box; }
+.tt-cbx { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1.5px solid #94a3b8; border-radius: 4px; background: #fff; cursor: pointer; vertical-align: middle; box-sizing: border-box; }
 .tt-cbx:hover { border-color: var(--text); }
 .tt-cbx.on { background: var(--text); border-color: var(--text); }
 .tt-cbx.on::after { content: ''; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px,-1px); }
@@ -1980,7 +1981,11 @@ table.tt-conf th { background: var(--surface); font-size: 11.5px; }
 .tt-past-a { display: flex; gap: 6px; align-items: center; }
 /* 本日タブの帯 */
 .tt-band { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px 8px; margin-bottom: 8px; }
-.tt-band-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; margin-bottom: 6px; flex-wrap: wrap; }
+.tt-band-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; margin-bottom: 6px; flex-wrap: wrap; cursor: pointer; user-select: none; }
+.tt-band.closed { padding-bottom: 6px; }
+.tt-band.closed .tt-band-h { margin-bottom: 0; }
+.tt-chev { font-size: 10px; color: var(--text-muted); width: 10px; }
+.tt-band-n { font-size: 12px; font-weight: 400; color: var(--text-muted); }
 /* 追加・編集の画面 */
 #modal-tt .modal { width: 900px; }
 .tt-fl { font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 8px 0 3px; }
@@ -19300,8 +19305,8 @@ function ttCardHtml_(r, mode, iso) {
       '<span class="tt-cbx' + (st === 2 ? ' on' : '') + '" title="チェック" onclick="ttBox(\'' + esc(t.id) + '\',' + x.i + ',2)"></span>' +
       '<span class="tt-nm" onclick="ttPinPop(this)">' + esc(ttShort_(t)) + '</span>' + mk + '</span>';
   }).join('');
-  return '<div class="' + cls + '"><div class="tt-who">' + esc(s.name) + '<span class="sub">' + esc(s.grade || '') + ' ' + esc(ttShortSchool_(s.school)) + '</span>' +
-    (td ? '<span class="tt-today-mk">今日</span>' : '') + '</div><div class="tt-chips">' + chips + '</div></div>';
+  // 2026-11-18 川上さん「中1・久里浜中が見出しとカードで重複」「今日の札で2行になる」→ 学年・学校は見出しだけ、今日来る子は太字だけ
+  return '<div class="' + cls + '"><div class="tt-who" title="' + esc(s.name + '　' + (s.grade || '') + ' ' + (s.school || '')) + '">' + esc(s.name) + '</div><div class="tt-chips">' + chips + '</div></div>';
 }
 // 1つの教室の列の中身（学年 → 学校 → 名前）
 function ttColBody_(rows, mode, iso) {
@@ -19309,11 +19314,12 @@ function ttColBody_(rows, mode, iso) {
   TT_GRADE_ORDER.forEach(function(g) {
     var gr = rows.filter(function(r) { return r.s.grade === g; });
     if (!gr.length) return;
-    h += '<div class="tt-g">' + esc(g) + '（' + gr.length + '人）</div>';
+    var first = true;
     ttSchoolRank_(gr, g).forEach(function(sc) {
       var l = gr.filter(function(r) { return (r.s.school || '') === sc; })
         .sort(function(a, b) { return String(a.s.kana || a.s.name) < String(b.s.kana || b.s.name) ? -1 : 1; });
-      h += '<div class="tt-sch">' + esc(sc || '学校なし') + '（' + l.length + '人）</div><div class="tt-rows">' + l.map(function(r) { return ttCardHtml_(r, mode, iso); }).join('') + '</div>';
+      h += '<div class="tt-sch' + (first ? ' gtop' : '') + '"><b>' + esc(g) + '</b>' + esc(sc || '学校なし') + '（' + l.length + '人）</div><div class="tt-rows">' + l.map(function(r) { return ttCardHtml_(r, mode, iso); }).join('') + '</div>';
+      first = false;
     });
   });
   return h;
@@ -19768,8 +19774,19 @@ function ttTodayBandInner_() {
   if (!_ttLoaded) return _ttFailed ? '<div class="cl-loaderr"><span>&#9888; テスト対策タスクを読み込めませんでした（データは消えていません）</span></div>' : '';
   var S = ttStudentsOf_(ttTasksOf_(k.year, k.term));
   if (!S.list.length) return '';
-  return '<div class="tt-band"><div class="tt-band-h"><span>テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）</span>' + ttSyncHtml_() + ttLegendHtml_() + '</div>' +
-    ttColsHtml_(S.list, 'today', cbViewIso_()) + '</div>';
+  var open = ttBandOpen_();
+  var nToday = S.list.filter(function(r) { return ttIsToday_(r.s); }).length;
+  return '<div class="tt-band' + (open ? '' : ' closed') + '"><div class="tt-band-h" onclick="ttToggleBand(event)"><span class="tt-chev">' + (open ? '▼' : '▶') + '</span>' +
+    '<span>テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）</span><span class="tt-band-n">' + S.list.length + '人・今日来る子 ' + nToday + '人</span>' +
+    (open ? ttSyncHtml_() + ttLegendHtml_() : '') + '</div>' +
+    (open ? ttColsHtml_(S.list, 'today', cbViewIso_()) : '') + '</div>';
+}
+// 帯の開閉（チェックリストと同じく閉じられる）。端末ごとに覚える。既定は開く
+function ttBandOpen_() { try { return localStorage.getItem('cb_tt_band_open') !== '0'; } catch (e) { return true; } }
+function ttToggleBand(e) {
+  if (e && e.target && e.target.closest && e.target.closest('button, .tt-sync')) return;
+  try { localStorage.setItem('cb_tt_band_open', ttBandOpen_() ? '0' : '1'); } catch (er) {}
+  var band = document.getElementById('tt-band-wrap'); if (band) band.innerHTML = ttTodayBandInner_();
 }
 function ttCollectToday_() {
   var set = {};
