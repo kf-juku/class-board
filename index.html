@@ -1918,16 +1918,16 @@ tr.mx-done-row td { background: #f0fdf4; }
 .tt-col.kita .tt-col-h { background: var(--kitakurihama-header); }
 .tt-col.kuri .tt-col-h { background: var(--kurihama-header); }
 .tt-colsub { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.22); border-radius: 4px; padding: 0 6px; }
-.tt-sch { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 4px 0 2px 2px; }
-.tt-sch.gtop { margin-top: 7px; }
-.tt-sch b { color: var(--text); font-size: 12.5px; margin-right: 6px; }
 .tt-rows { display: flex; flex-direction: column; gap: 3px; }
-.tt-split { border-top: 2px dashed #94a3b8; margin: 10px 0 2px; }
+.tt-split { border-top: 2px dashed #94a3b8; margin: 8px 0 4px; }
 /* 生徒1人＝1枚 */
 .tt-card { display: flex; align-items: flex-start; gap: 6px; padding: 2px 6px; border: 1px solid; border-left-width: 4px; border-radius: 7px; background: #fff; }
 .tt-card.kita { border-color: var(--kitakurihama-border); border-left-color: var(--kitakurihama-header); }
 .tt-card.kuri { border-color: var(--kurihama-border); border-left-color: var(--kurihama-header); }
-.tt-who { width: 124px; flex-shrink: 0; font-size: 13px; padding-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tt-who { width: 200px; flex-shrink: 0; font-size: 13px; padding-top: 2px; white-space: nowrap; overflow: hidden; display: flex; align-items: baseline; gap: 5px; }
+.tt-who .nm { overflow: hidden; text-overflow: ellipsis; }
+.tt-who .sub { font-size: 11px; color: #94a3b8; flex-shrink: 0; font-weight: 400; }
+.tt-cols .tt-rows { margin-top: 4px; }
 .tt-who .sub { font-size: 11px; color: #94a3b8; margin-left: 4px; }
 .tt-card.td .tt-who { font-weight: 700; }
 .tt-card.off .tt-who { color: var(--text-muted); }
@@ -1984,8 +1984,7 @@ table.tt-conf th { background: var(--surface); font-size: 11.5px; }
 .tt-band-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; margin-bottom: 6px; flex-wrap: wrap; cursor: pointer; user-select: none; }
 .tt-band.closed { padding-bottom: 6px; }
 .tt-band.closed .tt-band-h { margin-bottom: 0; }
-.tt-chev { font-size: 10px; color: var(--text-muted); width: 10px; }
-.tt-band-n { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+.tt-band-n { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: auto; }
 /* 追加・編集の画面 */
 #modal-tt .modal { width: 900px; }
 .tt-fl { font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 8px 0 3px; }
@@ -19305,24 +19304,23 @@ function ttCardHtml_(r, mode, iso) {
       '<span class="tt-cbx' + (st === 2 ? ' on' : '') + '" title="チェック" onclick="ttBox(\'' + esc(t.id) + '\',' + x.i + ',2)"></span>' +
       '<span class="tt-nm" onclick="ttPinPop(this)">' + esc(ttShort_(t)) + '</span>' + mk + '</span>';
   }).join('');
-  // 2026-11-18 川上さん「中1・久里浜中が見出しとカードで重複」「今日の札で2行になる」→ 学年・学校は見出しだけ、今日来る子は太字だけ
-  return '<div class="' + cls + '"><div class="tt-who" title="' + esc(s.name + '　' + (s.grade || '') + ' ' + (s.school || '')) + '">' + esc(s.name) + '</div><div class="tt-chips">' + chips + '</div></div>';
+  // 2026-11-18 川上さん：小見出し（学年・学校）はやめ、名前の横に「中1 久里浜」を書く（並びは学年→学校→名前のまま）。今日来る子は太字だけ
+  return '<div class="' + cls + '"><div class="tt-who" title="' + esc(s.name + '　' + (s.grade || '') + ' ' + (s.school || '')) + '"><span class="nm">' + esc(s.name) + '</span><span class="sub">' + esc(s.grade || '') + ' ' + esc(ttShortSchool_(s.school)) + '</span></div><div class="tt-chips">' + chips + '</div></div>';
 }
 // 1つの教室の列の中身（学年 → 学校 → 名前）
 function ttColBody_(rows, mode, iso) {
-  var h = '';
+  // 並びは 学年 → 学校（その学年で対象の多い学校から）→ 名前。小見出しは付けない（2026-11-18 川上さん）
+  var out = [];
   TT_GRADE_ORDER.forEach(function(g) {
     var gr = rows.filter(function(r) { return r.s.grade === g; });
     if (!gr.length) return;
-    var first = true;
     ttSchoolRank_(gr, g).forEach(function(sc) {
-      var l = gr.filter(function(r) { return (r.s.school || '') === sc; })
-        .sort(function(a, b) { return String(a.s.kana || a.s.name) < String(b.s.kana || b.s.name) ? -1 : 1; });
-      h += '<div class="tt-sch' + (first ? ' gtop' : '') + '"><b>' + esc(g) + '</b>' + esc(sc || '学校なし') + '（' + l.length + '人）</div><div class="tt-rows">' + l.map(function(r) { return ttCardHtml_(r, mode, iso); }).join('') + '</div>';
-      first = false;
+      gr.filter(function(r) { return (r.s.school || '') === sc; })
+        .sort(function(a, b) { return String(a.s.kana || a.s.name) < String(b.s.kana || b.s.name) ? -1 : 1; })
+        .forEach(function(r) { out.push(ttCardHtml_(r, mode, iso)); });
     });
   });
-  return h;
+  return out.length ? '<div class="tt-rows">' + out.join('') + '</div>' : '';
 }
 // 左＝北久里浜・右＝久里浜
 function ttColsHtml_(rows, mode, iso) {
@@ -19776,9 +19774,12 @@ function ttTodayBandInner_() {
   if (!S.list.length) return '';
   var open = ttBandOpen_();
   var nToday = S.list.filter(function(r) { return ttIsToday_(r.s); }).length;
-  return '<div class="tt-band' + (open ? '' : ' closed') + '"><div class="tt-band-h" onclick="ttToggleBand(event)"><span class="tt-chev">' + (open ? '▼' : '▶') + '</span>' +
-    '<span>テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）</span><span class="tt-band-n">' + S.list.length + '人・今日来る子 ' + nToday + '人</span>' +
-    (open ? ttSyncHtml_() + ttLegendHtml_() : '') + '</div>' +
+  // 開閉のマークはチェックリストと同じもの・同じ位置（見出しの右・数のあと）。2026-11-18 川上さん指摘で左から移した
+  var chev = '<span class="cl-chevron' + (open ? ' open' : '') + '"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
+  return '<div class="tt-band' + (open ? '' : ' closed') + '"><div class="tt-band-h" onclick="ttToggleBand(event)">' +
+    '<span>テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）</span>' +
+    (open ? ttSyncHtml_() + ttLegendHtml_() : '') +
+    '<span class="tt-band-n">' + S.list.length + '人・今日来る子 ' + nToday + '人</span>' + chev + '</div>' +
     (open ? ttColsHtml_(S.list, 'today', cbViewIso_()) : '') + '</div>';
 }
 // 帯の開閉（チェックリストと同じく閉じられる）。端末ごとに覚える。既定は開く
