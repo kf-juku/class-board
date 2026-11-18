@@ -1886,11 +1886,10 @@ tr.mx-done-row td { background: #f0fdf4; }
 })();
 </script>
 <style>
-/* ===== テスト対策タスク（2026-11-18 川上さん確定・モック 20261117 直し6） =====
-   色は無彩色＋赤は「＋タスクを追加」だけ（UI_01）。行の両端揃えにしない。 */
-.tt-wrap { max-width: 1240px; }
+/* ===== テスト対策タスク（2026-11-18 生徒ごとの行・川上さん確定・モック 生徒ごと_20261118） =====
+   色は無彩色＋教室の色（時間割と同じ）＋赤は「＋タスクを追加」だけ（UI_01）。 */
+.tt-wrap { max-width: 1280px; }
 .tt-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.tt-head h2 { font-size: 18px; margin-right: 6px; }
 .tt-lb { font-size: 12px; color: var(--text-muted); }
 .tt-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: #fff; }
 .tt-seg span { padding: 4px 12px; font-size: 12.5px; cursor: pointer; border-right: 1px solid var(--border); color: var(--text-muted); }
@@ -1903,36 +1902,76 @@ tr.mx-done-row td { background: #f0fdf4; }
 .tt-sec-h .s { font-size: 12px; color: var(--text-muted); }
 .tt-legend { font-size: 11.5px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; font-weight: 400; }
 .tt-legend .tt-cbx { width: 13px; height: 13px; cursor: default; }
+.tt-sync { font-size: 11.5px; font-weight: 400; }
+.tt-sync.ok { color: #15803d; }
+.tt-sync.busy { color: var(--text-muted); }
+.tt-sync.err { color: #b91c1c; cursor: pointer; }
+.tt-reload { padding: 1px 8px !important; font-size: 11.5px !important; font-weight: 400; }
 .tt-empty { font-size: 12.5px; color: var(--text-muted); padding: 6px 2px; }
-.tt-note { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
-/* 学年ごとの表 */
-.tt-grp { margin-bottom: 12px; }
-.tt-grp:last-child { margin-bottom: 0; }
-.tt-g { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
-.tt-lgd { margin-bottom: 5px; }
-.tt-lg { display: flex; align-items: center; gap: 8px; font-size: 12.5px; line-height: 1.7; }
-.tt-no { font-weight: 700; width: 16px; flex-shrink: 0; }
-.tt-tt { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 420px; }
-.tt-pr { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
-.tt-ed { background: none; border: 1px solid transparent; border-radius: 5px; cursor: pointer; color: var(--text-muted); font-size: 12px; padding: 0 6px; }
-.tt-ed:hover { border-color: var(--border); background: #fff; }
-.tt-tw { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: flex-start; }
-table.tt-tb { border-collapse: collapse; }
-table.tt-tb th { font-size: 12px; font-weight: 700; padding: 0 4px 1px; text-align: center; width: 46px; }
-table.tt-tb td { padding: 1px 4px; font-size: 12.5px; border-top: 1px solid #edf0f5; }
-table.tt-tb td.nm { white-space: nowrap; min-width: 128px; padding-left: 0; }
-table.tt-tb td.nm .gr { font-size: 10.5px; color: #94a3b8; margin-left: 4px; }
-table.tt-tb td.c { white-space: nowrap; text-align: center; width: 46px; }
-table.tt-tb td.na { background: var(--surface); }
-table.tt-tb tr.dn td.nm { color: #94a3b8; }
-table.tt-tb tr.td td.nm { font-weight: 700; }
-table.tt-tb tr.off td.nm { color: var(--text-muted); }
-.tt-today-mk { display: inline-block; font-size: 10px; font-weight: 600; border: 1px solid var(--text); color: var(--text); border-radius: 3px; padding: 0 3px; margin-left: 5px; line-height: 1.4; }
+.tt-note { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
+/* 左＝北久里浜・右＝久里浜 */
+.tt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.tt-col { border-radius: 8px; padding: 0 8px 8px; border: 1px solid; min-width: 0; }
+.tt-col.kita { background: var(--kitakurihama-bg); border-color: var(--kitakurihama-border); }
+.tt-col.kuri { background: var(--kurihama-bg); border-color: var(--kurihama-border); }
+.tt-col-h { margin: 0 -8px 4px; padding: 5px 10px; color: #fff; font-weight: 700; font-size: 13px; border-radius: 7px 7px 0 0; display: flex; align-items: center; gap: 10px; }
+.tt-col.kita .tt-col-h { background: var(--kitakurihama-header); }
+.tt-col.kuri .tt-col-h { background: var(--kurihama-header); }
+.tt-colsub { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.22); border-radius: 4px; padding: 0 6px; }
+.tt-g { font-size: 13px; font-weight: 700; margin: 8px 0 2px; }
+.tt-sch { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 4px 0 3px 2px; }
+.tt-rows { display: flex; flex-direction: column; gap: 5px; }
+.tt-split { border-top: 2px dashed #94a3b8; margin: 10px 0 2px; }
+/* 生徒1人＝1枚 */
+.tt-card { display: flex; align-items: flex-start; gap: 8px; padding: 5px 8px; border: 1px solid; border-left-width: 4px; border-radius: 7px; background: #fff; }
+.tt-card.kita { border-color: var(--kitakurihama-border); border-left-color: var(--kitakurihama-header); }
+.tt-card.kuri { border-color: var(--kurihama-border); border-left-color: var(--kurihama-header); }
+.tt-who { width: 190px; flex-shrink: 0; font-size: 13px; padding-top: 1px; }
+.tt-who .sub { font-size: 11px; color: #94a3b8; margin-left: 4px; }
+.tt-card.td .tt-who { font-weight: 700; }
+.tt-card.off .tt-who { color: var(--text-muted); }
+.tt-today-mk { display: inline-block; font-size: 10px; font-weight: 600; border: 1px solid var(--text); border-radius: 3px; padding: 0 3px; margin-left: 4px; line-height: 1.4; }
+.tt-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; flex: 1; min-width: 0; }
+.tt-chip { position: relative; display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 5px; padding: 1px 7px 1px 3px; font-size: 12px; background: #fff; white-space: nowrap; }
+.tt-chip .tt-nm { margin-left: 3px; cursor: pointer; }
+.tt-chip.dn { background: var(--surface); }
+.tt-chip.dn .tt-nm { color: #94a3b8; }
+.tt-ck { font-size: 10px; font-weight: 700; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+.tt-ck.now { background: var(--text); color: #fff; }
+.tt-ck.over { border: 1px solid #b91c1c; color: #b91c1c; }
+.tt-pop { display: none; position: absolute; left: 0; bottom: calc(100% + 5px); z-index: 60; background: #fff; border: 1px solid var(--border); border-radius: 7px; box-shadow: 0 4px 12px rgba(0,0,0,.12); padding: 6px 9px; font-size: 12px; white-space: normal; width: max-content; max-width: 320px; line-height: 1.5; }
+.tt-pop b { display: block; }
+.tt-pop span { display: block; color: var(--text-muted); margin-top: 2px; }
+.tt-chip:hover .tt-pop, .tt-chip.pin .tt-pop { display: block; }
 /* □（ブラウザ既定を使わない） */
-.tt-cbx { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border: 1.5px solid #94a3b8; border-radius: 4px; background: #fff; cursor: pointer; vertical-align: middle; margin: 0 1px; box-sizing: border-box; }
+.tt-cbx { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1.5px solid #94a3b8; border-radius: 4px; background: #fff; cursor: pointer; vertical-align: middle; box-sizing: border-box; }
 .tt-cbx:hover { border-color: var(--text); }
 .tt-cbx.on { background: var(--text); border-color: var(--text); }
-.tt-cbx.on::after { content: ''; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px,-1px); }
+.tt-cbx.on::after { content: ''; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px,-1px); }
+/* タスク一覧（その場で直す） */
+.tt-list { display: grid; grid-template-columns: auto auto auto auto auto auto; justify-content: start; column-gap: 12px; row-gap: 2px; font-size: 12.5px; align-items: center; }
+.tt-list .h { font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 2px; }
+.tt-list input { font-family: inherit; font-size: 12.5px; border: 1px solid transparent; border-radius: 5px; padding: 2px 5px; background: transparent; width: 100%; color: var(--text); box-sizing: border-box; }
+.tt-list input:hover { border-color: var(--border); background: #fff; }
+.tt-list input:focus { outline: none; border-color: #94a3b8; background: #fff; }
+.tt-list input.f-tt { font-weight: 600; min-width: 330px; }
+.tt-list input.f-sh { min-width: 120px; }
+.tt-list input.f-mm { min-width: 180px; max-width: 240px; color: var(--text-muted); }
+.tt-list input.f-cd { min-width: 128px; }
+.tt-list .tdone { color: #94a3b8 !important; }
+.tt-list input.f-tt.tdone { text-decoration: line-through; }
+.tt-list .who2 { font-size: 12px; line-height: 1.5; max-width: 380px; padding: 3px 0; }
+.tt-list .who2 .w2 { color: #94a3b8; text-decoration: line-through; }
+.tt-fw { position: relative; display: block; }
+.tt-full { display: none; position: absolute; left: 0; top: calc(100% + 2px); z-index: 60; background: #fff; border: 1px solid var(--border); border-radius: 7px; box-shadow: 0 4px 12px rgba(0,0,0,.12); padding: 6px 9px; font-size: 12px; white-space: pre-wrap; max-width: 420px; line-height: 1.5; }
+.tt-full.on { display: block; }
+.donemk { display: inline-block; font-size: 10.5px; border: 1px solid #94a3b8; color: var(--text-muted); border-radius: 3px; padding: 0 4px; margin-right: 6px; font-weight: 600; }
+.tt-ed { background: none; border: 1px solid transparent; border-radius: 5px; cursor: pointer; color: var(--text-muted); font-size: 12px; padding: 0 6px; font-family: inherit; }
+.tt-ed:hover { border-color: var(--border); background: #fff; }
+.tt-ok { font-size: 11px; color: #15803d; margin-left: 4px; }
+table.tt-conf { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+table.tt-conf th, table.tt-conf td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+table.tt-conf th { background: var(--surface); font-size: 11.5px; }
 /* 過去のタスク */
 .tt-past { display: grid; grid-template-columns: 320px 270px auto; justify-content: start; gap: 4px 14px; align-items: center; padding: 6px 4px; border-top: 1px solid #edf0f5; }
 .tt-past:first-of-type { border-top: none; }
@@ -1940,15 +1979,13 @@ table.tt-tb tr.off td.nm { color: var(--text-muted); }
 .tt-past-s { font-size: 11.5px; color: var(--text-muted); }
 .tt-past-a { display: flex; gap: 6px; align-items: center; }
 /* 本日タブの帯 */
-.tt-band { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; }
-.tt-band-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; margin-bottom: 4px; flex-wrap: wrap; }
-/* 保存の状態（右下） */
-#tt-savestat { position: fixed; right: 14px; bottom: 54px; z-index: 250; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 12px; box-shadow: var(--shadow-sm); display: none; }
-#tt-savestat.err { border-color: #fca5a5; color: #b91c1c; cursor: pointer; }
+.tt-band { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px 8px; margin-bottom: 8px; }
+.tt-band-h { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; margin-bottom: 6px; flex-wrap: wrap; }
 /* 追加・編集の画面 */
-#modal-tt .modal { width: 880px; }
+#modal-tt .modal { width: 900px; }
 .tt-fl { font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 8px 0 3px; }
-.tt-fl:first-child { margin-top: 0; }
+.tt-frow2 { display: flex; gap: 10px; }
+.tt-frow2 .tt-fl { margin-top: 6px; }
 .tt-inp { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px; font-size: 13px; font-family: inherit; box-sizing: border-box; }
 .tt-frow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
 .tt-flb { font-size: 11.5px; color: var(--text-muted); width: 46px; flex-shrink: 0; }
@@ -1968,25 +2005,25 @@ table.tt-tb tr.off td.nm { color: var(--text-muted); }
 .ttp { font-size: 9.5px; color: #111; margin-bottom: 6px; }
 .ttp-h { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
 .ttp-h span { font-weight: 400; font-size: 9px; margin-left: 8px; }
-.ttp-h i { margin: 0 1px 0 6px; }
-.ttp-g { padding: 2px 0 3px; border-top: 1px solid #999; }
-.ttp-lg { line-height: 1.5; margin-bottom: 1px; }
-.ttp-lg b { font-size: 11px; margin-right: 6px; }
-.ttp-lg span { white-space: nowrap; margin-right: 12px; }
-.ttp-w { display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; }
-.ttp table { border-collapse: collapse; }
-.ttp th, .ttp td { border: 1px solid #999; padding: 0 2px; line-height: 1.4; }
-.ttp th { font-size: 8.5px; font-weight: 600; width: 13px; padding: 0; }
-.ttp td.n { white-space: nowrap; }
-.ttp tr.td td.n { font-weight: 700; }
-.ttp tr.dn td.n { color: #888; }
-.ttp td.c { text-align: center; padding: 0 1px; }
-.ttp td.na { background: #ddd; }
-.ttp i { display: inline-block; width: 8px; height: 8px; border: 1px solid #111; vertical-align: -1px; position: relative; font-style: normal; box-sizing: content-box; }
+.ttp-h i, .ttp-c i { display: inline-block; width: 8px; height: 8px; border: 1px solid #111; vertical-align: -1px; position: relative; font-style: normal; margin: 0 1px 0 0; box-sizing: content-box; }
+.ttp-h i { margin-left: 6px; }
 .ttp i.s1::after { content: ''; position: absolute; left: -1px; top: 3px; width: 9px; border-top: 1.2px solid #111; transform: rotate(-45deg); }
 .ttp i.s2::after { content: ''; position: absolute; left: 1.6px; top: -.6px; width: 2.4px; height: 5px; border: solid #111; border-width: 0 1.2px 1.2px 0; transform: rotate(45deg); }
-.ttp .tm { font-size: 7.5px; border: 1px solid #111; border-radius: 2px; padding: 0 1px; margin-left: 2px; font-weight: 600; }
-.ttp .sc { color: #555; font-size: 8px; margin-left: 2px; }
+.ttp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.ttp-cols.one { grid-template-columns: 1fr; }
+.ttp-crh { font-size: 10.5px; font-weight: 700; color: #fff; padding: 1px 6px; border-radius: 3px; margin-bottom: 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.ttp-crh.kita { background: #2a8bbf; } .ttp-crh.kuri { background: #d4813a; }
+.ttp-g { font-size: 10px; font-weight: 700; margin: 3px 0 1px; }
+.ttp-r { border: 1px solid #bbb; border-left-width: 3px; border-radius: 3px; padding: 1px 4px; margin-bottom: 2px; line-height: 1.55; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.ttp-r.kita { background: #eef7fd; border-left-color: #2a8bbf; }
+.ttp-r.kuri { background: #fff7ee; border-left-color: #d4813a; }
+.ttp-r .w { margin-right: 4px; }
+.ttp-r.td .w { font-weight: 700; }
+.ttp-r .sc { color: #555; font-size: 8.5px; margin-left: 2px; }
+.ttp-r .tm { font-size: 7.5px; border: 1px solid #111; border-radius: 2px; padding: 0 1px; margin-left: 2px; font-weight: 600; }
+.ttp-c { white-space: nowrap; margin-right: 7px; display: inline-block; }
+.ttp-c.dn { color: #888; }
+.ttp-c .ck { font-size: 7.5px; margin-left: 2px; }
 </style>
 </head>
 <body>
@@ -3377,7 +3414,7 @@ function loadAll() {
       // 定期テスト対策カード（2026-08-17 カード自由記述方式）。重要度は中なので retries は付けない。
       { action: 'getExamCards',      apply: function(r){ _cbLoaded.examCards = true; if (r && r.success && r.cards) { _examCards = r.cards; _xcLastFetch = Date.now(); } else { _cbFail.examCards = true; } } },
       // テスト対策タスク（2026-11-18）
-      { action: 'getTestTasks',      apply: function(r){ if (r && r.success && r.tasks) { _testTasks = r.tasks; _ttLoaded = true; _ttFailed = false; _ttLastFetch = Date.now(); } else { _ttFailed = true; } } },
+      { action: 'getTestTasks',      apply: function(r){ if (r && r.success && r.tasks) { _testTasks = r.tasks; _ttLoaded = true; _ttFailed = false; _ttLastFetch = Date.now(); _ttOkAt = ttHM_(); } else { _ttFailed = true; _ttFetchErr = true; } } },
       // スタッフ勤務割（2026-09-02）。フェーズ1（まとめ取得）には足さない＝起動が約2秒延びるため。
       { action: 'getStaffShifts',    skipIf: function(){ return _cbLoaded.staff; },
         apply: function(r){ _cbLoaded.staff = true; if (r && r.success && r.staffs && r.shifts) { _staffs = r.staffs; _staffShifts = r.shifts; } else { _cbFail.staff = true; } } }
@@ -19145,32 +19182,33 @@ function tlmDel_(id) {
 <div id="xc-print-root"></div>
 <script>
 // =====================================================================
-// テスト対策タスク（2026-11-18 実装・川上さん確定 2026-11-17〜18）
+// テスト対策タスク（2026-11-18 実装・2026-11-18 午後に「生徒ごとの行」へ作り替え）
 // ---------------------------------------------------------------------
-// 定期テストタブを「学校ごとの範囲カード」から「人ごとのテスト対策タスク」に変えた。
-//   ・タスクは 年度×テスト回 にぶら下がる。対象者は絞り込み（教室・中学校・学年）＋2列で選ぶ
-//   ・進み具合は2段階固定：0 まだ → 1 渡す・伝えた → 2 チェック済（1段階は作らない＝川上さん）
-//   ・画面：学年ごとに、タスク名を①②…で1行ずつ、表の列は番号だけ、生徒は3列に折り返す
-//   ・本日タブ：その日が入っているテスト対策期間（講習期間 type=test）があるときだけ、チェックリストの上に出す。
-//     対象者は全員出し、今日来る子を上に太字で。全員チェック済のタスクは出さない
-//   ・印刷：本日A4のチェックリストのページの先頭。1タスク1マス（□まだ／斜線 渡す・伝えた／✓ チェック済）・4列折り返し
-//   ・過去のタスク：前回のテスト／昨年度の同じ回から「内容だけ」「対象者も」複製。
-//     対象者も＝前回からは同じ生徒、昨年度からは保存した絞り込み条件で今年の生徒を選び直す
+// 川上さん確定（2026-11-17〜18）。モック＝モック\モック_テスト対策タスク_生徒ごと_20261118.html
+//   ・タスクは 年度×テスト回 にぶら下がる。対象者は 種別（既定 塾）・教室・中学校・学年 で絞り込み＋2列で選ぶ
+//   ・進み具合は2段階固定：0 まだ → 1 渡す・伝えた → 2 チェック済
+//   ・生徒ごとに1枚のカード。その子の対象のタスクだけ「□□ 呼び名」の札で並べる（灰色のマスは作らない）
+//     左＝北久里浜・右＝久里浜（所属教室）。列の中は 学年 → 学校（その学年で対象の多い順）→ 名前
+//   ・札にマウス／呼び名を押す → 正式なタスク名・メモ・確認する日の吹き出し
+//   ・タスク一覧：タスク名・呼び名・メモ・確認する日をその場で直す。対象者は名前を並べる（済んだ子は灰色）
+//   ・完了＝対象者全員の右の□が付いたタスク。生徒のカード・本日タブ・紙から外し、一覧ではいちばん下に灰色
+//   ・本日タブ：テスト対策期間（講習期間 type=test・日付で見る）だけ。全員を出し、教室の列ごとに今日来る子が上
+//     （確認する日が今日のタスクがある子はさらに上）。列の見出しに「今日来る子 N人」
+//   ・印刷：本日A4のチェックリストのページの先頭。生徒ごとの1行、1タスク1マス（□まだ／斜線／✓）＋呼び名
+//   ・保存の確かさ（複数端末）：押した分だけ送る。送るときに「押す前の値」を付け、サーバーの値が違えば書かずに
+//     食い違いとして返す → 「この端末を正にする／サーバーを正にする」を人が選ぶ。見出しの横に「サーバーと同じ（時刻）」
 // データ：会員管理GAS の「テスト対策タスク」シート（会員管理GAS_テスト対策タスク.gs）
-// 保存：□は押した生徒の分だけ updateTestTaskItems（シートの最新を読み直して差し替える）。
-//       チェックリストと同じ「差分・裏送り・まとめて」。送信は silent（膜を出さない）。
 // 範囲カード（xc系）・定期テスト日程・本日タブの古い範囲欄は 2026-11-18 に画面から外した（データは残す）。
 // =====================================================================
 var _testTasks = [];
-var _ttLoaded = false, _ttFailed = false, _ttLastFetch = 0;
+var _ttLoaded = false, _ttFailed = false, _ttLastFetch = 0, _ttOkAt = '', _ttFetchErr = false;
 var _ttYear = null, _ttTerm = null, _ttPast = 'prev';
 var _ttTodaySet = null;   // { 氏名: 教室 }（本日タブの時間割に出ている子）
 var TT_TERMS = ['前期中間', '前期期末', '後期中間', '学年末'];
-var TT_CIR = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 var TT_GRADE_ORDER = ['小1','小2','小3','小4','小5','小6','中1','中2','中3','高1','高2','高3'];
 
+function ttHM_() { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
 function ttNendoOfIso_(iso) { var y = +String(iso).slice(0, 4), m = +String(iso).slice(5, 7); return String(m <= 3 ? y - 1 : y); }
-// その日が入っているテスト対策期間（モードではなく日付で見る）
 function ttTestPeriodOn_(iso) {
   var hit = null;
   (_koushuPeriods || []).forEach(function(p) {
@@ -19178,7 +19216,6 @@ function ttTestPeriodOn_(iso) {
   });
   return hit;
 }
-// 期間の名前（例「2026年後期中間テスト」）から 年度・テスト回 を読む
 function ttKeyOfPeriod_(p) {
   if (!p) return null;
   var name = String(p.name || ''), term = null;
@@ -19187,10 +19224,7 @@ function ttKeyOfPeriod_(p) {
   var m = name.match(/(\d{4})\s*年/);
   return { year: m ? m[1] : ttNendoOfIso_(p.startDate), term: term };
 }
-function ttDefaultKey_() {
-  var k = ttKeyOfPeriod_(ttTestPeriodOn_(isoDate(new Date())));
-  return k || { year: xcNendo(), term: xcDefaultTerm() };
-}
+function ttDefaultKey_() { return ttKeyOfPeriod_(ttTestPeriodOn_(isoDate(new Date()))) || { year: xcNendo(), term: xcDefaultTerm() }; }
 function ttPrevKey_(k) {
   var i = TT_TERMS.indexOf(k.term);
   return i <= 0 ? { year: String(+k.year - 1), term: TT_TERMS[TT_TERMS.length - 1] } : { year: k.year, term: TT_TERMS[i - 1] };
@@ -19204,115 +19238,141 @@ function ttTasksOf_(year, term) {
     });
 }
 function ttStu_(it) { return cbFindStudent_(it && it.sid || '', it && it.name || '', 'テスト対策', null); }
-function ttItemIdx_(t, s) {
-  for (var i = 0; i < (t.items || []).length; i++) {
-    var it = t.items[i];
-    if (it.sid && s.sid && String(it.sid) === String(s.sid)) return i;
-  }
-  for (var j = 0; j < (t.items || []).length; j++) { if (String(t.items[j].name || '') === String(s.name || '')) return j; }
-  return -1;
-}
-function ttProg_(t, onlyKnown) {
-  var a = 0, b = 0, n = 0;
-  (t.items || []).forEach(function(it) {
-    if (onlyKnown && !ttStu_(it)) return;
-    n++; if (+it.st >= 1) a++; if (+it.st === 2) b++;
-  });
-  return { a: a, b: b, n: n };
-}
-function ttProgIn_(t, stus) {
-  var a = 0, b = 0, n = 0;
-  stus.forEach(function(s) { var i = ttItemIdx_(t, s); if (i < 0) return; n++; var st = +t.items[i].st || 0; if (st >= 1) a++; if (st === 2) b++; });
-  return { a: a, b: b, n: n };
-}
-function ttOpenTask_(t) { var p = ttProg_(t, true); return p.n > 0 && p.b < p.n; }
 function ttGradeIdx_(g) { var i = TT_GRADE_ORDER.indexOf(g); return i < 0 ? 99 : i; }
+function ttShortSchool_(sc) { return String(sc || '').replace(/中学校$/, '').replace(/中$/, ''); }
+function ttFindTask_(id) { for (var i = 0; i < _testTasks.length; i++) if (_testTasks[i].id === id) return _testTasks[i]; return null; }
+// 完了＝対象者（今の名簿にいる子）全員がチェック済
+function ttTaskDone_(t) {
+  var n = 0, ok = true;
+  (t.items || []).forEach(function(it) { if (!ttStu_(it)) return; n++; if (+it.st !== 2) ok = false; });
+  return n > 0 && ok;
+}
+// 呼び名：入っていなければタスク名から作る（案）。教科名・「の教科書」・（…）・「プリント」を落とす
+function ttAutoShort_(title) {
+  var s = String(title || '').trim();
+  s = s.replace(/^(国語|数学|英語|理科|社会)\s+/, '');
+  s = s.replace(/の教科書ガイド/, 'ガイド').replace(/教科書ガイド/, 'ガイド');
+  s = s.replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '');
+  s = s.replace(/の?計算プリント$/, '').replace(/プリント$/, '');
+  s = s.trim();
+  return s.length > 12 ? s.slice(0, 12) : (s || String(title || '').slice(0, 10));
+}
+function ttShort_(t) { return String(t.short || '').trim() || ttAutoShort_(t.title); }
+function ttFmtMD_(iso) { if (!iso) return ''; var p = String(iso).slice(0, 10).split('-'); return (+p[1]) + '/' + (+p[2]); }
 
-// 学年ごとに束ねる：{ g, stus:[生徒], tasks:[タスク] }。名簿にいない生徒（退会など）は数えるだけ
-function ttGroups_(tasks) {
-  var by = {}, order = [], missing = {};
+// 生徒ごとに、残っているタスク [{t, i}] をまとめる。名簿にいない子は数えるだけ
+function ttStudentsOf_(tasks) {
+  var map = {}, list = [], missing = {};
   tasks.forEach(function(t) {
-    (t.items || []).forEach(function(it) {
+    if (ttTaskDone_(t)) return;
+    (t.items || []).forEach(function(it, i) {
       var s = ttStu_(it);
       if (!s) { missing[String(it.sid || '') + '|' + String(it.name || '')] = 1; return; }
-      var g = s.grade || '（学年なし）';
-      if (!by[g]) { by[g] = { g: g, stus: [], keys: {}, tasks: [] }; order.push(g); }
       var k = cbStuKey_(s);
-      if (!by[g].keys[k]) { by[g].keys[k] = 1; by[g].stus.push(s); }
-      if (by[g].tasks.indexOf(t) < 0) by[g].tasks.push(t);
+      if (!map[k]) { map[k] = { s: s, tk: [] }; list.push(map[k]); }
+      map[k].tk.push({ t: t, i: i });
     });
   });
-  order.sort(function(a, b) { return ttGradeIdx_(a) - ttGradeIdx_(b); });
-  return { groups: order.map(function(g) { return by[g]; }), missing: Object.keys(missing).length };
+  return { list: list, missing: Object.keys(missing).length };
 }
-function ttSortStus_(stus, todayFirst) {
-  return stus.slice().sort(function(A, B) {
-    if (todayFirst) {
-      var ta = !!(_ttTodaySet && _ttTodaySet[A.name]), tb = !!(_ttTodaySet && _ttTodaySet[B.name]);
-      if (ta !== tb) return ta ? -1 : 1;
-    }
-    var sa = String(A.school || ''), sb = String(B.school || '');
-    if (sa !== sb) return sa < sb ? -1 : 1;
-    return String(A.kana || A.name) < String(B.kana || B.name) ? -1 : 1;
-  });
+// 学校の並び：その学年で対象の生徒が多い学校から（同じ数なら学校名順）
+function ttSchoolRank_(rows, g) {
+  var c = {};
+  rows.forEach(function(r) { if (r.s.grade === g) c[r.s.school || ''] = (c[r.s.school || ''] || 0) + 1; });
+  return Object.keys(c).sort(function(a, b) { return (c[b] - c[a]) || (a < b ? -1 : 1); });
 }
-function ttShortSchool_(sc) { return String(sc || '').replace(/中学校$/, '').replace(/中$/, ''); }
+function ttIsToday_(s) { return !!(_ttTodaySet && _ttTodaySet[s.name]); }
 
-// 画面の表（定期テストタブ mode='tab'／本日タブ mode='today'）
-function ttMatrixHtml_(tasks, mode) {
-  var G = ttGroups_(tasks);
-  var h = G.groups.map(function(grp) {
-    var stus = ttSortStus_(grp.stus, mode === 'today');
-    var out = '<div class="tt-grp"><div class="tt-g">' + esc(grp.g) + '</div><div class="tt-lgd">';
-    grp.tasks.forEach(function(t, k) {
-      var p = ttProgIn_(t, grp.stus);   // 2026-11-18：その学年の子だけで数える（学年をまたぐタスクで 2/2 と出て紛らわしかった）
-      out += '<div class="tt-lg"><span class="tt-no">' + TT_CIR.charAt(k) + '</span><span class="tt-tt" title="' + esc(t.title + (t.memo ? '\n' + t.memo : '')) + '">' + esc(t.title) + '</span>' +
-        '<span class="tt-pr">渡す・伝える ' + p.a + '/' + p.n + '　チェック ' + p.b + '/' + p.n + (t.memo ? '　' + esc(t.memo) : '') + '</span>' +
-        (mode === 'tab' ? '<button class="tt-ed" onclick="ttOpenEdit(\'' + esc(t.id) + '\')">✎ 編集</button>' : '') + '</div>';
-    });
-    out += '</div><div class="tt-tw">';
-    var per = Math.max(1, Math.ceil(stus.length / 3));
-    for (var c = 0; c < stus.length; c += per) {
-      out += '<table class="tt-tb"><tr><th style="width:auto"></th>' + grp.tasks.map(function(_, k) { return '<th>' + TT_CIR.charAt(k) + '</th>'; }).join('') + '</tr>';
-      stus.slice(c, c + per).forEach(function(s) {
-        var isToday = !!(_ttTodaySet && _ttTodaySet[s.name]);
-        var all = grp.tasks.every(function(t) { var i = ttItemIdx_(t, s); return i < 0 || +t.items[i].st === 2; });
-        out += '<tr class="' + (all ? 'dn ' : '') + (mode === 'today' ? (isToday ? 'td' : 'off') : '') + '"><td class="nm">' + esc(s.name) +
-          '<span class="gr">' + esc(ttShortSchool_(s.school)) + '</span>' + (mode === 'today' && isToday ? '<span class="tt-today-mk">今日</span>' : '') + '</td>';
-        grp.tasks.forEach(function(t) {
-          var i = ttItemIdx_(t, s);
-          if (i < 0) { out += '<td class="c na"></td>'; return; }
-          var st = +t.items[i].st || 0;
-          out += '<td class="c"><span class="tt-cbx' + (st >= 1 ? ' on' : '') + '" title="渡す・伝える" onclick="ttBox(\'' + esc(t.id) + '\',' + i + ',1)"></span>' +
-                 '<span class="tt-cbx' + (st === 2 ? ' on' : '') + '" title="チェック" onclick="ttBox(\'' + esc(t.id) + '\',' + i + ',2)"></span></td>';
-        });
-        out += '</tr>';
-      });
-      out += '</table>';
+// 1人ぶんのカード
+function ttCardHtml_(r, mode, iso) {
+  var s = r.s, td = mode === 'today' && ttIsToday_(s);
+  var cls = 'tt-card ' + (s.classroom === '北久里浜' ? 'kita' : 'kuri') + (mode === 'today' ? (td ? ' td' : ' off') : '');
+  var chips = r.tk.map(function(x) {
+    var t = x.t, it = t.items[x.i], st = +it.st || 0, cd = t.checkDate ? String(t.checkDate).slice(0, 10) : '';
+    var mk = '';
+    if (cd && st !== 2 && iso) {
+      if (cd === iso) mk = '<span class="tt-ck now">今日確認</span>';
+      else if (cd < iso) mk = '<span class="tt-ck over">確認日' + ttFmtMD_(cd) + 'を過ぎた</span>';
     }
-    return out + '</div></div>';
+    return '<span class="tt-chip' + (st === 2 ? ' dn' : '') + '"><span class="tt-pop"><b>' + esc(t.title) + '</b>' +
+      (t.memo ? '<span>' + esc(t.memo) + '</span>' : '') + (cd ? '<span>確認する日：' + ttFmtMD_(cd) + '</span>' : '') + '</span>' +
+      '<span class="tt-cbx' + (st >= 1 ? ' on' : '') + '" title="渡す・伝える" onclick="ttBox(\'' + esc(t.id) + '\',' + x.i + ',1)"></span>' +
+      '<span class="tt-cbx' + (st === 2 ? ' on' : '') + '" title="チェック" onclick="ttBox(\'' + esc(t.id) + '\',' + x.i + ',2)"></span>' +
+      '<span class="tt-nm" onclick="ttPinPop(this)">' + esc(ttShort_(t)) + '</span>' + mk + '</span>';
   }).join('');
-  if (G.missing) h += '<div class="tt-note">今の名簿にいない生徒（退会など）' + G.missing + '人は表に出していません。</div>';
+  return '<div class="' + cls + '"><div class="tt-who">' + esc(s.name) + '<span class="sub">' + esc(s.grade || '') + ' ' + esc(ttShortSchool_(s.school)) + '</span>' +
+    (td ? '<span class="tt-today-mk">今日</span>' : '') + '</div><div class="tt-chips">' + chips + '</div></div>';
+}
+// 1つの教室の列の中身（学年 → 学校 → 名前）
+function ttColBody_(rows, mode, iso) {
+  var h = '';
+  TT_GRADE_ORDER.forEach(function(g) {
+    var gr = rows.filter(function(r) { return r.s.grade === g; });
+    if (!gr.length) return;
+    h += '<div class="tt-g">' + esc(g) + '（' + gr.length + '人）</div>';
+    ttSchoolRank_(gr, g).forEach(function(sc) {
+      var l = gr.filter(function(r) { return (r.s.school || '') === sc; })
+        .sort(function(a, b) { return String(a.s.kana || a.s.name) < String(b.s.kana || b.s.name) ? -1 : 1; });
+      h += '<div class="tt-sch">' + esc(sc || '学校なし') + '（' + l.length + '人）</div><div class="tt-rows">' + l.map(function(r) { return ttCardHtml_(r, mode, iso); }).join('') + '</div>';
+    });
+  });
   return h;
+}
+// 左＝北久里浜・右＝久里浜
+function ttColsHtml_(rows, mode, iso) {
+  function col(cr, cls) {
+    var l = rows.filter(function(r) { return (r.s.classroom === '北久里浜') === (cr === '北久里浜'); });
+    var head = cr + '（' + l.length + '人）';
+    var body;
+    if (mode === 'today') {
+      var t = l.filter(function(r) { return ttIsToday_(r.s); }), o = l.filter(function(r) { return !ttIsToday_(r.s); });
+      // 確認する日が今日の札は黒い「今日確認」で目立たせる（並びは変えない＝学年の見出しが2回出るのを避ける）
+      head += '<span class="tt-colsub">今日来る子 ' + t.length + '人</span>';
+      body = (t.length ? ttColBody_(t, mode, iso) : '') +
+        ((t.length && o.length) ? '<div class="tt-split"></div>' : '') + (o.length ? ttColBody_(o, mode, iso) : '');
+    } else body = ttColBody_(l, mode, iso);
+    return '<div class="tt-col ' + cls + '"><div class="tt-col-h">' + head + '</div>' + (body || '<div class="tt-empty">対象の生徒はいません</div>') + '</div>';
+  }
+  return '<div class="tt-cols">' + col('北久里浜', 'kita') + col('久里浜', 'kuri') + '</div>';
 }
 function ttLegendHtml_() {
   return '<span class="tt-legend"><span class="tt-cbx on"></span><span class="tt-cbx"></span><span>左＝渡す・伝える　右＝チェック</span></span>';
 }
+function ttPinPop(el) {
+  var c = el.parentNode, on = c.classList.contains('pin');
+  document.querySelectorAll('.tt-chip.pin').forEach(function(x) { x.classList.remove('pin'); });
+  if (!on) c.classList.add('pin');
+}
+document.addEventListener('click', function(e) {
+  if (!(e.target.closest && e.target.closest('.tt-chip'))) document.querySelectorAll('.tt-chip.pin').forEach(function(x) { x.classList.remove('pin'); });
+});
+
+// ---------- サーバーと同じか（見出しの横） ----------
+function ttSyncHtml_() {
+  var n = ttPendingCount_();
+  var h;
+  if (_ttErr) h = '<span class="tt-sync err" onclick="ttFlush_()">● 保存できていない変更が ' + n + ' 件（押すと送り直す）</span>';
+  else if (n || _ttSending) h = '<span class="tt-sync busy">● 保存中…（' + (n || 1) + '件）</span>';
+  else if (_ttFetchErr) h = '<span class="tt-sync err">● サーバーと確かめられていません' + (_ttOkAt ? '（最後に確かめたのは ' + _ttOkAt + '）' : '') + '</span>';
+  else h = '<span class="tt-sync ok">● サーバーと同じ（' + (_ttOkAt || '—') + ' 確認）・未送信なし</span>';
+  return '<span id="tt-syncline">' + h + '</span><button class="btn-secondary btn-sm tt-reload" onclick="ttReload()">⟳ 取り直す</button>';
+}
+function ttSyncRefresh_() { var el = document.getElementById('tt-syncline'); if (el) el.outerHTML = ttSyncHtml_().replace(/<button[\s\S]*$/, ''); }
+function ttReload() { _ttLastFetch = 0; ttSyncIfStale_(true); }
 
 // ---------- □を押す ----------
-function ttFindTask_(id) { for (var i = 0; i < _testTasks.length; i++) if (_testTasks[i].id === id) return _testTasks[i]; return null; }
 function ttBox(taskId, i, which) {
   var t = ttFindTask_(taskId); if (!t || !t.items[i]) return;
   var it = t.items[i], st = +it.st || 0, ns;
   if (which === 1) {
-    if (st >= 1) { if (!confirm(it.name + ' の「渡す・伝える」を外しますか？' + (st === 2 ? '（チェックも外れます）' : ''))) return; ns = 0; }
+    if (st >= 1) { if (!confirm(it.name + ' の「' + ttShort_(t) + '」の渡す・伝えるを外しますか？' + (st === 2 ? '（チェックも外れます）' : ''))) return; ns = 0; }
     else ns = 1;
   } else {
-    if (st === 2) { if (!confirm(it.name + ' のチェックを外しますか？')) return; ns = 1; }
+    if (st === 2) { if (!confirm(it.name + ' の「' + ttShort_(t) + '」のチェックを外しますか？')) return; ns = 1; }
     else ns = 2;   // チェックを先に押したら「渡す・伝える」も付ける
   }
+  ttQueue_(t.id, it, st, ns);
   it.st = ns;
-  ttQueue_(t.id, it);
   ttRerender_();
 }
 function ttRerender_() {
@@ -19321,27 +19381,20 @@ function ttRerender_() {
   if (band) band.innerHTML = ttTodayBandInner_();
 }
 
-// 送信のキュー（チェックリストの clQueueSave_ と同じ考え方）
+// 送信のキュー。押す前の値（base）を付けて送り、サーバーの値が違っていたら書かずに食い違いとして返してもらう
 var _ttQ = {}, _ttQTimer = null, _ttSending = false, _ttErr = false;
 function ttKeyOfItem_(it) { var sid = String(it.sid || '').trim(); return sid ? 'id:' + sid : 'nm:' + String(it.name || ''); }
-function ttQueue_(taskId, it) {
+function ttQueue_(taskId, it, before, after) {
   if (!_ttQ[taskId]) _ttQ[taskId] = {};
-  _ttQ[taskId][ttKeyOfItem_(it)] = { sid: it.sid || '', name: it.name || '', st: +it.st || 0 };
+  var k = ttKeyOfItem_(it), prev = _ttQ[taskId][k];
+  _ttQ[taskId][k] = { sid: it.sid || '', name: it.name || '', st: after, base: prev ? prev.base : before };
+  if (_ttQ[taskId][k].base === after) delete _ttQ[taskId][k];   // 押して戻した＝送らない
   ttSaveStat_();
   if (_ttQTimer) clearTimeout(_ttQTimer);
   _ttQTimer = setTimeout(ttFlush_, 600);
 }
 function ttPendingCount_() { var n = 0; Object.keys(_ttQ).forEach(function(k) { n += Object.keys(_ttQ[k]).length; }); return n; }
-function ttSaveStat_(msg) {
-  var el = document.getElementById('tt-savestat');
-  if (!el) { el = document.createElement('div'); el.id = 'tt-savestat'; el.onclick = function() { if (_ttErr) ttFlush_(); }; document.body.appendChild(el); }
-  var n = ttPendingCount_();
-  if (_ttErr) { el.className = 'err'; el.textContent = 'テスト対策タスク：保存できていない変更が ' + n + ' 件あります（押すと送り直す）'; el.style.display = 'block'; return; }
-  el.className = '';
-  if (msg) { el.textContent = msg; el.style.display = 'block'; setTimeout(function() { if (!ttPendingCount_() && !_ttErr) el.style.display = 'none'; }, 1500); return; }
-  if (n) { el.textContent = 'テスト対策タスク：保存中…（' + n + '件）'; el.style.display = 'block'; }
-  else el.style.display = 'none';
-}
+function ttSaveStat_() { ttSyncRefresh_(); }
 function ttFlush_() {
   if (_ttQTimer) { clearTimeout(_ttQTimer); _ttQTimer = null; }
   if (_ttSending) return;
@@ -19352,16 +19405,16 @@ function ttFlush_() {
   var taskId = ids[0], batch = _ttQ[taskId];
   _ttQ[taskId] = {};
   var changes = Object.keys(batch).map(function(k) { return batch[k]; });
-  _ttSending = true;
+  _ttSending = true; ttSaveStat_();
   callGas(url, { action: 'updateTestTaskItems', taskId: taskId, changes: JSON.stringify(changes) }, function(r) {
     _ttSending = false;
     if (r && r.success && r.task) {
-      _ttErr = false;
+      _ttErr = false; _ttOkAt = ttHM_(); _ttFetchErr = false;
       ttMergeServerTask_(r.task);
       ttRerender_();
-      if (ttPendingCount_()) { ttFlush_(); } else ttSaveStat_('テスト対策タスク：保存しました');
+      if (r.conflicts && r.conflicts.length) ttShowConflicts_(r.task, r.conflicts, batch);
+      if (ttPendingCount_()) ttFlush_(); else { ttSaveStat_(); if (typeof miniToast === 'function') miniToast('保存しました'); }
     } else {
-      // 送れなかった分を戻す（あとから押した分は上書きしない）
       Object.keys(batch).forEach(function(k) { if (!_ttQ[taskId][k]) _ttQ[taskId][k] = batch[k]; });
       _ttErr = true; ttSaveStat_();
     }
@@ -19376,30 +19429,76 @@ function ttMergeServerTask_(srv) {
     (local.items || []).forEach(function(it) { var k = ttKeyOfItem_(it); if (pend[k]) keep[k] = it.st; });
     srv.items.forEach(function(it) { var k = ttKeyOfItem_(it); if (keep.hasOwnProperty(k)) it.st = keep[k]; });
     for (var i = 0; i < _testTasks.length; i++) if (_testTasks[i].id === srv.id) { _testTasks[i] = srv; break; }
-  } else {
-    _testTasks.push(srv);
-  }
+  } else _testTasks.push(srv);
 }
 window.addEventListener('beforeunload', function(e) { if (ttPendingCount_()) { ttFlush_(); e.preventDefault(); e.returnValue = ''; } });
 
-// 定期テストタブを開いたら取り直す（30秒に1回まで・送っていない変更があるときは取らない）
-function ttSyncIfStale_() {
-  if (Date.now() - _ttLastFetch < 30000 || ttPendingCount_() || _ttSending) return;
+// ---------- 食い違い（ほかの端末が同じところを先に変えていた） ----------
+// 機械が勝手にどちらかへ倒さない。「この端末を正にする／サーバーを正にする」を人が選ぶ
+var _ttConf = null;
+function ttStLabel_(st) { return st === 2 ? 'チェック済' : st === 1 ? '渡す・伝えた' : 'まだ'; }
+function ttShowConflicts_(task, conflicts, batch, fieldMode) {
+  _ttConf = { task: task, conflicts: conflicts, batch: batch, fieldMode: !!fieldMode };
+  var FN = { title: 'タスク名', short: '呼び名', memo: 'メモ', checkDate: '確認する日' };
+  var rows = conflicts.map(function(c) {
+    if (fieldMode) return '<tr><td>' + FN[c.field] + '</td><td>' + esc(c.mine || '（空）') + '</td><td>' + esc(c.server || '（空）') + '</td></tr>';
+    var mine = batch[ttKeyOfItem_(c)] ? batch[ttKeyOfItem_(c)].st : null;
+    return '<tr><td>' + esc(c.name) + '</td><td>' + ttStLabel_(mine) + '</td><td>' + ttStLabel_(+c.server) + '</td></tr>';
+  }).join('');
+  var ex = document.getElementById('modal-tt-conf'); if (ex) ex.remove();
+  var m = document.createElement('div'); m.id = 'modal-tt-conf'; m.className = 'modal-overlay';
+  m.innerHTML = '<div class="modal" style="width:560px"><div class="modal-header"><span>ほかの端末で先に変わっていました</span><span class="modal-close" onclick="closeModal(\'modal-tt-conf\')">&#215;</span></div>' +
+    '<div class="modal-body"><p style="font-size:13px;margin-bottom:8px">「' + esc(task.title) + '」の次のところが、この画面を開いたあとに、ほかの端末で変わっていました。どちらを残すか選んでください。選ぶまで、ここは書き込んでいません。</p>' +
+    '<table class="tt-conf"><tr><th>' + (fieldMode ? '項目' : '生徒') + '</th><th>この端末</th><th>サーバー（ほかの端末）</th></tr>' + rows + '</table></div>' +
+    '<div class="modal-footer"><button class="btn-secondary" onclick="ttConfTakeServer()">サーバーを正にする</button><button class="btn-primary" onclick="ttConfTakeMine()">この端末を正にする</button></div></div>';
+  document.body.appendChild(m); openModal('modal-tt-conf');
+}
+function ttConfTakeServer() { closeModal('modal-tt-conf'); _ttConf = null; ttRerender_(); }   // 画面はもうサーバーの値を取り込んである
+function ttConfTakeMine() {
+  var c = _ttConf; closeModal('modal-tt-conf'); _ttConf = null; if (!c) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  if (c.fieldMode) {
+    var f = {}; c.conflicts.forEach(function(x) { f[x.field] = x.mine; });
+    callGas(url, { action: 'updateTestTaskFields', taskId: c.task.id, fields: JSON.stringify(f), base: '' }, function(r) {
+      if (r && r.success && r.task) { ttMergeServerTask_(r.task); _ttOkAt = ttHM_(); ttRerender_(); miniToast('この端末の内容で保存しました'); }
+      else alert('保存できませんでした：' + ((r && r.error) || '通信エラー'));
+    }, 'POST', true);
+    return;
+  }
+  var t = ttFindTask_(c.task.id); if (!t) return;
+  c.conflicts.forEach(function(x) {
+    var mine = c.batch[ttKeyOfItem_(x)]; if (!mine) return;
+    for (var i = 0; i < t.items.length; i++) if (ttKeyOfItem_(t.items[i]) === ttKeyOfItem_(x)) { ttQueue_(t.id, t.items[i], +x.server, mine.st); t.items[i].st = mine.st; }
+  });
+  ttRerender_();
+}
+
+// ---------- 取り直し（定期テストタブを開いたとき・本日タブ・1分ごと） ----------
+function ttSyncIfStale_(force) {
+  if (!force && Date.now() - _ttLastFetch < 30000) return;
+  if (ttPendingCount_() || _ttSending) return;
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) return;
   _ttLastFetch = Date.now();
   callGas(url, { action: 'getTestTasks' }, function(r) {
     if (r && r.success && r.tasks) {
-      if (ttPendingCount_() || _ttSending) return;
+      _ttFetchErr = false; _ttOkAt = ttHM_();
+      if (ttPendingCount_() || _ttSending) { ttSyncRefresh_(); return; }
+      if (document.querySelector('.tt-list input:focus')) { ttSyncRefresh_(); return; }   // 打っている最中は描き直さない
       _testTasks = r.tasks; _ttLoaded = true; _ttFailed = false;
       if (_currentTab === 'exam') ttRender(); else ttRerender_();
-    }
+    } else { _ttFetchErr = true; ttSyncRefresh_(); }
   }, 'GET', true);
 }
+setInterval(function() {
+  if (document.hidden) return;
+  if (_currentTab === 'exam' || document.getElementById('tt-band-wrap')) ttSyncIfStale_(false);
+}, 60000);
 
 // ---------- 定期テストタブ ----------
 function ttRender() {
   if (!_ttYear) { var k = ttDefaultKey_(); _ttYear = k.year; _ttTerm = k.term; }
+  var iso = isoDate(new Date());
   var years = {};
   years[xcNendo()] = 1; years[String(+xcNendo() - 1)] = 1; years[_ttYear] = 1;
   (_testTasks || []).forEach(function(t) { if (t.year) years[t.year] = 1; });
@@ -19412,11 +19511,31 @@ function ttRender() {
     '<button class="btn-primary btn-sm" onclick="ttOpenEdit(\'\')">＋ タスクを追加</button></div>';
 
   var tasks = ttTasksOf_(_ttYear, _ttTerm);
-  h += '<div class="tt-sec"><div class="tt-sec-h"><span class="t">' + esc(_ttYear) + '年度 ' + esc(_ttTerm) + 'のタスク</span><span class="s">' + tasks.length + '件</span>' + ttLegendHtml_() + '</div>';
-  if (!_ttLoaded) h += '<div class="tt-empty">' + (_ttFailed ? '読み込めませんでした（表示されていないだけで、データは消えていません）。<button class="btn-secondary btn-sm" onclick="_ttLastFetch=0;ttSyncIfStale_()">もう一度読み込む</button>' : '読み込み中…') + '</div>';
+  var S = ttStudentsOf_(tasks);
+  h += '<div class="tt-sec"><div class="tt-sec-h"><span class="t">' + esc(_ttYear) + '年度 ' + esc(_ttTerm) + '</span><span class="s">' + S.list.length + '人（残っているタスクがある子）</span>' + ttSyncHtml_() + ttLegendHtml_() + '</div>';
+  if (!_ttLoaded) h += '<div class="tt-empty">' + (_ttFailed ? '読み込めませんでした（表示されていないだけで、データは消えていません）。' : '読み込み中…') + '</div>';
   else if (!tasks.length) h += '<div class="tt-empty">まだタスクがありません。</div>';
-  else h += ttMatrixHtml_(tasks, 'tab');
+  else if (!S.list.length) h += '<div class="tt-empty">残っているタスクはありません（全部完了）。</div>';
+  else h += ttColsHtml_(S.list, 'tab', iso);
+  if (S.missing) h += '<div class="tt-note">今の名簿にいない生徒（退会など）' + S.missing + '人は出していません。</div>';
   h += '</div>';
+
+  // タスク一覧（その場で直す）
+  if (tasks.length) {
+    var ord = tasks.slice().sort(function(a, b) { return (ttTaskDone_(a) ? 1 : 0) - (ttTaskDone_(b) ? 1 : 0); });
+    h += '<div class="tt-sec"><div class="tt-sec-h"><span class="t">タスク一覧</span><span class="s">' + tasks.length + '件</span></div><div class="tt-list">' +
+      '<span class="h">タスク</span><span class="h">呼び名</span><span class="h">メモ</span><span class="h">確認する日</span><span class="h">対象者</span><span class="h"></span>' +
+      ord.map(function(t) {
+        var dn = ttTaskDone_(t), c = dn ? ' tdone' : '', id = esc(t.id);
+        var who = (t.items || []).map(function(it) { var s = ttStu_(it); if (!s) return ''; return '<span class="' + (+it.st === 2 ? 'w2' : '') + '">' + esc(s.name) + '</span>'; }).filter(Boolean).join('・');
+        return '<span class="tt-fw"><input class="f-tt' + c + '" value="' + esc(t.title) + '" data-id="' + id + '" data-f="title" onchange="ttFieldChange(this)" onmouseenter="ttFullPop(this)"><span class="tt-full"></span></span>' +
+          '<input class="f-sh' + c + '" list="tt-dl-short" value="' + esc(ttShort_(t)) + '" data-id="' + id + '" data-f="short" onchange="ttFieldChange(this)">' +
+          '<span class="tt-fw"><input class="f-mm' + c + '" value="' + esc(t.memo || '') + '" data-id="' + id + '" data-f="memo" onchange="ttFieldChange(this)" onmouseenter="ttFullPop(this)"><span class="tt-full"></span></span>' +
+          '<input type="date" class="f-cd' + c + '" value="' + esc(t.checkDate ? String(t.checkDate).slice(0, 10) : '') + '" data-id="' + id + '" data-f="checkDate" onchange="ttFieldChange(this)">' +
+          '<span class="who2' + c + '">' + (dn ? '<b class="donemk">完了</b>' : '') + who + '</span>' +
+          '<span><button class="tt-ed" onclick="ttOpenEdit(\'' + id + '\')">✎ 対象者</button><span class="tt-ok" id="tt-ok-' + id + '"></span></span>';
+      }).join('') + '</div></div>';
+  }
 
   // 過去のタスク
   var pk = ttPrevKey_({ year: _ttYear, term: _ttTerm }), lk = { year: String(+_ttYear - 1), term: _ttTerm };
@@ -19433,16 +19552,56 @@ function ttRender() {
       '<div class="tt-past-a"><button class="btn-secondary btn-sm" onclick="ttCopy(\'' + esc(t.id) + '\',false)">内容だけ複製</button>' +
       '<button class="btn-secondary btn-sm" onclick="ttCopy(\'' + esc(t.id) + '\',true)"' + (tg.list.length ? '' : ' disabled') + '>対象者も複製</button></div></div>';
   });
-  h += '</div></div>';
+  h += '</div></div>' + ttDatalistHtml_();
   document.getElementById('main-content').innerHTML = h;
 }
 function ttSetKey(y, t) { if (y) _ttYear = y; if (t) _ttTerm = t; ttRender(); }
 function ttSetPast(m) { _ttPast = m; ttRender(); }
+// 呼び名の候補：これまでに付けた呼び名（打った文字で絞られる＝全部は並ばない）
+function ttDatalistHtml_() {
+  var seen = {}, opts = [];
+  (_testTasks || []).forEach(function(t) { var v = ttShort_(t); if (v && !seen[v]) { seen[v] = 1; opts.push(v); } });
+  return '<datalist id="tt-dl-short">' + opts.map(function(v) { return '<option value="' + esc(v) + '">'; }).join('') + '</datalist>';
+}
+// 欄に入りきらない文字は、マウスを乗せたときだけ全文
+function ttFullPop(inp) {
+  var f = inp.nextElementSibling;
+  if (inp.scrollWidth > inp.clientWidth + 1 && document.activeElement !== inp) { f.textContent = inp.value; f.classList.add('on'); } else f.classList.remove('on');
+}
+document.addEventListener('mouseout', function(e) { if (e.target.matches && e.target.matches('.tt-fw input')) { var f = e.target.nextElementSibling; if (f) f.classList.remove('on'); } });
+
+// タスク一覧のその場の書き換え：その項目だけ送る。押す前の値（base）を付け、ほかの端末が先に変えていたら食い違いを出す
+function ttFieldChange(inp) {
+  var t = ttFindTask_(inp.getAttribute('data-id')); if (!t) return;
+  var f = inp.getAttribute('data-f'), v = String(inp.value || '').trim();
+  var before = f === 'short' ? (t.short || '') : f === 'checkDate' ? (t.checkDate ? String(t.checkDate).slice(0, 10) : '') : (t[f] || '');
+  if (f === 'title' && !v) { inp.value = t.title; return; }
+  if (f === 'short' && v === ttAutoShort_(t.title) && !t.short) return;   // 自動の案のまま＝変えていない
+  if (v === before) return;
+  var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
+  var fields = {}; fields[f] = v; var base = {}; base[f] = before;
+  t[f] = v;
+  var ok = document.getElementById('tt-ok-' + t.id); if (ok) ok.textContent = '保存中…';
+  callGas(url, { action: 'updateTestTaskFields', taskId: t.id, fields: JSON.stringify(fields), base: JSON.stringify(base) }, function(r) {
+    if (r && r.success && r.task) {
+      ttMergeServerTask_(r.task); _ttOkAt = ttHM_(); _ttFetchErr = false;
+      if (r.conflicts && r.conflicts.length) {
+        ttShowConflicts_(r.task, r.conflicts.map(function(c) { return { field: c.field, server: c.server, mine: fields[c.field] }; }), null, true);
+      }
+      var ok2 = document.getElementById('tt-ok-' + t.id);
+      if (!r.conflicts || !r.conflicts.length) { if (ok2) ok2.textContent = '保存しました'; setTimeout(function() { var o = document.getElementById('tt-ok-' + t.id); if (o) o.textContent = ''; }, 1500); }
+      if (!document.querySelector('.tt-list input:focus')) ttRender();
+    } else {
+      var ok3 = document.getElementById('tt-ok-' + t.id); if (ok3) ok3.textContent = '保存できませんでした';
+      t[f] = before;
+      alert('保存できませんでした：' + ((r && r.error) || '通信エラー'));
+    }
+  }, 'POST', true);
+}
 
 // ---------- 絞り込み条件 ----------
 function ttPool_() { return (_students || []).filter(function(s) { return /^(中|高)/.test(String(s.grade || '')); }); }
-// 種別（塾／CA）。条件に無ければ「塾」とみなす＝既定は塾生だけ（川上さん 2026-11-18：
-//   CAだけの中学生がテスト対策の対象に混ざっていた。テスト対策期間の一括登録と同じ attrJuku で見る）
+// 種別（塾／CA）。条件に無ければ「塾」とみなす＝既定は塾生だけ（2026-11-18 川上さん）。テスト対策期間の一括登録と同じ attrJuku で見る
 function ttTyOf_(c) { return (c && c.ty && c.ty.length) ? c.ty : ['塾']; }
 function ttMatchCond_(s, c) {
   c = c || {};
@@ -19462,7 +19621,6 @@ function ttCondText_(c) {
   if ((c.g || []).length) p.push(c.g.join('・'));
   return p.join('　');
 }
-// 複製したときの対象者
 function ttCopyTargets_(t, mode) {
   if (mode === 'prev') {
     var list = [], gone = 0;
@@ -19475,22 +19633,23 @@ function ttCopyTargets_(t, mode) {
 }
 function ttCopy(id, withTarget) {
   var t = ttFindTask_(id); if (!t) return;
-  if (!withTarget) { ttOpenEdit('', { title: t.title, memo: t.memo, cond: t.cond || {}, members: [] }); return; }
-  var tg = ttCopyTargets_(t, _ttPast);
-  if (!tg.list.length) return;
-  ttOpenEdit('', { title: t.title, memo: t.memo, cond: t.cond || {}, members: tg.list });
+  var pre = { title: t.title, memo: t.memo, short: t.short || '', cond: t.cond || {}, members: [] };
+  if (withTarget) { var tg = ttCopyTargets_(t, _ttPast); if (!tg.list.length) return; pre.members = tg.list; }
+  ttOpenEdit('', pre);
 }
 
-// ---------- 追加・編集の画面 ----------
-var _ttEd = null;   // { id, year, term, f:{cr,sc,g}, sel:[生徒] }
+// ---------- 追加・対象者の編集の画面 ----------
+var _ttEd = null;
 function ttOpenEdit(id, pre) {
   var t = id ? ttFindTask_(id) : null;
   var c = t ? (t.cond || {}) : (pre ? pre.cond || {} : {});
   _ttEd = {
     id: t ? t.id : '', year: t ? t.year : _ttYear, term: t ? t.term : _ttTerm,
+    shortTouched: !!(t ? t.short : (pre && pre.short)),
     f: { ty: ttTyOf_(c).slice(), cr: (c.cr || []).slice(), sc: (c.sc || []).slice(), g: (c.g || []).slice() },
     sel: t ? (t.items || []).map(ttStu_).filter(function(s) { return !!s; }) : (pre ? (pre.members || []).slice() : [])
   };
+  var title0 = t ? t.title : (pre ? pre.title : ''), short0 = t ? ttShort_(t) : (pre ? (pre.short || (pre.title ? ttAutoShort_(pre.title) : '')) : '');
   var ex = document.getElementById('modal-tt'); if (ex) ex.remove();
   var m = document.createElement('div');
   m.id = 'modal-tt'; m.className = 'modal-overlay';
@@ -19498,8 +19657,10 @@ function ttOpenEdit(id, pre) {
   if (yrs.indexOf(_ttEd.year) < 0) yrs.push(_ttEd.year);
   m.innerHTML = '<div class="modal"><div class="modal-header"><span>' + (t ? 'テスト対策タスクを編集' : 'テスト対策タスクを追加') + '</span><span class="modal-close" onclick="closeModal(\'modal-tt\')">&#215;</span></div>' +
     '<div class="modal-body">' +
-    '<div class="tt-fl">タスク</div><input class="tt-inp" id="tt-title" placeholder="例：数学 範囲プリント（正負の数〜文字式）" value="' + esc(t ? t.title : (pre ? pre.title : '')) + '">' +
-    '<div class="tt-fl">メモ</div><input class="tt-inp" id="tt-memo" value="' + esc(t ? t.memo : (pre ? pre.memo || '' : '')) + '">' +
+    '<div class="tt-frow2"><div style="flex:3"><div class="tt-fl">タスク</div><input class="tt-inp" id="tt-title" placeholder="例：国語 論語の教科書ガイド" value="' + esc(title0) + '" oninput="ttEdTitleInput()"></div>' +
+    '<div style="flex:1.2"><div class="tt-fl">呼び名</div><input class="tt-inp" id="tt-short" list="tt-dl-short" value="' + esc(short0) + '" oninput="_ttEd.shortTouched=true"></div></div>' +
+    '<div class="tt-frow2"><div style="flex:3"><div class="tt-fl">メモ</div><input class="tt-inp" id="tt-memo" value="' + esc(t ? t.memo : (pre ? pre.memo || '' : '')) + '"></div>' +
+    '<div style="flex:1.2"><div class="tt-fl">確認する日</div><input type="date" class="tt-inp" id="tt-cd" value="' + esc(t && t.checkDate ? String(t.checkDate).slice(0, 10) : '') + '"></div></div>' +
     '<div class="tt-fl">テスト</div><div class="tt-frow"><select class="tt-sel" id="tt-year">' +
     yrs.map(function(y) { return '<option value="' + y + '"' + (y === _ttEd.year ? ' selected' : '') + '>' + y + '年度</option>'; }).join('') + '</select>' +
     '<select class="tt-sel" id="tt-term">' + TT_TERMS.map(function(x) { return '<option' + (x === _ttEd.term ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></div>' +
@@ -19508,11 +19669,15 @@ function ttOpenEdit(id, pre) {
     '<div class="tt-trc"><div class="tt-trh"><span>対象者</span><span class="n" id="tt-sn"></span><button onclick="ttEdClear()">全部外す</button></div><div class="tt-trl" id="tt-sel"></div></div></div>' +
     '<div class="tt-cond" id="tt-condtxt"></div></div>' +
     '<div class="modal-footer">' + (t ? '<button class="btn-danger" style="margin-right:auto" onclick="ttDelete()">このタスクを削除</button>' : '') +
-    '<button class="btn-secondary" onclick="closeModal(\'modal-tt\')">キャンセル</button><button class="btn-primary" id="tt-save" onclick="ttSave()">保存</button></div></div>';
+    '<button class="btn-secondary" onclick="closeModal(\'modal-tt\')">キャンセル</button><button class="btn-primary" id="tt-save" onclick="ttSave()">保存</button></div></div>' + ttDatalistHtml_();
   document.body.appendChild(m);
   ttEdRender_();
   openModal('modal-tt');
   setTimeout(function() { var i = document.getElementById('tt-title'); if (i && !i.value) i.focus(); }, 50);
+}
+function ttEdTitleInput() {
+  if (_ttEd.shortTouched) return;
+  document.getElementById('tt-short').value = ttAutoShort_(document.getElementById('tt-title').value);
 }
 function ttEdRender_() {
   var pool = ttPool_(), f = _ttEd.f;
@@ -19527,8 +19692,7 @@ function ttEdRender_() {
   }
   document.getElementById('tt-filters').innerHTML = row('種別', 'ty', ['塾', 'CA']) + row('教室', 'cr', ['北久里浜', '久里浜']) + row('中学校', 'sc', scs) + row('学年', 'g', grades);
   var selKeys = {}; _ttEd.sel.forEach(function(s) { selKeys[cbStuKey_(s)] = 1; });
-  var cand = pool.filter(function(s) { return !selKeys[cbStuKey_(s)] && ttMatchCond_(s, f); });
-  cand = ttSortByGrade_(cand);
+  var cand = ttSortByGrade_(pool.filter(function(s) { return !selKeys[cbStuKey_(s)] && ttMatchCond_(s, f); }));
   var item = function(s, fn) { return '<div class="tt-tri" onclick="' + fn + '(\'' + esc(cbStuKey_(s)) + '\')">' + esc(s.name) + '<span class="g">' + esc(s.grade || '') + ' ' + esc(ttShortSchool_(s.school)) + ' ' + esc(s.classroom || '') + '</span></div>'; };
   document.getElementById('tt-cn').textContent = cand.length + '人';
   document.getElementById('tt-cand').innerHTML = cand.map(function(s) { return item(s, 'ttEdAdd'); }).join('');
@@ -19558,10 +19722,13 @@ function ttSave() {
   if (!title) { alert('タスクを入れてください'); return; }
   var url = localStorage.getItem(GAS_STUDENT_URL_KEY) || '';
   if (!url) { alert('会員管理GASのURLが設定されていません'); return; }
+  var short = (document.getElementById('tt-short').value || '').trim();
   var task = {
     id: _ttEd.id || ('tt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
     year: document.getElementById('tt-year').value, term: document.getElementById('tt-term').value,
     title: title, memo: (document.getElementById('tt-memo').value || '').trim(),
+    short: short === ttAutoShort_(title) && !_ttEd.shortTouched ? '' : short,
+    checkDate: document.getElementById('tt-cd').value || '',
     cond: { ty: _ttEd.f.ty, cr: _ttEd.f.cr, sc: _ttEd.f.sc, g: _ttEd.f.g },
     members: _ttEd.sel.map(function(s) { return { sid: s.sid || '', name: s.name }; })
   };
@@ -19571,14 +19738,12 @@ function ttSave() {
   callGas(url, { action: 'saveTestTask', task: JSON.stringify(task) }, function(r) {
     btn.disabled = false; btn.textContent = '保存';
     if (r && r.success && r.task) {
-      ttMergeServerTask_(r.task);
+      ttMergeServerTask_(r.task); _ttOkAt = ttHM_();
       closeModal('modal-tt');
       _ttYear = r.task.year; _ttTerm = r.task.term;
       miniToast('保存しました');
       if (_currentTab === 'exam') ttRender(); else ttRerender_();
-    } else {
-      alert('保存できませんでした：' + ((r && r.error) || '通信エラー'));
-    }
+    } else alert('保存できませんでした：' + ((r && r.error) || '通信エラー'));
   }, 'POST', true);
 }
 function ttDelete() {
@@ -19601,12 +19766,11 @@ function ttTodayBandInner_() {
   var k = ttTodayKey_();
   if (!k) return '';
   if (!_ttLoaded) return _ttFailed ? '<div class="cl-loaderr"><span>&#9888; テスト対策タスクを読み込めませんでした（データは消えていません）</span></div>' : '';
-  var tasks = ttTasksOf_(k.year, k.term).filter(ttOpenTask_);
-  if (!tasks.length) return '';
-  return '<div class="tt-band"><div class="tt-band-h"><span>テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）</span>' + ttLegendHtml_() + '</div>' +
-    ttMatrixHtml_(tasks, 'today') + '</div>';
+  var S = ttStudentsOf_(ttTasksOf_(k.year, k.term));
+  if (!S.list.length) return '';
+  return '<div class="tt-band"><div class="tt-band-h"><span>テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）</span>' + ttSyncHtml_() + ttLegendHtml_() + '</div>' +
+    ttColsHtml_(S.list, 'today', cbViewIso_()) + '</div>';
 }
-// 時間割に出ている子（欠席は除く）を { 氏名: 教室 } で集める
 function ttCollectToday_() {
   var set = {};
   document.querySelectorAll('.today-grid .student-chip').forEach(function(ch) {
@@ -19627,44 +19791,45 @@ function ttAfterTodayRender_() {
   if (band) band.innerHTML = ttTodayBandInner_();
 }
 
-// ---------- 印刷（本日A4）----------
-// onlyCr：片方の教室だけの印刷。所属がその教室の子と、今日その教室に来る子を載せる
+// ---------- 印刷（本日A4） ----------
+// 左＝北久里浜・右＝久里浜。生徒ごとに1行、1タスク1マス＋呼び名。onlyCr：片方の教室だけの印刷（所属の子＋今日その教室に来る子）
 function ttPrintHtml_(onlyCr) {
   var k = ttTodayKey_();
   if (!k || !_ttLoaded) return '';
   _ttTodaySet = ttCollectToday_();
-  var tasks = ttTasksOf_(k.year, k.term).filter(ttOpenTask_);
-  if (!tasks.length) return '';
-  var G = ttGroups_(tasks);
-  var h = '<div class="ttp"><div class="ttp-h">テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）' +
-    '<span><i></i>まだ<i class="s1"></i>渡す・伝えた<i class="s2"></i>チェック済　太字＝今日来る子</span></div>';
-  var any = false;
-  G.groups.forEach(function(grp) {
-    var stus = ttSortStus_(grp.stus, true).filter(function(s) {
-      if (!onlyCr) return true;
-      return s.classroom === onlyCr || (_ttTodaySet && _ttTodaySet[s.name] === onlyCr);
-    });
-    if (!stus.length) return;
-    any = true;
-    h += '<div class="ttp-g"><div class="ttp-lg"><b>' + esc(grp.g) + '</b>' + grp.tasks.map(function(t, i) { return '<span>' + TT_CIR.charAt(i) + ' ' + esc(t.title) + '</span>'; }).join('') + '</div><div class="ttp-w">';
-    var per = Math.max(1, Math.ceil(stus.length / 4));
-    for (var c = 0; c < stus.length; c += per) {
-      h += '<table><tr><th style="width:auto"></th>' + grp.tasks.map(function(_, i) { return '<th>' + TT_CIR.charAt(i) + '</th>'; }).join('') + '</tr>';
-      stus.slice(c, c + per).forEach(function(s) {
-        var isToday = !!(_ttTodaySet && _ttTodaySet[s.name]);
-        var all = grp.tasks.every(function(t) { var i = ttItemIdx_(t, s); return i < 0 || +t.items[i].st === 2; });
-        h += '<tr class="' + (isToday ? 'td' : '') + (all ? ' dn' : '') + '"><td class="n">' + esc(s.name) + '<span class="sc">' + esc(ttShortSchool_(s.school)) + '</span>' + (isToday ? '<span class="tm">今日</span>' : '') + '</td>';
-        grp.tasks.forEach(function(t) {
-          var i = ttItemIdx_(t, s);
-          h += i < 0 ? '<td class="c na"></td>' : '<td class="c"><i class="s' + (+t.items[i].st || 0) + '"></i></td>';
+  var iso = cbViewIso_();
+  var S = ttStudentsOf_(ttTasksOf_(k.year, k.term));
+  if (!S.list.length) return '';
+  function rowP(r) {
+    var s = r.s, td = ttIsToday_(s);
+    return '<div class="ttp-r ' + (s.classroom === '北久里浜' ? 'kita' : 'kuri') + (td ? ' td' : '') + '"><span class="w">' + esc(s.name) + '<span class="sc">' + esc(ttShortSchool_(s.school)) + '</span>' + (td ? '<span class="tm">今日</span>' : '') + '</span>' +
+      r.tk.map(function(x) {
+        var st = +x.t.items[x.i].st || 0, cd = x.t.checkDate ? String(x.t.checkDate).slice(0, 10) : '';
+        var mk = (cd && st !== 2) ? (cd === iso ? '<b class="ck">今日確認</b>' : (cd < iso ? '<b class="ck">確認日過ぎ</b>' : '')) : '';
+        return '<span class="ttp-c' + (st === 2 ? ' dn' : '') + '"><i class="s' + st + '"></i>' + esc(ttShort_(x.t)) + mk + '</span>';
+      }).join('') + '</div>';
+  }
+  function colP(cr) {
+    var l = onlyCr
+      ? S.list.filter(function(r) { return r.s.classroom === cr || (_ttTodaySet && _ttTodaySet[r.s.name] === cr); })
+      : S.list.filter(function(r) { return (r.s.classroom === '北久里浜') === (cr === '北久里浜'); });
+    var h = '';
+    var t = l.filter(function(r) { return ttIsToday_(r.s); }), o = l.filter(function(r) { return !ttIsToday_(r.s); });
+    [t, o].forEach(function(part) {
+      TT_GRADE_ORDER.forEach(function(g) {
+        var gr = part.filter(function(r) { return r.s.grade === g; }); if (!gr.length) return;
+        h += '<div class="ttp-g">' + esc(g) + '</div>';
+        ttSchoolRank_(gr, g).forEach(function(sc) {
+          gr.filter(function(r) { return (r.s.school || '') === sc; }).sort(function(a, b) { return String(a.s.kana || a.s.name) < String(b.s.kana || b.s.name) ? -1 : 1; }).forEach(function(r) { h += rowP(r); });
         });
-        h += '</tr>';
       });
-      h += '</table>';
-    }
-    h += '</div></div>';
-  });
-  return any ? h + '</div>' : '';
+    });
+    return '<div class="ttp-col"><div class="ttp-crh ' + (cr === '北久里浜' ? 'kita' : 'kuri') + '">' + cr + '（' + l.length + '人・今日来る子 ' + t.length + '人）</div>' + (h || '<div style="color:#666">対象の生徒はいません</div>') + '</div>';
+  }
+  var cols = onlyCr ? colP(onlyCr) : colP('北久里浜') + colP('久里浜');
+  return '<div class="ttp"><div class="ttp-h">テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）' +
+    '<span><i></i>まだ<i class="s1"></i>渡す・伝えた<i class="s2"></i>チェック済　太字＝今日来る子</span></div>' +
+    '<div class="ttp-cols' + (onlyCr ? ' one' : '') + '">' + cols + '</div></div>';
 }
 </script>
 </body>
