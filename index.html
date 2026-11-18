@@ -7591,7 +7591,7 @@ function deleteTest(taskId) {
 // 作りは ジョブス用\仕様書\ClassBoard_定期テスト対策タブ_過去版.md、動いていた版は backup\20261118_テスト対策タスクを入れる前\ClassBoard.html。
 // データ（シート「定期テスト対策カード」「定期テスト日程」「定期テスト対策」）は残してある。
 // =====================================================
-function renderExam() { ttSyncIfStale_(); ttRender(); }
+function renderExam() { _ttKeep = {}; ttSyncIfStale_(); ttRender(); }
 
 // 学校タブで使う（もとは定期テスト対策のインライン編集の節にあった。2026-11-18 そこを消したのでここへ）
 var _currentSchoolDetail = ''; // 現在開いている学校詳細パネルの学校名
@@ -17127,11 +17127,16 @@ function ttShort_(t) { return String(t.short || '').trim() || ttAutoShort_(t.tit
 function ttFmtMD_(iso) { if (!iso) return ''; var p = String(iso).slice(0, 10).split('-'); return (+p[1]) + '/' + (+p[2]); }
 
 // 生徒ごとに、残っているタスク [{t, i}] をまとめる。名簿にいない子は数えるだけ
-function ttStudentsOf_(tasks) {
+// hideDone：その子の分が済んだ札（st=2）も外す＝本日タブ・紙（2026-11-18 14:31 川上さん）。定期テストタブは外さない（灰色で残す）
+// ただし、この画面で押したばかりの札（_ttKeep）は、押し間違いをその場で戻せるように残す。本日タブ・定期テストタブを開き直すと消える
+var _ttKeep = {};
+function ttKeepKey_(t, it) { return t.id + '|' + ttKeyOfItem_(it); }
+function ttStudentsOf_(tasks, hideDone) {
   var map = {}, list = [], missing = {};
   tasks.forEach(function(t) {
-    if (ttTaskDone_(t)) return;
+    if (ttTaskDone_(t) && !(t.items || []).some(function(it) { return _ttKeep[ttKeepKey_(t, it)]; })) return;
     (t.items || []).forEach(function(it, i) {
+      if ((+it.st || 0) === 2 && (hideDone || ttTaskDone_(t)) && !_ttKeep[ttKeepKey_(t, it)]) return;
       var s = ttStu_(it);
       if (!s) { missing[String(it.sid || '') + '|' + String(it.name || '')] = 1; return; }
       var k = cbStuKey_(s);
@@ -17223,7 +17228,7 @@ function ttSyncHtml_() {
   else if (n || _ttSending) h = '<span class="tt-sync busy">● 保存中…（' + (n || 1) + '件）</span>';
   else if (_ttFetchErr) h = '<span class="tt-sync err">● サーバーと確かめられていません' + (_ttOkAt ? '（最後に確かめたのは ' + _ttOkAt + '）' : '') + '</span>';
   else h = '<span class="tt-sync ok">● サーバーと同じ（' + (_ttOkAt || '—') + ' 確認）・未送信なし</span>';
-  return '<span id="tt-syncline">' + h + '</span><button class="btn-secondary btn-sm tt-reload" onclick="ttReload()">⟳ 取り直す</button>';
+  return '<span id="tt-syncline">' + h + '</span><button class="btn-secondary btn-sm tt-reload" onclick="ttReload()">🔄 再読み込み</button>';
 }
 function ttSyncRefresh_() { var el = document.getElementById('tt-syncline'); if (el) el.outerHTML = ttSyncHtml_().replace(/<button[\s\S]*$/, ''); }
 function ttReload() { _ttLastFetch = 0; ttSyncIfStale_(true); }
@@ -17241,6 +17246,7 @@ function ttBox(taskId, i, which) {
   }
   ttQueue_(t.id, it, st, ns);
   it.st = ns;
+  _ttKeep[ttKeepKey_(t, it)] = 1;   // 押したばかりの札は、開き直すまで灰色で残す（押し間違いをその場で戻せる）
   ttRerender_();
 }
 function ttRerender_() {
@@ -17353,6 +17359,8 @@ function ttSyncIfStale_(force) {
       _ttFetchErr = false; _ttOkAt = ttHM_();
       if (ttPendingCount_() || _ttSending) { ttSyncRefresh_(); return; }
       if (document.querySelector('.tt-list input:focus')) { ttSyncRefresh_(); return; }   // 打っている最中は描き直さない
+      // 中身が画面と同じなら描き直さない（吹き出し・入力欄をそのままにする。2026-11-18 川上さん「間隔が狭すぎてリセットされるのはうざい」）
+      if (JSON.stringify(r.tasks) === JSON.stringify(_testTasks)) { _ttLoaded = true; _ttFailed = false; ttSyncRefresh_(); return; }
       _testTasks = r.tasks; _ttLoaded = true; _ttFailed = false;
       if (_currentTab === 'exam') ttRender(); else ttRerender_();
     } else { _ttFetchErr = true; ttSyncRefresh_(); }
@@ -17634,7 +17642,7 @@ function ttTodayBandInner_() {
   var k = ttTodayKey_();
   if (!k) return '';
   if (!_ttLoaded) return _ttFailed ? '<div class="cl-loaderr"><span>&#9888; テスト対策タスクを読み込めませんでした（データは消えていません）</span></div>' : '';
-  var S = ttStudentsOf_(ttTasksOf_(k.year, k.term));
+  var S = ttStudentsOf_(ttTasksOf_(k.year, k.term), true);
   if (!S.list.length) return '';
   var open = ttBandOpen_();
   var nToday = S.list.filter(function(r) { return ttIsToday_(r.s); }).length;
@@ -17677,6 +17685,7 @@ function ttCollectToday_() {
   return set;
 }
 function ttAfterTodayRender_() {
+  _ttKeep = {};   // 本日タブを開き直したら、押したばかりで残していた札も消す
   if (!ttTodayKey_()) { _ttTodaySet = null; return; }
   _ttTodaySet = ttCollectToday_();
   var band = document.getElementById('tt-band-wrap');
@@ -17690,7 +17699,9 @@ function ttPrintHtml_(onlyCr) {
   if (!k || !_ttLoaded) return '';
   _ttTodaySet = ttCollectToday_();
   var iso = cbViewIso_();
-  var S = ttStudentsOf_(ttTasksOf_(k.year, k.term));
+  var _kp = _ttKeep; _ttKeep = {};   // 紙には押したばかりの札も載せない（済んだ札は載せない）
+  var S = ttStudentsOf_(ttTasksOf_(k.year, k.term), true);
+  _ttKeep = _kp;
   if (!S.list.length) return '';
   function rowP(r) {
     var s = r.s, td = ttIsToday_(s);
