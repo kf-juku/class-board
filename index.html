@@ -1759,6 +1759,7 @@ tr.mx-done-row td { background: #f0fdf4; }
 .tt-list input.f-mm { min-width: 180px; max-width: 240px; color: var(--text-muted); }
 .tt-list input.f-cd { min-width: 128px; }
 .tt-list .tdone { color: #94a3b8 !important; }
+.tt-list .tt-done-h { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin-top: 6px; padding: 4px 2px 3px; border-top: 2px dashed #94a3b8; font-size: 12px; font-weight: 700; color: var(--text-muted); cursor: pointer; user-select: none; }
 .tt-list input.f-tt.tdone { text-decoration: line-through; }
 .tt-list .who2 { font-size: 12px; line-height: 1.5; max-width: 380px; padding: 3px 0; }
 .tt-list .who2 .w2 { color: #94a3b8; text-decoration: line-through; }
@@ -17400,10 +17401,9 @@ function ttRender() {
 
   // タスク一覧（その場で直す）
   if (tasks.length) {
-    var ord = tasks.slice().sort(function(a, b) { return (ttTaskDone_(a) ? 1 : 0) - (ttTaskDone_(b) ? 1 : 0); });
-    h += '<div class="tt-sec"><div class="tt-sec-h"><span class="t">タスク一覧</span><span class="s">' + tasks.length + '件</span></div><div class="tt-list">' +
-      '<span class="h">タスク</span><span class="h">呼び名</span><span class="h">メモ</span><span class="h">確認する日</span><span class="h">対象者</span><span class="h"></span>' +
-      ord.map(function(t) {
+    // 完了したタスクは「完了 N件 ∨」の1行にたたむ（既定は閉じる・端末ごとに覚える。2026-11-18 15:36 川上さん「邪魔」）
+    var live = tasks.filter(function(t) { return !ttTaskDone_(t); }), dns = tasks.filter(ttTaskDone_), dOpen = ttDoneOpen_();
+    var rowOf = function(t) {
         var dn = ttTaskDone_(t), c = dn ? ' tdone' : '', id = esc(t.id);
         var who = (t.items || []).map(function(it) { var s = ttStu_(it); if (!s) return ''; return '<span class="' + (+it.st === 2 ? 'w2' : '') + '">' + esc(s.name) + '</span>'; }).filter(Boolean).join('・');
         return '<span class="tt-fw"><input class="f-tt' + c + '" value="' + esc(t.title) + '" data-id="' + id + '" data-f="title" onchange="ttFieldChange(this)" onmouseenter="ttFullPop(this)"><span class="tt-full"></span></span>' +
@@ -17412,7 +17412,12 @@ function ttRender() {
           '<input type="date" class="f-cd' + c + '" value="' + esc(t.checkDate ? String(t.checkDate).slice(0, 10) : '') + '" data-id="' + id + '" data-f="checkDate" onchange="ttFieldChange(this)">' +
           '<span class="who2' + c + '">' + (dn ? '<b class="donemk">完了</b>' : '') + who + '</span>' +
           '<span><button class="tt-ed" onclick="ttOpenEdit(\'' + id + '\')">✎ 対象者</button><span class="tt-ok" id="tt-ok-' + id + '"></span></span>';
-      }).join('') + '</div></div>';
+    };
+    h += '<div class="tt-sec"><div class="tt-sec-h"><span class="t">タスク一覧</span><span class="s">' + live.length + '件' + (dns.length ? '（ほかに完了 ' + dns.length + '件）' : '') + '</span></div><div class="tt-list">' +
+      '<span class="h">タスク</span><span class="h">呼び名</span><span class="h">メモ</span><span class="h">確認する日</span><span class="h">対象者</span><span class="h"></span>' +
+      live.map(rowOf).join('') +
+      (dns.length ? '<div class="tt-done-h" onclick="ttToggleDone()">完了 ' + dns.length + '件' + ttChevHtml_(dOpen) + '</div>' + (dOpen ? dns.map(rowOf).join('') : '') : '') +
+      '</div></div>';
   }
 
   // 過去のタスク
@@ -17660,6 +17665,9 @@ function ttTodayBandInner_() {
 function ttChevHtml_(open) {
   return '<span class="cl-chevron' + (open ? ' open' : '') + '"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>';
 }
+// タスク一覧の「完了 N件」の開閉。端末ごとに覚える。既定は閉じる
+function ttDoneOpen_() { try { return localStorage.getItem('cb_tt_done_open') === '1'; } catch (e) { return false; } }
+function ttToggleDone() { try { localStorage.setItem('cb_tt_done_open', ttDoneOpen_() ? '0' : '1'); } catch (er) {} ttRender(); }
 // 本日タブの「今日来ない子」の開閉。両方の教室で1つ。端末ごとに覚える。既定は閉じる
 function ttRestOpen_() { try { return localStorage.getItem('cb_tt_rest_open') === '1'; } catch (e) { return false; } }
 function ttToggleRest() {
