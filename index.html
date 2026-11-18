@@ -17124,6 +17124,8 @@ function ttAutoShort_(title) {
   return s.length > 12 ? s.slice(0, 12) : (s || String(title || '').slice(0, 10));
 }
 function ttShort_(t) { return String(t.short || '').trim() || ttAutoShort_(t.title); }
+// 本日タブで今日以外の日を見ているときは「今日」ではなくその日付で書く（2026-11-18 川上さん）。'今日' または '11/19に'
+function ttDayWord_(iso) { iso = iso || cbViewIso_(); return iso === isoDate(new Date()) ? '今日' : ttFmtMD_(iso) + 'に'; }
 function ttFmtMD_(iso) { if (!iso) return ''; var p = String(iso).slice(0, 10).split('-'); return (+p[1]) + '/' + (+p[2]); }
 
 // 生徒ごとに、残っているタスク [{t, i}] をまとめる。名簿にいない子は数えるだけ
@@ -17162,7 +17164,7 @@ function ttCardHtml_(r, mode, iso) {
     var t = x.t, it = t.items[x.i], st = +it.st || 0, cd = t.checkDate ? String(t.checkDate).slice(0, 10) : '';
     var mk = '';
     if (cd && st !== 2 && iso) {
-      if (cd === iso) mk = '<span class="tt-ck now">今日確認</span>';
+      if (cd === iso) mk = '<span class="tt-ck now">' + ttDayWord_(iso) + '確認</span>';
       else if (cd < iso) mk = '<span class="tt-ck over">確認日' + ttFmtMD_(cd) + 'を過ぎた</span>';
     }
     return '<span class="tt-chip' + (st === 2 ? ' dn' : '') + '"><span class="tt-pop"><b>' + esc(t.title) + '</b>' +
@@ -17198,11 +17200,11 @@ function ttColsHtml_(rows, mode, iso) {
     if (mode === 'today') {
       var t = l.filter(function(r) { return ttIsToday_(r.s); }), o = l.filter(function(r) { return !ttIsToday_(r.s); });
       // 確認する日が今日の札は黒い「今日確認」で目立たせる（並びは変えない＝学年の見出しが2回出るのを避ける）
-      head += '<span class="tt-colsub">今日来る子 ' + t.length + '人</span>';
+      head += '<span class="tt-colsub">' + ttDayWord_(iso) + '来る子 ' + t.length + '人</span>';
       // 今日来ない子は見出しの行だけ出し、押すと開く（2026-11-18 川上さん＝既定は閉じる・端末ごとに覚える。紙は全員のまま）
       var ro = ttRestOpen_();
       body = (t.length ? ttColBody_(t, mode, iso) : '') +
-        (o.length ? '<div class="tt-rest-h" onclick="ttToggleRest()">今日来ない子 ' + o.length + '人' + ttChevHtml_(ro) + '</div>' + (ro ? ttColBody_(o, mode, iso) : '') : '');
+        (o.length ? '<div class="tt-rest-h" onclick="ttToggleRest()">' + ttDayWord_(iso) + '来ない子 ' + o.length + '人' + ttChevHtml_(ro) + '</div>' + (ro ? ttColBody_(o, mode, iso) : '') : '');
     } else body = ttColBody_(l, mode, iso);
     return '<div class="tt-col ' + cls + '"><div class="tt-col-h">' + head + '</div>' + (body || '<div class="tt-empty">対象の生徒はいません</div>') + '</div>';
   }
@@ -17651,7 +17653,7 @@ function ttTodayBandInner_() {
   return '<div class="tt-band' + (open ? '' : ' closed') + '"><div class="tt-band-h" onclick="ttToggleBand(event)">' +
     '<span>テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）</span>' +
     (open ? ttSyncHtml_() + ttLegendHtml_() : '') +
-    '<span class="tt-band-n">' + S.list.length + '人・今日来る子 ' + nToday + '人</span>' + chev + '</div>' +
+    '<span class="tt-band-n">' + S.list.length + '人・' + ttDayWord_() + '来る子 ' + nToday + '人</span>' + chev + '</div>' +
     (open ? ttColsHtml_(S.list, 'today', cbViewIso_()) : '') + '</div>';
 }
 // 開閉のマーク（チェックリストと同じ cl-chevron）
@@ -17705,10 +17707,10 @@ function ttPrintHtml_(onlyCr) {
   if (!S.list.length) return '';
   function rowP(r) {
     var s = r.s, td = ttIsToday_(s);
-    return '<div class="ttp-r ' + (s.classroom === '北久里浜' ? 'kita' : 'kuri') + (td ? ' td' : '') + '"><span class="w">' + esc(s.name) + '<span class="sc">' + esc(ttShortSchool_(s.school)) + '</span>' + (td ? '<span class="tm">今日</span>' : '') + '</span>' +
+    return '<div class="ttp-r ' + (s.classroom === '北久里浜' ? 'kita' : 'kuri') + (td ? ' td' : '') + '"><span class="w">' + esc(s.name) + '<span class="sc">' + esc(ttShortSchool_(s.school)) + '</span>' + (td ? '<span class="tm">' + (iso === isoDate(new Date()) ? '今日' : ttFmtMD_(iso)) + '</span>' : '') + '</span>' +
       r.tk.map(function(x) {
         var st = +x.t.items[x.i].st || 0, cd = x.t.checkDate ? String(x.t.checkDate).slice(0, 10) : '';
-        var mk = (cd && st !== 2) ? (cd === iso ? '<b class="ck">今日確認</b>' : (cd < iso ? '<b class="ck">確認日過ぎ</b>' : '')) : '';
+        var mk = (cd && st !== 2) ? (cd === iso ? '<b class="ck">' + ttDayWord_(iso) + '確認</b>' : (cd < iso ? '<b class="ck">確認日過ぎ</b>' : '')) : '';
         return '<span class="ttp-c' + (st === 2 ? ' dn' : '') + '"><i class="s' + st + '"></i>' + esc(ttShort_(x.t)) + mk + '</span>';
       }).join('') + '</div>';
   }
@@ -17727,11 +17729,11 @@ function ttPrintHtml_(onlyCr) {
         });
       });
     });
-    return '<div class="ttp-col"><div class="ttp-crh ' + (cr === '北久里浜' ? 'kita' : 'kuri') + '">' + cr + '（' + l.length + '人・今日来る子 ' + t.length + '人）</div>' + (h || '<div style="color:#666">対象の生徒はいません</div>') + '</div>';
+    return '<div class="ttp-col"><div class="ttp-crh ' + (cr === '北久里浜' ? 'kita' : 'kuri') + '">' + cr + '（' + l.length + '人・' + ttDayWord_(iso) + '来る子 ' + t.length + '人）</div>' + (h || '<div style="color:#666">対象の生徒はいません</div>') + '</div>';
   }
   var cols = onlyCr ? colP(onlyCr) : colP('北久里浜') + colP('久里浜');
   return '<div class="ttp"><div class="ttp-h">テスト対策タスク（' + esc(k.year) + '年度 ' + esc(k.term) + '）' +
-    '<span><i></i>まだ<i class="s1"></i>渡す・伝えた<i class="s2"></i>チェック済　太字＝今日来る子</span></div>' +
+    '<span><i></i>まだ<i class="s1"></i>渡す・伝えた<i class="s2"></i>チェック済　太字＝' + ttDayWord_(iso) + '来る子</span></div>' +
     '<div class="ttp-cols' + (onlyCr ? ' one' : '') + '">' + cols + '</div></div>';
 }
 </script>
