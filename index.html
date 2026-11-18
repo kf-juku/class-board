@@ -19441,8 +19441,13 @@ function ttSetPast(m) { _ttPast = m; ttRender(); }
 
 // ---------- 絞り込み条件 ----------
 function ttPool_() { return (_students || []).filter(function(s) { return /^(中|高)/.test(String(s.grade || '')); }); }
+// 種別（塾／CA）。条件に無ければ「塾」とみなす＝既定は塾生だけ（川上さん 2026-11-18：
+//   CAだけの中学生がテスト対策の対象に混ざっていた。テスト対策期間の一括登録と同じ attrJuku で見る）
+function ttTyOf_(c) { return (c && c.ty && c.ty.length) ? c.ty : ['塾']; }
 function ttMatchCond_(s, c) {
   c = c || {};
+  var ty = ttTyOf_(c);
+  if (!((ty.indexOf('塾') >= 0 && s.attrJuku) || (ty.indexOf('CA') >= 0 && s.attrCa))) return false;
   if ((c.cr || []).length && c.cr.indexOf(s.classroom) < 0) return false;
   if ((c.sc || []).length && c.sc.indexOf(s.school) < 0) return false;
   if ((c.g || []).length && c.g.indexOf(s.grade) < 0) return false;
@@ -19451,6 +19456,7 @@ function ttMatchCond_(s, c) {
 function ttCondEmpty_(c) { c = c || {}; return !(c.cr || []).length && !(c.sc || []).length && !(c.g || []).length; }
 function ttCondText_(c) {
   c = c || {}; var p = [];
+  if ((c.ty || []).length && !(c.ty.length === 1 && c.ty[0] === '塾')) p.push(c.ty.join('・'));
   if ((c.cr || []).length) p.push(c.cr.join('・'));
   if ((c.sc || []).length) p.push(c.sc.join('・'));
   if ((c.g || []).length) p.push(c.g.join('・'));
@@ -19482,7 +19488,7 @@ function ttOpenEdit(id, pre) {
   var c = t ? (t.cond || {}) : (pre ? pre.cond || {} : {});
   _ttEd = {
     id: t ? t.id : '', year: t ? t.year : _ttYear, term: t ? t.term : _ttTerm,
-    f: { cr: (c.cr || []).slice(), sc: (c.sc || []).slice(), g: (c.g || []).slice() },
+    f: { ty: ttTyOf_(c).slice(), cr: (c.cr || []).slice(), sc: (c.sc || []).slice(), g: (c.g || []).slice() },
     sel: t ? (t.items || []).map(ttStu_).filter(function(s) { return !!s; }) : (pre ? (pre.members || []).slice() : [])
   };
   var ex = document.getElementById('modal-tt'); if (ex) ex.remove();
@@ -19519,7 +19525,7 @@ function ttEdRender_() {
       return '<span class="tt-fchip' + (f[key].indexOf(v) >= 0 ? ' on' : '') + '" onclick="ttEdF(\'' + key + '\',\'' + esc(v) + '\')">' + esc(v) + '</span>';
     }).join('') + '</div>';
   }
-  document.getElementById('tt-filters').innerHTML = row('教室', 'cr', ['北久里浜', '久里浜']) + row('中学校', 'sc', scs) + row('学年', 'g', grades);
+  document.getElementById('tt-filters').innerHTML = row('種別', 'ty', ['塾', 'CA']) + row('教室', 'cr', ['北久里浜', '久里浜']) + row('中学校', 'sc', scs) + row('学年', 'g', grades);
   var selKeys = {}; _ttEd.sel.forEach(function(s) { selKeys[cbStuKey_(s)] = 1; });
   var cand = pool.filter(function(s) { return !selKeys[cbStuKey_(s)] && ttMatchCond_(s, f); });
   cand = ttSortByGrade_(cand);
@@ -19556,7 +19562,7 @@ function ttSave() {
     id: _ttEd.id || ('tt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
     year: document.getElementById('tt-year').value, term: document.getElementById('tt-term').value,
     title: title, memo: (document.getElementById('tt-memo').value || '').trim(),
-    cond: { cr: _ttEd.f.cr, sc: _ttEd.f.sc, g: _ttEd.f.g },
+    cond: { ty: _ttEd.f.ty, cr: _ttEd.f.cr, sc: _ttEd.f.sc, g: _ttEd.f.g },
     members: _ttEd.sel.map(function(s) { return { sid: s.sid || '', name: s.name }; })
   };
   if (!_ttEd.id) _ttEd.id = task.id;   // 自動再送で2行にしない（GASは同じidの行に寄せる）
